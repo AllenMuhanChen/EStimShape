@@ -62,7 +62,10 @@ from src.analysis.penetrations.penetration_plots import (
     plot_scree,
     plot_tissue_confidence_by_session,
 )
-from src.analysis.penetrations.run_pooled import EXCUDE_REL_LFP, PIPE_PCA_exclude_rel_lfp, PIPE_PCA_new
+from src.analysis.penetrations.run_pooled import (
+    EXCUDE_REL_LFP, PIPE_PCA_exclude_rel_lfp, PIPE_PCA_new,
+    PIPE_AA_K5, PIPE_AA_K6,
+)
 
 
 def run_analysis(conn: Connection, table_name: str = "PenetrationMetrics", n_pcs: int = 4,
@@ -325,6 +328,12 @@ if __name__ == "__main__":
     PIPELINE = PIPE_PCA_new
 
     # PIPELINE = PIPE_PCA_exclude_rel_lfp
+
+    # --- Archetypal-analysis compositional pipelines (manual archetype→class
+    #     maps in pca_predict.MODEL_AA_K5 / MODEL_AA_K6). Preprocessing here
+    #     matches the explore_decompositions fits the archetypes were read from. ---
+    # PIPELINE = PIPE_AA_K5
+    # PIPELINE = PIPE_AA_K6
 
     # ════════════════════════════════════════════════════════════════════
     # Run — pipeline supplies the decomp + model; everything else here is

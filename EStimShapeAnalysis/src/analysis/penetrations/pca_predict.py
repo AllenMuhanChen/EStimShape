@@ -628,6 +628,46 @@ class TissueModel:
         return pcs
 
 
+@dataclass
+class CompositionalTissueModel:
+    """Tissue model for positive-only compositional decompositions (AA / GMM /
+    NMF), where each component score (PC1..PCk column) is already a >= 0
+    membership/activation for one prototype.
+
+    Instead of signed PC evidence + softmax (that's `TissueModel`), you assign
+    each component to a tissue class by hand; the class's membership is the SUM
+    of its components, and:
+
+        p_class      = (sum of that class's component scores)
+                       / (sum over ALL tissue-class components)     # nuisance excluded
+        tissue_score = sum_class  value[class] * p_class
+        tissue_confidence = max_class p_class
+
+    Components listed in `nuisance` are excluded entirely (e.g. an AA archetype
+    that encodes response *strength*, which any tissue can have) — the tissue
+    call is made from the RELATIVE proportions of the remaining components.
+
+    Fields
+    ------
+    assignments : {class_name: [PC columns]}  e.g. {'wm':['PC1','PC2'],
+                  'gm':['PC3','PC4','PC6'], 'sulcus':['PC5']}
+    values      : {class_name: tissue value}  MRI axis; convention
+                  sulcus=0.0, gm=0.5, wm=1.0 (monotonic with MRI intensity).
+    nuisance    : PC columns to ignore (not a tissue), e.g. ['PC1'].
+
+    IMPORTANT: component order (PC1..PCk) is only stable for a FIXED dataset +
+    recipe (deterministic seed). If you change K, features, normalization, or
+    smoothing, re-inspect the fit and update the mapping — the indices here are
+    tied to the exact preprocessing you labelled them under.
+    """
+    assignments: dict
+    values: dict
+    nuisance: List[str] = field(default_factory=list)
+
+    def tissue_pcs(self) -> List[str]:
+        return [pc for pcs in self.assignments.values() for pc in pcs]
+
+
 # PC1: + = brain, − = sulcus
 # PC2: + = GM,    − = WM
 # PC4: + = sulcus, − = brain
@@ -648,6 +688,44 @@ MODEL_PCA_V1 = TissueModel([
         Evidence('PC4', sign=+1),
     ]),
 ])
+
+
+# ---------------------------------------------------------------------------
+# Manual compositional tissue models (Archetypal Analysis).
+# The PC-index → archetype meaning was read off the explore_decompositions AA
+# fits (within_session_normalize=True, pc_smooth_sigma=2.0, no excluded
+# features). A pipeline using these MUST reproduce that exact preprocessing, or
+# the archetype order changes and the mapping is wrong.
+# ---------------------------------------------------------------------------
+
+# AA K=5:
+#   arch1 (PC1) = response strength (any tissue can be strong) -> NUISANCE
+#   arch2 (PC2) = sulcus
+#   arch3 (PC3) = WM
+#   arch4,5 (PC4, PC5) = GM
+MODEL_AA_K5 = CompositionalTissueModel(
+    assignments={
+        'wm':     ['PC3'],
+        'gm':     ['PC4', 'PC5'],
+        'sulcus': ['PC2'],
+    },
+    values={'wm': 1.0, 'gm': 0.5, 'sulcus': 0.0},
+    nuisance=['PC1'],
+)
+
+# AA K=6:
+#   arch1,2 (PC1, PC2) = WM (summed)
+#   arch5 (PC5) = sulcus
+#   arch3,4,6 (PC3, PC4, PC6) = cortex / GM (summed)
+MODEL_AA_K6 = CompositionalTissueModel(
+    assignments={
+        'wm':     ['PC1', 'PC2'],
+        'gm':     ['PC3', 'PC4', 'PC6'],
+        'sulcus': ['PC5'],
+    },
+    values={'wm': 1.0, 'gm': 0.5, 'sulcus': 0.0},
+    nuisance=[],
+)
 
 
 # 2-component model for varimax_n_components=2 runs.
@@ -738,6 +816,38 @@ def _gmm_brain_threshold(pc1_values: np.ndarray) -> float:
     return threshold
 
 
+def compute_compositional_tissue(
+        df: pd.DataFrame,
+        model: CompositionalTissueModel,
+) -> pd.DataFrame:
+    """Turn positive-only component memberships (PC columns) into per-class
+    probabilities + tissue_score using a hand-assigned CompositionalTissueModel.
+
+    Adds p_<class>, tissue_score, tissue_confidence. See CompositionalTissueModel
+    for the maths. Nuisance components are dropped; the class call is made from
+    the relative proportions of the assigned components. Scores are clipped at 0
+    (per-bin smoothing can push a membership slightly negative)."""
+    df = df.copy()
+    classes = list(model.assignments.keys())
+
+    # Per-class raw membership = sum of its component scores (clipped at 0).
+    class_raw = np.stack([
+        df[model.assignments[c]].clip(lower=0.0).sum(axis=1).values
+        for c in classes
+    ], axis=1)                                   # (n_bins, n_classes)
+
+    total = class_raw.sum(axis=1, keepdims=True)  # nuisance already excluded
+    total[total == 0.0] = 1.0
+    probs = class_raw / total
+
+    for i, c in enumerate(classes):
+        df[f'p_{c}'] = probs[:, i]
+    df['tissue_score'] = sum(model.values[c] * probs[:, i]
+                             for i, c in enumerate(classes))
+    df['tissue_confidence'] = probs.max(axis=1)
+    return df
+
+
 def compute_tissue_confidence(
         df: pd.DataFrame,
         model: Optional[TissueModel] = None,
@@ -758,6 +868,10 @@ def compute_tissue_confidence(
       tissue_confidence: max class probability
     """
     from scipy.special import expit as _sigmoid
+
+    # Compositional models (AA / GMM / NMF membership) take a different path.
+    if isinstance(model, CompositionalTissueModel):
+        return compute_compositional_tissue(df, model)
 
     df = df.copy()
 

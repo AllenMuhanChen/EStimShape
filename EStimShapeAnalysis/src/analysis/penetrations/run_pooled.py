@@ -41,6 +41,9 @@ from src.analysis.penetrations.pca_predict import (
     MODEL_PCA_V1,
     MODEL_PCA_V2,
     MODEL_PCA_V4,
+    MODEL_AA_K5,
+    MODEL_AA_K6,
+    CompositionalTissueModel,
     TissueClass,
     TissueModel,
     TissuePipeline,
@@ -94,6 +97,35 @@ PIPE_PCA_exclude_rel_lfp = TissuePipeline(
     within_session_normalize=False,
     pc_smooth_sigma=2.0,
     exclude_features=EXCUDE_REL_LFP,
+)
+
+# ---------------------------------------------------------------------------
+# Archetypal-analysis pipelines with hand-assigned compositional tissue models.
+# The decomposition recipe here MUST match the one the archetypes were labelled
+# under in explore_decompositions (within_session_normalize=True,
+# pc_smooth_sigma=2.0, no excluded features) — otherwise the archetype order
+# shifts and MODEL_AA_K* map to the wrong prototypes.
+# ---------------------------------------------------------------------------
+PIPE_AA_K5 = TissuePipeline(
+    name='AA_K5',
+    model=MODEL_AA_K5,
+    decomp_method='aa',
+    n_components=5,
+    use_varimax=False,
+    within_session_normalize=True,
+    pc_smooth_sigma=2.0,
+    exclude_features=[],
+)
+
+PIPE_AA_K6 = TissuePipeline(
+    name='AA_K6',
+    model=MODEL_AA_K6,
+    decomp_method='aa',
+    n_components=6,
+    use_varimax=False,
+    within_session_normalize=True,
+    pc_smooth_sigma=2.0,
+    exclude_features=[],
 )
 
 # ---------------------------------------------------------------------------
