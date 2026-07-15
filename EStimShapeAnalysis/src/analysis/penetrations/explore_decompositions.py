@@ -136,6 +136,15 @@ def _plot_loadings(pca, feature_columns, method, k, save_dir):
     if k == 1:
         axes = [axes]
     y = np.arange(n_features)
+    # Shared x-limits so bar length means the same thing across panels — a
+    # component with big loadings should look bigger. Symmetric around 0 when
+    # loadings can be negative (GMM cluster means), else [0, max].
+    all_load = pca.components_[:k]
+    if all_load.min() < 0:
+        m = np.abs(all_load).max() * 1.05
+        xlim = (-m, m)
+    else:
+        xlim = (0, all_load.max() * 1.05)
     for i, ax in enumerate(axes):
         load = pca.components_[i]
         top_feat = feature_columns[int(np.argmax(load))]
@@ -144,6 +153,7 @@ def _plot_loadings(pca, feature_columns, method, k, save_dir):
         bar_colors = ['steelblue' if v >= 0 else 'coral' for v in load]
         ax.barh(y, load, color=bar_colors, alpha=0.8)
         ax.axvline(0, color='black', lw=0.7)
+        ax.set_xlim(*xlim)
         ax.set_yticks(y)
         if i == 0:
             ax.set_yticklabels(feature_columns, fontsize=8)
@@ -169,7 +179,16 @@ def _plot_depth_profiles(df, method, k, save_dir):
     all_depths = df['depth_under_chamber_mm'].values
     lo, hi = all_depths.min(), all_depths.max()
 
-    fig, axes = plt.subplots(1, k, figsize=(4.5 * k, 6), sharey=True)
+    # Shared x-limits so score magnitude is comparable across components.
+    # AA/GMM scores are memberships in [0,1]; NMF activations share a global max.
+    pc_cols = [f'PC{i + 1}' for i in range(k)]
+    if method in ('aa', 'gmm'):
+        score_xlim = (-0.02, 1.02)
+    else:
+        vals = df[pc_cols].values
+        score_xlim = (min(0.0, float(vals.min())), float(vals.max()) * 1.05)
+
+    fig, axes = plt.subplots(1, k, figsize=(4.5 * k, 6), sharey=True, sharex=True)
     if k == 1:
         axes = [axes]
     for i, ax in enumerate(axes):
@@ -180,6 +199,7 @@ def _plot_depth_profiles(df, method, k, save_dir):
                 ax.plot(sd[pc_col].values, sd['depth_under_chamber_mm'].values,
                         'o-', color=colors[s], lw=1.3, ms=3, alpha=0.7, label=s)
         ax.set_title(_component_label(method, i), fontsize=10)
+        ax.set_xlim(*score_xlim)
         ax.set_xlabel(howto['score_x'], fontsize=8)
         if i == 0:
             ax.set_ylabel("Depth under chamber (mm)")
