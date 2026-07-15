@@ -210,7 +210,7 @@ def load_and_perform_pca(
 
     Parameters
     ----------
-    decomp_method : {'pca', 'fa', 'ica', 'nmf', 'aa'}
+    decomp_method : {'pca', 'fa', 'ica', 'nmf', 'aa', 'gmm'}
         - 'pca'  : sklearn PCA (linear, orthogonal, ranked by variance).
         - 'fa'   : sklearn FactorAnalysis (latent-variable model).
         - 'ica'  : sklearn FastICA (independent components — already
@@ -226,6 +226,11 @@ def load_and_perform_pca(
                    soft membership summing to 1. Also MinMax-scaled; varimax
                    ignored. explained_variance_ratio_ is a score-variance
                    heuristic for NMF/AA, not true explained variance.
+        - 'gmm'  : Gaussian Mixture Model — soft clustering. components_ are the
+                   cluster means (SIGNED, StandardScaler space, so direction is
+                   captured natively — no feature inversion needed), and scores
+                   are per-bin posterior memberships (>= 0, sum to 1). Uses
+                   StandardScaler (Gaussian assumption); varimax ignored.
     n_components : total number of components to extract. None means:
         all features for PCA; varimax_n_components (or all features) for
         FA / ICA. Set this explicitly to decouple "how many components"
@@ -352,10 +357,24 @@ def load_and_perform_pca(
             print("  (ignoring use_varimax=True — AA components are archetypes; "
                   "rotation is not applicable)")
             use_varimax = False
+    elif decomp_method == 'gmm':
+        print(f"\nUsing Gaussian Mixture Model (n_components={n_components_eff}) ...")
+        gmm = GaussianMixture(n_components=n_components_eff, covariance_type='full',
+                              reg_covar=1e-4, n_init=10, random_state=42)
+        gmm.fit(X_scaled)
+        X_pca = gmm.predict_proba(X_scaled)          # (n, K) posterior memberships, sum to 1
+        # components_ = cluster means (SIGNED, in StandardScaler space): a cluster's
+        # mean is above/below each feature's average, so direction is captured
+        # natively — no feature inversion needed (unlike NMF).
+        pca = _DecompositionAdapter(_ArchetypeModel(gmm.means_), X_pca)
+        if use_varimax:
+            print("  (ignoring use_varimax=True — GMM components are clusters, "
+                  "not rotatable loadings)")
+            use_varimax = False
     else:
         raise ValueError(
             f"Unknown decomp_method {decomp_method!r}. "
-            f"Choose 'pca', 'fa', 'ica', 'nmf', or 'aa'.")
+            f"Choose 'pca', 'fa', 'ica', 'nmf', 'aa', or 'gmm'.")
 
     if use_varimax and varimax_n_components and varimax_n_components > 1:
         n_rot = min(varimax_n_components, X_pca.shape[1])
