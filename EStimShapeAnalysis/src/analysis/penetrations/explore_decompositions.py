@@ -48,9 +48,11 @@ RECIPES = [
     ('nmf', 4),
     ('aa', 3),
     ('aa', 4),
+    ('gmm', 3),
+    ('gmm', 4),
 ]
 
-_METHOD_NAME = {'nmf': 'NMF', 'aa': 'Archetypal Analysis'}
+_METHOD_NAME = {'nmf': 'NMF', 'aa': 'Archetypal Analysis', 'gmm': 'Gaussian Mixture'}
 
 # What a "component", its loadings, and its scores MEAN for each method — shown
 # as the "how to read" caption so the figures are self-explanatory.
@@ -59,26 +61,43 @@ _HOWTO = {
         'component': 'additive part',
         'loadings': ("Loadings = feature weights, all ≥ 0. A depth bin is a weighted "
                      "SUM of these parts. A tall bar = a feature that switches this "
-                     "component ON."),
+                     "component ON. NMF cannot encode 'low feature' as a positive bar — "
+                     "invert such a feature first if a low value is your hypothesis."),
         'score':    ("Score = how strongly this part is present at each depth (≥ 0). "
                      "A tissue-type part should be HIGH over that tissue and ~0 elsewhere."),
         'loading_x': 'feature weight (≥ 0)',
+        'score_x':   'score (activation)',
     },
     'aa': {
         'component': 'archetype (extreme prototype)',
         'loadings': ("Loadings = the archetype's own feature profile — what a 'pure' "
                      "example of this prototype looks like (scaled 0–1). A depth bin is "
-                     "a convex MIX of the archetypes."),
+                     "a convex MIX of the archetypes. A LOW bar is meaningful (this "
+                     "prototype has little of that feature)."),
         'score':    ("Score = membership weight for this archetype at each depth (0–1, "
                      "the K scores at a depth sum to 1). ~1 = a pure example of this "
                      "prototype; a boundary bin splits its weight between two archetypes."),
         'loading_x': 'archetype value (scaled 0–1)',
+        'score_x':   'membership (0–1)',
+    },
+    'gmm': {
+        'component': 'cluster',
+        'loadings': ("Loadings = the cluster MEAN for each feature, z-scored: a bar to "
+                     "the right = this cluster is ABOVE the feature's average, to the "
+                     "left = BELOW. Direction is captured natively, so 'low impedance → "
+                     "sulcus' shows up as a left-pointing (negative) impedance bar — no "
+                     "feature inversion needed."),
+        'score':    ("Score = posterior P(this cluster) at each depth (0–1, the K "
+                     "scores at a depth sum to 1). ~1 = confidently this tissue."),
+        'loading_x': 'cluster mean (z-scored)',
+        'score_x':   'posterior P(cluster)',
     },
 }
 
 
 def _component_label(method: str, i: int) -> str:
-    return f"{'Archetype' if method == 'aa' else 'NMF part'} {i + 1}"
+    prefix = {'aa': 'Archetype', 'gmm': 'Cluster', 'nmf': 'NMF part'}[method]
+    return f"{prefix} {i + 1}"
 
 
 def _print_component_interpretation(loadings_df, method, top_n: int = 6) -> None:
@@ -110,7 +129,11 @@ def _plot_loadings(pca, feature_columns, method, k, save_dir):
     for i, ax in enumerate(axes):
         load = pca.components_[i]
         top_feat = feature_columns[int(np.argmax(load))]
-        ax.barh(y, load, color='steelblue', alpha=0.8)
+        # Colour by sign so signed loadings (GMM cluster means) read correctly;
+        # NMF/AA loadings are all >= 0 so they come out uniformly one colour.
+        bar_colors = ['steelblue' if v >= 0 else 'coral' for v in load]
+        ax.barh(y, load, color=bar_colors, alpha=0.8)
+        ax.axvline(0, color='black', lw=0.7)
         ax.set_yticks(y)
         if i == 0:
             ax.set_yticklabels(feature_columns, fontsize=8)
@@ -147,8 +170,7 @@ def _plot_depth_profiles(df, method, k, save_dir):
                 ax.plot(sd[pc_col].values, sd['depth_under_chamber_mm'].values,
                         'o-', color=colors[s], lw=1.3, ms=3, alpha=0.7, label=s)
         ax.set_title(_component_label(method, i), fontsize=10)
-        ax.set_xlabel("score (activation)" if method == 'nmf' else "membership (0–1)",
-                      fontsize=8)
+        ax.set_xlabel(howto['score_x'], fontsize=8)
         if i == 0:
             ax.set_ylabel("Depth under chamber (mm)")
         ax.set_ylim(hi + 0.5, lo - 0.5)   # shallow at top, deep at bottom
