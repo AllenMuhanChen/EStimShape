@@ -170,6 +170,69 @@ def _plot_loadings(pca, feature_columns, method, k, save_dir):
     plt.show()
 
 
+def _collapse_nmf_complements(loadings_df, low_suffix='__low'):
+    """Collapse each high/low complement pair into ONE signed net loading per
+    original feature: net = loading(feat) − loading(feat__low). Positive means
+    the component leans toward HIGH of the feature, negative toward LOW. Purely
+    post-hoc — the NMF fit still used both columns. Features without a `__low`
+    counterpart are carried through unchanged."""
+    originals = [f for f in loadings_df.index if not f.endswith(low_suffix)]
+    collapsed = loadings_df.loc[originals].copy()
+    for f in originals:
+        low = f + low_suffix
+        if low in loadings_df.index:
+            collapsed.loc[f] = loadings_df.loc[f] - loadings_df.loc[low]
+    return collapsed
+
+
+def _print_net_directions(collapsed_df, method, top_n=6):
+    print("\n  net direction (loading high − low; + leans HIGH, − leans LOW):")
+    for i, comp in enumerate(collapsed_df.columns):
+        col = collapsed_df[comp].sort_values(ascending=False)
+        highs = [f"{f}=+{col[f]:.2f}" for f in col.index if col[f] > 0][:top_n]
+        lows = [f"{f}={col[f]:.2f}" for f in col.index[::-1] if col[f] < 0][:top_n]
+        lab = _component_label(method, i)
+        print(f"    {lab}:  HIGH→ {', '.join(highs) or '—'}")
+        print(f"    {' ' * len(lab)}   LOW→  {', '.join(lows) or '—'}")
+
+
+def _plot_loadings_collapsed(collapsed_df, method, k, save_dir):
+    """Signed net-loading bars (one per original feature) — the readable single-
+    bar-per-feature view of an NMF fit that used high/low complements."""
+    feats = list(collapsed_df.index)
+    n_features = len(feats)
+    vals = collapsed_df.values.T                       # (k, n_features)
+    m = max(float(np.abs(vals).max()) * 1.05, 1e-9)
+    fig_h = max(6, 0.34 * n_features)
+    fig, axes = plt.subplots(1, k, figsize=(4 * k, fig_h), sharey=True)
+    if k == 1:
+        axes = [axes]
+    y = np.arange(n_features)
+    for i, ax in enumerate(axes):
+        row = collapsed_df.iloc[:, i].values
+        colors = ['steelblue' if v >= 0 else 'coral' for v in row]
+        ax.barh(y, row, color=colors, alpha=0.85)
+        ax.axvline(0, color='black', lw=0.7)
+        ax.set_xlim(-m, m)
+        ax.set_yticks(y)
+        if i == 0:
+            ax.set_yticklabels(feats, fontsize=8)
+        top = feats[int(np.argmax(np.abs(row)))]
+        ax.set_title(f"{_component_label(method, i)}\n(strongest net: {top})", fontsize=9)
+        ax.set_xlabel("net loading (high − low)", fontsize=8)
+        ax.grid(True, alpha=0.3, axis='x')
+    fig.suptitle(f"{_METHOD_NAME[method]}  (K={k})  —  net feature direction "
+                 f"per {_HOWTO[method]['component']}", fontsize=13)
+    fig.text(0.5, 0.005,
+             "How to read:  net = loading(feature) − loading(feature__low). "
+             "Right/blue = component leans toward HIGH of the feature; left/coral = "
+             "toward LOW. One signed bar per feature (complement pair collapsed).",
+             ha='center', va='bottom', fontsize=8, wrap=True)
+    plt.tight_layout(rect=[0, 0.06, 1, 0.97])
+    _save_fig(save_dir, 'loadings_collapsed.png')
+    plt.show()
+
+
 def _plot_depth_profiles(df, method, k, save_dir):
     howto = _HOWTO[method]
     sessions = list(df['session_id'].unique())
@@ -336,6 +399,13 @@ def explore(
         save_dir = os.path.join(base, tag)
         os.makedirs(save_dir, exist_ok=True)
         _plot_loadings(pca, feature_columns, method, k, save_dir)
+        # NMF with high/low complements: also show the collapsed signed net
+        # loading (high − low) per original feature — the readable one-bar view.
+        collapsed_df = None
+        if method == 'nmf' and NMF_COMPLEMENT:
+            collapsed_df = _collapse_nmf_complements(loadings_df)
+            _print_net_directions(collapsed_df, method)
+            _plot_loadings_collapsed(collapsed_df, method, k, save_dir)
         _plot_depth_profiles(df, method, k, save_dir)
         _plot_component_spread(pca, method, k, save_dir)
 
@@ -347,6 +417,8 @@ def explore(
 
         print(f"\n  saved → {save_dir}")
         print(f"    loadings.png         — what each {_HOWTO[method]['component']} is")
+        if collapsed_df is not None:
+            print(f"    loadings_collapsed.png — net high−low direction per feature (signed)")
         print(f"    depth_profiles.png   — where each turns on along depth (all sessions)")
         print(f"    component_spread.png — rough per-component signal size")
         print(f"    composition/         — per-probe composition down depth (one per session)")
