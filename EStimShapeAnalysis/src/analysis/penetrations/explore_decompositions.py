@@ -204,6 +204,70 @@ def _plot_component_spread(pca, method, k, save_dir):
     plt.show()
 
 
+def _component_colors(k):
+    return plt.cm.tab10(np.linspace(0, 1, 10))[:k]
+
+
+def plot_penetration_composition(df, session_id, method, k, save_dir):
+    """Profile of the decomposition DOWN A SINGLE PROBE.
+
+    Left panel: the K component scores at each depth drawn as a stacked
+    composition (fractions summing to 1), so you see the tissue mixture and
+    where it transitions. Right panel: the argmax (dominant component) at each
+    depth as a colour strip — the hard 'one tissue per depth' call.
+
+    AA/GMM scores already sum to 1; NMF activations do not, and per-PC depth
+    smoothing perturbs the sum for all methods, so scores are renormalised per
+    depth here. For NMF the stack is therefore a *relative* composition of the
+    additive activations, not an intrinsic membership.
+    """
+    sd = df[df['session_id'] == session_id].sort_values('depth_under_chamber_mm')
+    if len(sd) < 2:
+        return
+    depth = sd['depth_under_chamber_mm'].values
+    S = np.clip(np.column_stack([sd[f'PC{i + 1}'].values for i in range(k)]), 0, None)
+    row = S.sum(axis=1, keepdims=True)
+    row[row == 0] = 1.0
+    comp = S / row                                   # (n_depth, K), rows sum to 1
+    dom = comp.argmax(axis=1)
+    labels = [_component_label(method, i) for i in range(k)]
+    colors = _component_colors(k)
+
+    fig, (axc, axs) = plt.subplots(
+        1, 2, figsize=(6.5, 8), sharey=True,
+        gridspec_kw={'width_ratios': [7, 1]})
+
+    left = np.zeros(len(depth))
+    for i in range(k):
+        axc.fill_betweenx(depth, left, left + comp[:, i],
+                          color=colors[i], label=labels[i], alpha=0.9)
+        left = left + comp[:, i]
+    axc.set_xlim(0, 1)
+    axc.set_xlabel('composition (fraction of scores)')
+    axc.set_ylabel('Depth under chamber (mm)')
+    axc.set_ylim(depth.max() + 0.2, depth.min() - 0.2)   # shallow at top
+    _setup_depth_yaxis(axc, depth)
+    axc.legend(loc='upper center', bbox_to_anchor=(0.5, -0.06),
+               ncol=min(k, 3), fontsize=8, frameon=False)
+
+    # argmax "hard call" strip (nearest-neighbour onto a fine uniform grid so
+    # non-uniform bin spacing doesn't distort it)
+    n_fine = max(500, len(depth) * 20)
+    d_fine = np.linspace(depth[0], depth[-1], n_fine)
+    dom_fine = dom[np.clip(np.searchsorted(depth, d_fine), 0, len(depth) - 1)]
+    strip = colors[dom_fine][:, None, :]                 # (n_fine, 1, 4)
+    axs.imshow(strip, aspect='auto', origin='upper',
+               extent=[0, 1, depth[-1], depth[0]])
+    axs.set_xticks([])
+    axs.set_title('argmax', fontsize=8)
+
+    fig.suptitle(f"{_METHOD_NAME[method]}  (K={k})  —  {session_id}\n"
+                 f"composition down the probe", fontsize=12)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    _save_fig(save_dir, f'composition_{session_id}.png')
+    plt.show()
+
+
 def explore(
         conn: Connection,
         table_name: str = "PenetrationMetrics",
@@ -243,10 +307,18 @@ def explore(
         _plot_loadings(pca, feature_columns, method, k, save_dir)
         _plot_depth_profiles(df, method, k, save_dir)
         _plot_component_spread(pca, method, k, save_dir)
+
+        # Per-probe composition profiles (one figure per penetration).
+        comp_dir = os.path.join(save_dir, 'composition')
+        os.makedirs(comp_dir, exist_ok=True)
+        for session_id in df['session_id'].unique():
+            plot_penetration_composition(df, session_id, method, k, comp_dir)
+
         print(f"\n  saved → {save_dir}")
         print(f"    loadings.png         — what each {_HOWTO[method]['component']} is")
-        print(f"    depth_profiles.png   — where each turns on along depth (per session)")
+        print(f"    depth_profiles.png   — where each turns on along depth (all sessions)")
         print(f"    component_spread.png — rough per-component signal size")
+        print(f"    composition/         — per-probe composition down depth (one per session)")
 
 
 if __name__ == "__main__":
