@@ -52,6 +52,15 @@ RECIPES = [
     ('gmm', 4),
 ]
 
+# NMF-only feature inversion (see load_and_perform_pca's nmf_complement).
+# NMF can't encode "low feature" as a positive loading, so we double-encode:
+#   'all'  -> add a `<feat>__low` complement for every feature (let NMF pick the
+#             informative end; a `<feat>__low` bar means "this component has LOW
+#             <feat>", e.g. low impedance -> sulcus).
+#   [..]   -> a list to invert only specific features.
+#   None   -> off.
+NMF_COMPLEMENT = 'all'
+
 _METHOD_NAME = {'nmf': 'NMF', 'aa': 'Archetypal Analysis', 'gmm': 'Gaussian Mixture'}
 
 # What a "component", its loadings, and its scores MEAN for each method — shown
@@ -122,7 +131,8 @@ def _plot_loadings(pca, feature_columns, method, k, save_dir):
     howto = _HOWTO[method]
     share = pca.explained_variance_ratio_ * 100
     n_features = len(feature_columns)
-    fig, axes = plt.subplots(1, k, figsize=(4 * k, 6), sharey=True)
+    fig_h = max(6, 0.34 * n_features)   # room when NMF complements double the rows
+    fig, axes = plt.subplots(1, k, figsize=(4 * k, fig_h), sharey=True)
     if k == 1:
         axes = [axes]
     y = np.arange(n_features)
@@ -295,6 +305,7 @@ def explore(
             decomp_method=method,
             use_varimax=False,
             exclude_features=exclude_features,
+            nmf_complement=NMF_COMPLEMENT,   # ignored for aa / gmm
         )
 
         loadings_df = get_loadings_df(pca, feature_columns)

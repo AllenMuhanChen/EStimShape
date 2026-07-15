@@ -94,6 +94,34 @@ class _DecompositionAdapter:
 _FactorAnalysisAdapter = _DecompositionAdapter
 
 
+def _add_nmf_complements(X_scaled, feature_columns, which):
+    """Append 1 - x complement columns so NMF can represent "low feature" as a
+    positive loading (it otherwise only encodes "high").
+
+    X_scaled must be in [0, 1] (MinMax space) so the complement stays >= 0.
+    `which` is 'all' (complement every feature) or a list of feature names.
+    Returns (X_expanded, feature_columns_expanded). Complements are named
+    `<feat>__low`; a high value there means the feature is LOW.
+    """
+    names = list(feature_columns)
+    idx = {f: i for i, f in enumerate(feature_columns)}
+    if which == 'all':
+        targets = list(feature_columns)
+    else:
+        targets = [f for f in which if f in idx]
+        missing = [f for f in which if f not in idx]
+        if missing:
+            print(f"  nmf_complement: unknown features ignored: {missing}")
+    if not targets:
+        return X_scaled, names
+    comp = np.column_stack([1.0 - X_scaled[:, idx[f]] for f in targets])
+    X_expanded = np.column_stack([X_scaled, comp])
+    names = names + [f"{f}__low" for f in targets]
+    print(f"  NMF complement: added {len(targets)} inverted feature(s) "
+          f"→ {X_expanded.shape[1]} total columns")
+    return X_expanded, names
+
+
 # ---------------------------------------------------------------------------
 # Archetypal analysis (self-contained — no external dependency)
 # ---------------------------------------------------------------------------
@@ -205,6 +233,7 @@ def load_and_perform_pca(
         decomp_method: str = DECOMPOSITION_METHOD,
         use_varimax: bool = USE_VARIMAX,
         exclude_features: Optional[list] = None,
+        nmf_complement=None,
 ):
     """Load data and run a pooled decomposition across all sessions.
 
@@ -244,6 +273,16 @@ def load_and_perform_pca(
         metric (or group of metrics) influences the components. The
         primary keys (session_id, depth_under_chamber_mm) and r_squared
         are always excluded; this extends that list.
+    nmf_complement : NMF-only. NMF can only encode "feature is high" (loadings
+        are >= 0), so a "low X -> tissue" pattern has no positive loading to
+        land on. This appends a complement column (1 - x, in the [0,1] MinMax
+        space) so "low" becomes a high value NMF can load on positively.
+          - None  : off (default).
+          - 'all' : double-encode every feature (adds a `<feat>__low` for each);
+                    lets NMF discover which end of each feature matters.
+          - list  : add `<feat>__low` only for the named features.
+        The original column `<feat>` still means "high"; `<feat>__low` means
+        "low". Ignored for every method except NMF.
 
     Returns
     -------
@@ -307,6 +346,12 @@ def load_and_perform_pca(
     else:
         scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
+
+    # NMF-only: append inverted (1 - x) columns so "low feature" hypotheses can
+    # load positively. feature_columns is extended to match so loadings line up.
+    if decomp_method == 'nmf' and nmf_complement:
+        X_scaled, feature_columns = _add_nmf_complements(
+            X_scaled, feature_columns, nmf_complement)
 
     # Resolve n_components.
     n_features = X_scaled.shape[1]
