@@ -127,6 +127,7 @@ def load_mri_pipeline(
         'normal': normal,
         'cor_offset': cor_offset,
         'screws_world_base': screws_raw,
+        'chamber_center_base': center,   # pivot for the rx/ry/rz optimisation params
         'ref_idx': ref_idx,
         'is_fit_circle': is_fit_circle,
         'ch_corr': ch_corr,
@@ -304,15 +305,32 @@ def compute_trajectory_fit_scores(df: pd.DataFrame) -> pd.DataFrame:
 # Chamber param projection + optimiser back-ends
 # ---------------------------------------------------------------------------
 
+def _chamber_correction_matrix(params: np.ndarray, center: np.ndarray) -> np.ndarray:
+    """4x4 world-space chamber correction from the optimisation params.
+
+    Rotation (rx/ry/rz) is applied about the chamber `center`, so a pure
+    rotation reorients the chamber IN PLACE without translating it — decoupling
+    the r* params from the t* params. Translation (tx/ty/tz) is then applied.
+    This matches the MRI viewer's convention
+    (viewer_chamber._apply_chamber_correction), so optimised params and
+    viewer-entered corrections mean the same pose.
+    """
+    from src.mri.correction import rot_x, rot_y, rot_z, xlate
+    tx, ty, tz, rx, ry, rz, *_ = params
+    c = np.asarray(center, dtype=float)
+    R_pure = rot_z(rz) @ rot_y(ry) @ rot_x(rx)
+    R_about_center = xlate(c[0], c[1], c[2]) @ R_pure @ xlate(-c[0], -c[1], -c[2])
+    return xlate(tx, ty, tz) @ R_about_center
+
+
 def _apply_chamber_params(params: np.ndarray, mri_pipeline: dict):
     """Return (origin, x, y, normal) after applying optimisation params to chamber."""
     from src.mri.chamber import fit_chamber
-    from src.mri.correction import rot_x, rot_y, rot_z, xlate
 
-    tx, ty, tz, rx, ry, rz, *_ = params
     screws = mri_pipeline['screws_world_base']
+    center = mri_pipeline.get('chamber_center_base', np.zeros(3))
 
-    corr = xlate(tx, ty, tz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
+    corr = _chamber_correction_matrix(params, center)
     R, t = corr[:3, :3], corr[:3, 3]
     screws_new = (R @ screws.T).T + t
 
@@ -1156,17 +1174,14 @@ def save_optimized_params(
 ) -> str:
     """Save optimisation result to a timestamped file for later comparison."""
     import datetime
-    from src.mri.correction import rot_x, rot_y, rot_z, xlate
 
     params = opt_result['params']
     tx, ty, tz, rx, ry, rz, daz, del_, ddepth = params[:9]
 
-    corr = xlate(tx, ty, tz) @ rot_z(rz) @ rot_y(ry) @ rot_x(rx)
-    R_d = corr[:3, :3]
-    t_d = corr[:3, 3]
-    M = np.eye(4)
-    M[:3, :3] = R_d
-    M[:3, 3] = t_d
+    # Build the SAME correction the optimiser applied (rotation about the
+    # chamber centre), so the saved 4x4 reproduces the optimised pose.
+    center = mri_pipeline.get('chamber_center_base', np.zeros(3))
+    M = _chamber_correction_matrix(params, center)
 
     results_dir = OPTIMIZATIONS_path
     os.makedirs(results_dir, exist_ok=True)
