@@ -64,7 +64,7 @@ from src.analysis.penetrations.penetration_plots import (
 )
 from src.analysis.penetrations.run_pooled import (
     EXCUDE_REL_LFP, PIPE_PCA_exclude_rel_lfp, PIPE_PCA_new,
-    PIPE_AA_K5, PIPE_AA_K6,
+    PIPE_AA_K5, PIPE_AA_K6, PIPE_AA_K3, PIPE_AA_K4,
 )
 
 
@@ -295,7 +295,8 @@ if __name__ == "__main__":
         host="172.30.6.61",
     )
 
-    exclude_sessions = ["260331_0", "260402_0", "260520_0", "260423_0", "260611_0"]
+    # exclude_sessions = ["260331_0", "260402_0", "260520_0", "260423_0", "260611_0"]
+    exclude_sessions = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
     start_from_file = None
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260525_121133_best.json"
     # start_from_file = "/home/connorlab/git/EStimShape/EStimShapeAnalysis/src/mri/opt_20260529_132317_best_bottom.json"
@@ -325,7 +326,7 @@ if __name__ == "__main__":
         exclude_features=[],
     )
     # PIPELINE = PIPE_PCA_V2
-    PIPELINE = PIPE_PCA_new
+    PIPELINE = PIPE_AA_K3
 
     # PIPELINE = PIPE_PCA_exclude_rel_lfp
 
@@ -348,16 +349,16 @@ if __name__ == "__main__":
         enable_per_session_corrections=True,
         session_corr_bounds=None,
         varimax_n_components=0,
-        n_pcs=4,
+        n_pcs=3,
         session_corr_penalty=1.0,
         chamber_dist_penalty=0.000,
-        chamber_param_penalty=0.0001,
+        chamber_param_penalty=0.001,
         # chamber_param_tolerances=dict(t_mm=2, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=1.0),
-        chamber_param_tolerances=dict(t_mm=2, r_deg=5.0, daz_deg=0.01, del_deg=0.01, ddepth_mm=0.1),
+        chamber_param_tolerances=dict(t_mm=2, r_deg=5.0, daz_deg=0.01, del_deg=0.01, ddepth_mm=0.01),
         variance_penalty=0.0,
-        softmin_beta=20,
+        softmin_beta=5,
         optimizer='cma-es',
-        use_confidence_weights=False,
+        use_confidence_weights=True,
         top_downweight_mm=5,
         top_downweight_factor=0.25,
         # Brain-extracted MRI: zero outside brain so the optimiser doesn't fit

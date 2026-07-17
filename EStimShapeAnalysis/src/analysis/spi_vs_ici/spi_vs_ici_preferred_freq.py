@@ -1256,6 +1256,6 @@ if __name__ == "__main__":
         filter_type='cluster',
         spi_regression_max=0.5,
         # nf_bin_edges=[0, 0.5, 1.0, 1.5, 2.5, 4, 6, 8.0, np.inf],
-        nf_bin_edges=[0,1.5,2.5,np.inf],
-        # nf_bin_edges=[0, 1.5, 2.5, 8.0, np.inf] # for 3d
+        # nf_bin_edges=[0,1.5,2.5,np.inf],
+        nf_bin_edges=[0, 1.5, 2.5, 8.0, np.inf] # for 3d
     )

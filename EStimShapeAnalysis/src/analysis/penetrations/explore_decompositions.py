@@ -44,12 +44,16 @@ from src.analysis.penetrations.penetration_plots import (
 
 # (method, n_components) recipes to fit and compare.
 RECIPES = [
-    ('nmf', 3),
-    ('nmf', 4),
-    ('aa', 3),
-    ('aa', 4),
-    ('gmm', 3),
-    ('gmm', 4),
+    # ('nmf', 3),
+    # ('nmf', 4),
+    # ('nmf', 5),
+    # ('nmf', 6),
+    # ('aa', 3),
+    ('aa', 7),
+    # ('aa', 6),
+    # ('gmm', 3),
+    # ('gmm', 4),
+    # ('gmm', 5)
 ]
 
 # NMF-only feature inversion (see load_and_perform_pca's nmf_complement).
@@ -431,8 +435,8 @@ if __name__ == "__main__":
         password="up2nite",
         host="172.30.6.61",
     )
-    exclude_sessions = ["260331_0", "260402_0", "260520_0", "260423_0", "260611_0"]
-
+    # exclude_sessions = ["260331_0", "260402_0", "260520_0", "260423_0", "260611_0"]
+    exclude_sessions = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
     explore(
         conn,
         exclude_sessions=exclude_sessions,

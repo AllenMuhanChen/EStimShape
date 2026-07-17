@@ -33,7 +33,7 @@ def main():
     analysis = MixedGaborsAnalysis(data_type=data_type)
     compiled_data = analysis.compile_and_export()
     # session_id, _ = read_session_id_from_db_name(context.isogabor_database)
-    session_id = "260624_0"
+    session_id = "260622_0"
     analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
 
 

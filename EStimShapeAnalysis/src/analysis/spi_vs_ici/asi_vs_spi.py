@@ -301,7 +301,7 @@ if __name__ == "__main__":
     #   'raw_significant' - raw significant channels (solid-pref p < 0.05)
     #   'cluster'         - cluster channels via ClusterInfo
     #   'mapped_channel'  - cluster channels also in ReceptiveFieldInfo
-    selection_mode = 'cluster'
+    selection_mode = 'mapped_channel'
 
     # Exclude points with Solid Preference Index above this from every regression
     # (still plotted). None uses all points.
@@ -315,6 +315,6 @@ if __name__ == "__main__":
     create_asi_vs_spi_plots(
         selection_mode=selection_mode,
         spi_regression_max=spi_regression_max,
-        bin_edges=bin_edges,
-        save_dir=None,
+        bin_edges=[0, 1.5, 2.5, 8.0, np.inf],
+        save_dir="/home/connorlab/Documents/plots/spi_vs_asi_mapped_channel",
     )

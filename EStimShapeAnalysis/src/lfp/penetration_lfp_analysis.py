@@ -117,8 +117,8 @@ SPECTRAL_DISSIM_METRIC    = "l1"   # 'l1' | 'l2' | 'corr'
 #     (not an output smoothing), since that is what sets its depth resolution;
 #     the ±window average already provides jitter robustness on top of that.
 LFP_SMOOTH_SIGMA_BINS      = 1.5   # LFP-family metrics (naturally smooth)
-WAVEFORM_SMOOTH_SIGMA_BINS = 3.0   # spike-waveform metrics (noisy per-spike estimates)
-DISSIM_SMOOTH_SIGMA_BINS   = 0.5   # spectral dissimilarity — keep sharp so small sulci survive
+WAVEFORM_SMOOTH_SIGMA_BINS = 1.5   # spike-waveform metrics (noisy per-spike estimates)
+DISSIM_SMOOTH_SIGMA_BINS   = 1.5   # spectral dissimilarity — keep sharp so small sulci survive
 
 DEFAULT_SMOOTH_SIGMA_BINS = {
     'lfp_spectra':            LFP_SMOOTH_SIGMA_BINS,   # heatmap + band powers (via relative power)

@@ -710,9 +710,18 @@ MODEL_AA_K5 = CompositionalTissueModel(
         'sulcus': ['PC2'],
     },
     values={'wm': 1.0, 'gm': 0.5, 'sulcus': 0.0},
-    nuisance=['PC1'],
+    nuisance=['PC5'],
 )
 
+MODEL_AA_K4 = CompositionalTissueModel(
+    assignments={
+        'wm':     ['PC4'],
+        'gm':     ['PC3', 'PC1'],
+        'sulcus': ['PC2'],
+    },
+    values={'wm': 1.0, 'gm': 0.5, 'sulcus': 0.0},
+    nuisance=[],
+)
 # AA K=6:
 #   arch1,2 (PC1, PC2) = WM (summed)
 #   arch5 (PC5) = sulcus
@@ -727,7 +736,16 @@ MODEL_AA_K6 = CompositionalTissueModel(
     nuisance=[],
 )
 
-
+MODEL_AA_K3 = CompositionalTissueModel(
+    assignments={
+        'wm':     ['PC1'],
+        'gm':     ['PC3'],
+        'sulcus': ['PC2'],
+    },
+    values={'wm':
+    1.0, 'gm': 0.5, 'sulcus': 0.0},
+    nuisance=[],
+)
 # 2-component model for varimax_n_components=2 runs.
 # PC1: + = sulcus, − = GM
 # PC2: + = WM,     − = GM
@@ -777,6 +795,39 @@ MODEL_PCA_V4 = TissueModel([
     TissueClass('sulcus', score=0.0, evidence=[
         Evidence('PC3', sign=-1),
         Evidence('PC1', sign=-1)
+    ]),
+])
+
+# For PCA with lfp_spectral_dissimilarity, 4 pcs
+MODEL_PCA_V5 = TissueModel([
+    TissueClass('wm',     score=1.0, evidence=[
+        Evidence('PC1', sign=+1),
+        Evidence('PC2', sign=+1),
+        Evidence('PC3', sign=-1),
+    ]),
+    TissueClass('gm',     score=0.5, evidence=[
+        Evidence('PC1', sign=+1),
+        Evidence('PC2', sign=-1),
+        Evidence('PC3', sign=+1),
+        Evidence('PC4', sign=+1),
+    ]),
+    TissueClass('sulcus', score=0.0, evidence=[
+        Evidence('PC1', sign=-1),
+        Evidence('PC4', sign=-1)
+    ]),
+])
+
+MODEL_PCA_V6 = TissueModel([
+    TissueClass('wm', score=1.0, evidence=[
+        Evidence('PC1', sign=+1),
+        Evidence('PC2', sign=+1),
+    ]),
+    TissueClass('gm', score=0.5, evidence=[
+        Evidence('PC1', sign=+1),
+        Evidence('PC2', sign=-1),
+    ]),
+    TissueClass('sulcus', score=0.0, evidence=[
+        Evidence('PC1', sign=-1),
     ]),
 ])
 

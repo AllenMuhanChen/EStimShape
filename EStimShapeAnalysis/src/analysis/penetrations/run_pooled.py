@@ -49,7 +49,7 @@ from src.analysis.penetrations.pca_predict import (
     TissuePipeline,
     get_feature_correlations,
     get_loadings_df,
-    print_feature_correlations,
+    print_feature_correlations, MODEL_PCA_V5, MODEL_PCA_V6, MODEL_AA_K3, MODEL_AA_K4,
 )
 from src.analysis.penetrations.alignment_optimize import (
     MRI_VIEWER_CONFIG_PATH,
@@ -106,6 +106,17 @@ PIPE_PCA_exclude_rel_lfp = TissuePipeline(
 # pc_smooth_sigma=2.0, no excluded features) — otherwise the archetype order
 # shifts and MODEL_AA_K* map to the wrong prototypes.
 # ---------------------------------------------------------------------------
+PIPE_AA_K4 = TissuePipeline(
+    name='AA_K4',
+    model=MODEL_AA_K4,
+    decomp_method='aa',
+    n_components=4,
+    use_varimax=False,
+    within_session_normalize=True,
+    pc_smooth_sigma=2.0,
+    exclude_features=[],
+)
+
 PIPE_AA_K5 = TissuePipeline(
     name='AA_K5',
     model=MODEL_AA_K5,
@@ -128,6 +139,16 @@ PIPE_AA_K6 = TissuePipeline(
     exclude_features=[],
 )
 
+PIPE_AA_K3 = TissuePipeline(
+    name='AA_K3',
+    model=MODEL_AA_K3,
+    decomp_method='aa',
+    n_components=3,
+    use_varimax=False,
+    within_session_normalize=True,
+    pc_smooth_sigma=2.0,
+    exclude_features=[],
+)
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
@@ -457,8 +478,7 @@ def compare_predictors_on_corrections(
         n_pcs_to_plot=n_pcs_to_plot,
         sessions_to_plot_individually=sessions_to_plot_individually,
     )
-
-PIPE_PCA_new = TissuePipeline(
+PIPE_PCA_V4 = TissuePipeline(
     name='PCA_V4',
     model=MODEL_PCA_V4,
     decomp_method='pca',
@@ -466,6 +486,35 @@ PIPE_PCA_new = TissuePipeline(
     use_varimax=False,
     within_session_normalize=False,
     pc_smooth_sigma=2.0,
+)
+PIPE_PCA_new = TissuePipeline(
+    name='PCA_V5',
+    model=MODEL_PCA_V5,
+    decomp_method='pca',
+    n_components=4,
+    use_varimax=False,
+    within_session_normalize=False,
+    pc_smooth_sigma=2.0,
+)
+
+PIPE_PCA_V6 = TissuePipeline(
+    name='PCA_V6',
+    model=MODEL_PCA_V6,
+    decomp_method='pca',
+    n_components=2,
+    use_varimax=False,
+    within_session_normalize=False,
+    pc_smooth_sigma=1.5
+)
+
+PIPE_PCA_V7 = TissuePipeline(
+    name='PCA_V6',
+    model=MODEL_PCA_V6,
+    decomp_method='pca',
+    n_components=4,
+    use_varimax=False,
+    within_session_normalize=False,
+    pc_smooth_sigma=1.5
 )
 # ---------------------------------------------------------------------------
 # __main__
@@ -544,7 +593,7 @@ if __name__ == "__main__":
     )
 
     PIPELINES: List[TissuePipeline] = [
-        PIPE_PCA,
+        PIPE_PCA_V4,
         PIPE_PCA_new
     ]
 
@@ -562,22 +611,22 @@ if __name__ == "__main__":
     # Use this when designing a new TissueModel — fits decomp, dumps
     # loadings / depth profiles, optionally adds an MRI panel.
     #
-    # visualize_pooled_pca(
-    #     conn,
-    #     pipeline=PIPE_PCA_new,
-    #     exclude_sessions=EXCLUDE_SESSIONS,
-    #     sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
-    #     corrections_path=CORRECTIONS_PATH,   # optional → adds MRI panel
-    # )
+    visualize_pooled_pca(
+        conn,
+        pipeline=PIPE_PCA_V7,
+        exclude_sessions=EXCLUDE_SESSIONS,
+        sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
+        corrections_path=CORRECTIONS_PATH,   # optional → adds MRI panel
+    )
 
     # # Step 2: compare every pipeline in PIPELINES side-by-side against MRI.
     # # Each pipeline fits its OWN decomposition; per-pipeline diagnostic
     # # plots land in <save_dir>/pipeline_<name>/.
-    results = compare_pipelines_on_corrections(
-        conn,
-        corrections_path=CORRECTIONS_PATH,
-        pipelines=PIPELINES,
-        exclude_sessions=EXCLUDE_SESSIONS,
-        plot_pca_diagnostics=True,
-        sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
-    )
+    # results = compare_pipelines_on_corrections(
+    #     conn,
+    #     corrections_path=CORRECTIONS_PATH,
+    #     pipelines=PIPELINES,
+    #     exclude_sessions=EXCLUDE_SESSIONS,
+    #     plot_pca_diagnostics=True,
+    #     sessions_to_plot_individually=SESSIONS_TO_PLOT_INDIVIDUALLY,
+    # )
