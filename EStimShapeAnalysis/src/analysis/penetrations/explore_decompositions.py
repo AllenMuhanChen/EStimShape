@@ -41,6 +41,7 @@ from src.analysis.penetrations.penetration_plots import (
     _save_fig,
     _setup_depth_yaxis,
 )
+from src.analysis.penetrations.neighbor_correlations import analyze_relations
 
 # (method, n_components) recipes to fit and compare.
 RECIPES = [
@@ -64,6 +65,11 @@ RECIPES = [
 #   [..]   -> a list to invert only specific features.
 #   None   -> off.
 NMF_COMPLEMENT = 'all'
+
+# Also run the relational analyses (neighbor_correlations.py) on each fit — the
+# adjacency/layer-chain and same-tissue co-occurrence figures. Uses the SAME df,
+# loadings and parameters as the decomposition above, so it runs in one go.
+RUN_RELATIONS = True
 
 _METHOD_NAME = {'nmf': 'NMF', 'aa': 'Archetypal Analysis', 'gmm': 'Gaussian Mixture'}
 
@@ -418,6 +424,11 @@ def explore(
         os.makedirs(comp_dir, exist_ok=True)
         for session_id in df['session_id'].unique():
             plot_penetration_composition(df, session_id, method, k, comp_dir)
+
+        # Relational analyses on the SAME fit (adjacency/layer-chain + same-tissue
+        # co-occurrence). Written alongside the decomposition figures above.
+        if RUN_RELATIONS:
+            analyze_relations(df, loadings_df, method, k, save_dir)
 
         print(f"\n  saved → {save_dir}")
         print(f"    loadings.png         — what each {_HOWTO[method]['component']} is")
