@@ -50,7 +50,7 @@ RECIPES = [
     # ('nmf', 5),
     # ('nmf', 6),
     # ('aa', 3),
-    ('aa', 7),
+    ('aa', 3),
     # ('aa', 6),
     # ('gmm', 3),
     # ('gmm', 4),
@@ -451,7 +451,11 @@ if __name__ == "__main__":
     explore(
         conn,
         exclude_sessions=exclude_sessions,
-        within_session_normalize=False,
+        within_session_normalize=True,
         pc_smooth_sigma=2.0,
-        exclude_features=["amplitude", "band_power_delta_theta",  "band_power_alpha_beta", "band_power_gamma"],
+        exclude_features=["amplitude", "band_power_delta_theta",  "band_power_alpha_beta", "band_power_gamma",
+                          "log_ratio_gamma_delta_theta",
+                          "log_ratio_alpha_beta_delta_theta",
+                          "log_ratio_gamma_alpha_beta",
+                          ],
     )

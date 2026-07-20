@@ -740,10 +740,10 @@ MODEL_AAK7 = CompositionalTissueModel(
     assignments={
         'wm':     ['PC2', 'PC7'],
         'gm':     ['PC3', 'PC4', 'PC6'],
-        'sulcus': ['PC5'],
+        'sulcus': ['PC5', 'PC1'],
     },
     values={'wm': 1.0, 'gm': 0.5, 'sulcus': 0.0},
-    nuisance=['PC1'],
+    nuisance=[],
 )
 
 MODEL_AA_K3 = CompositionalTissueModel(

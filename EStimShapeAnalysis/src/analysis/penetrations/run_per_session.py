@@ -326,7 +326,7 @@ if __name__ == "__main__":
         exclude_features=[],
     )
     # PIPELINE = PIPE_PCA_V2
-    PIPELINE = PIPE_AA_K7
+    PIPELINE = PIPE_AA_K3
 
     # PIPELINE = PIPE_PCA_exclude_rel_lfp
 
@@ -352,11 +352,11 @@ if __name__ == "__main__":
         n_pcs=3,
         session_corr_penalty=1.0,
         chamber_dist_penalty=0.000,
-        chamber_param_penalty=0.001,
+        chamber_param_penalty=0.0001,
         # chamber_param_tolerances=dict(t_mm=2, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=1.0),
         chamber_param_tolerances=dict(t_mm=2, r_deg=5.0, daz_deg=0.01, del_deg=0.01, ddepth_mm=0.01),
         variance_penalty=0.0,
-        softmin_beta=0,
+        softmin_beta=5,
         optimizer='cma-es',
         use_confidence_weights=True,
         top_downweight_mm=1,

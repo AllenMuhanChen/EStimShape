@@ -147,7 +147,9 @@ PIPE_AA_K3 = TissuePipeline(
     use_varimax=False,
     within_session_normalize=True,
     pc_smooth_sigma=2.0,
-    exclude_features=[],
+    exclude_features=["amplitude", "band_power_delta_theta",  "band_power_alpha_beta", "band_power_gamma",
+                      "log_ratio_gamma_alpha_beta", "log_ratio_alpha_beta_delta_theta", "log_ratio_gamma_delta_theta",
+    ]
 )
 
 PIPE_AA_K7 = TissuePipeline(
@@ -156,9 +158,11 @@ PIPE_AA_K7 = TissuePipeline(
     decomp_method='aa',
     n_components=7,
     use_varimax=False,
-    within_session_normalize=False,
+    within_session_normalize=True,
     pc_smooth_sigma=2.0,
-    exclude_features=["amplitude", "band_power_delta_theta",  "band_power_alpha_beta", "band_power_gamma"],
+    exclude_features=["amplitude", "band_power_delta_theta",  "band_power_alpha_beta", "band_power_gamma",
+                      "log_ratio_gamma_alpha_beta", "log_ratio_alpha_beta_delta", "log_ratio_alpha_beta_delta_theta"
+    ]
 )
 # ---------------------------------------------------------------------------
 # Shared helpers

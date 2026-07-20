@@ -807,7 +807,7 @@ if __name__ == "__main__":
     run(
         conn,
         exclude_sessions=exclude_sessions,
-        within_session_normalize=False,
+        within_session_normalize=True,
         pc_smooth_sigma=2.0,
         exclude_features=["amplitude", "band_power_delta_theta",
                           "band_power_alpha_beta", "band_power_gamma"],
