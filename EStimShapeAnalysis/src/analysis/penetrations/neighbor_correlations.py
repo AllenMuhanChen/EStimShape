@@ -529,6 +529,153 @@ def plot_cooccurrence(clr_corr, sig_sim, combined, k, method, save_dir):
 
 
 # ---------------------------------------------------------------------------
+# ANALYSIS 3 — region characterization (thickness, occurrence, flanks, and
+# tissue-vs-CSF discriminant features per archetype).
+#
+# Motivating case: an archetype that is signature-similar to sulcus and borders
+# it, yet has the HIGHEST impedance (candidate layer 1 vs. a high-impedance
+# "sulcus"). This pass surfaces the features that settle it:
+#   * thickness + occurrence count  — L1 is thin and appears ~once per gyral
+#     crossing (thickness is apparent-along-track, so read it WITH the count and
+#     flanks, which are angle-invariant);
+#   * flanking pattern              — L1 is sandwiched CSF-on-one-side /
+#     GM-on-other; a CSF sub-type is CSF-flanked or random;
+#   * discriminant feature values   — real (not loading-scaled) medians of the
+#     activity/CSF markers: any consistent spiking or structured LFP ⇒ tissue,
+#     not fluid.
+# ---------------------------------------------------------------------------
+
+# Features that separate neural tissue from CSF, in rough order of power. Only
+# those present in the table are used.
+_DISCRIMINANT_FEATURES = [
+    'spike_rate_hz',
+    'mean_spike_amplitude',
+    'mean_peak_count',
+    'lfp_spectral_dissimilarity',
+    'relative_impedance',
+    'log_ratio_gamma_alpha_beta',
+]
+
+
+def _dominant(df, k):
+    """Dominant (argmax) archetype index per row — argmax is scale-invariant, so
+    the raw PC columns give the same answer as the renormalised scores."""
+    S = np.clip(np.column_stack([df[f'PC{i + 1}'].values for i in range(k)]), 0, None)
+    return S.argmax(axis=1)
+
+
+def region_runs(df, k):
+    """Every contiguous argmax run in every penetration, as dicts with the
+    archetype, its apparent thickness (mm, along track), and the archetypes of
+    the runs immediately shallower/deeper (None at a track end)."""
+    runs = []
+    for s in df['session_id'].unique():
+        sd = df[df['session_id'] == s].sort_values('depth_under_chamber_mm')
+        if len(sd) < 2:
+            continue
+        depths = sd['depth_under_chamber_mm'].values
+        S = _score_matrix(sd, k)
+        blocks = _argmax_blocks(S)
+        spacing = float(np.median(np.abs(np.diff(depths)))) if len(depths) > 1 else np.nan
+        dom = [int(S[b].sum(0).argmax()) for b in blocks]
+        for bi, b in enumerate(blocks):
+            runs.append(dict(
+                archetype=dom[bi],
+                thickness_mm=len(b) * spacing,
+                shallower=dom[bi - 1] if bi > 0 else None,
+                deeper=dom[bi + 1] if bi < len(blocks) - 1 else None,
+                session=s,
+            ))
+    return runs
+
+
+def _flank_summary(runs, a):
+    """(top flanking archetypes pooled over both sides, top sandwich pair) for
+    archetype a — the angle-invariant 'what am I always between' fingerprint."""
+    from collections import Counter
+    flanks, sandwiches = Counter(), Counter()
+    for r in runs:
+        if r['archetype'] != a:
+            continue
+        sides = [x for x in (r['shallower'], r['deeper']) if x is not None]
+        flanks.update(sides)
+        if r['shallower'] is not None and r['deeper'] is not None:
+            sandwiches[frozenset((r['shallower'], r['deeper']))] += 1
+    return flanks, sandwiches
+
+
+def characterize_regions(df, k, save_dir, discriminant_features=None, verbose=True):
+    runs = region_runs(df, k)
+    feats = [f for f in (discriminant_features or _DISCRIMINANT_FEATURES)
+             if f in df.columns]
+    dom = _dominant(df, k)
+    labels = [_label(i) for i in range(k)]
+
+    # --- Figure: thickness + discriminant-feature distributions per archetype ---
+    thick_by = {i: [r['thickness_mm'] for r in runs
+                    if r['archetype'] == i and np.isfinite(r['thickness_mm'])]
+                for i in range(k)}
+    counts = {i: len(thick_by[i]) for i in range(k)}
+
+    n_panels = 1 + len(feats)
+    fig, axes = plt.subplots(1, n_panels, figsize=(4.2 * n_panels, 5.2))
+    if n_panels == 1:
+        axes = [axes]
+
+    axt = axes[0]
+    data = [thick_by[i] if thick_by[i] else [np.nan] for i in range(k)]
+    axt.boxplot(data, showfliers=False)
+    for i in range(k):
+        if thick_by[i]:
+            axt.scatter(np.full(len(thick_by[i]), i + 1), thick_by[i],
+                        s=12, alpha=0.5, color='steelblue')
+        axt.annotate(f"n={counts[i]}", (i + 1, axt.get_ylim()[1]),
+                     ha='center', va='top', fontsize=7, color='0.3')
+    axt.set_xticks(range(1, k + 1))
+    axt.set_xticklabels(labels, fontsize=8)
+    axt.set_ylabel("apparent thickness along track (mm)")
+    axt.set_title("Region thickness & occurrence count\n(thin + few + sandwiched ⇒ "
+                  "candidate L1; read with flanks — thickness is angle-dependent)",
+                  fontsize=9)
+
+    for ax, f in zip(axes[1:], feats):
+        vals = [df.loc[dom == i, f].dropna().values for i in range(k)]
+        ax.boxplot([v if len(v) else [np.nan] for v in vals], showfliers=False)
+        ax.set_xticks(range(1, k + 1))
+        ax.set_xticklabels(labels, fontsize=8)
+        ax.set_title(f, fontsize=9)
+        ax.grid(True, axis='y', alpha=0.3)
+    fig.suptitle(f"{_METHOD_NAME['aa']}  (K={k})  —  per-archetype region profile "
+                 "(tissue-vs-CSF discriminants at dominant bins)", fontsize=12)
+    fig.text(0.5, 0.005, "How to read:  CSF/sulcus ⇒ ~zero spiking, LOW spectral "
+             "dissimilarity, LOW impedance. A quiet-but-HIGH-impedance archetype that "
+             "is thin, infrequent, and sandwiched between sulcus and gray matter is "
+             "layer 1, not sulcus.", ha='center', va='bottom', fontsize=8, wrap=True)
+    plt.tight_layout(rect=[0, 0.05, 1, 0.95])
+    _save_fig(save_dir, 'region_characterization.png')
+    plt.show()
+
+    if verbose:
+        print("\n  REGION CHARACTERIZATION — per archetype "
+              "(n runs · median thickness · typical flanks · key discriminants):")
+        for i in range(k):
+            flanks, sandwiches = _flank_summary(runs, i)
+            med_t = np.median(thick_by[i]) if thick_by[i] else float('nan')
+            top_fl = ", ".join(f"{_label(a)}×{n}" for a, n in flanks.most_common(2)) or "—"
+            top_sw = "—"
+            if sandwiches:
+                pair, n = sandwiches.most_common(1)[0]
+                top_sw = "/".join(_label(a) for a in pair) + f"×{n}"
+            disc = "  ".join(
+                f"{f.replace('lfp_spectral_dissimilarity','spec_dissim').replace('relative_impedance','impedance')}"
+                f"={np.nanmedian(df.loc[dom == i, f].values):+.3g}"
+                for f in feats)
+            print(f"    {_label(i)}: n={counts[i]:>3}  thick~{med_t:.3f}mm  "
+                  f"flanks[{top_fl}]  sandwich[{top_sw}]")
+            print(f"        {disc}")
+
+
+# ---------------------------------------------------------------------------
 # Printed interpretation
 # ---------------------------------------------------------------------------
 
@@ -593,12 +740,17 @@ def analyze_relations(df, loadings_df, method, k, save_dir, n_perm=N_PERM,
         _print_cooccurrence(clr_corr, rho, sig_sim, combined, k)
 
     if verbose:
+        print("\nRegion characterization (thickness / flanks / discriminants) ...")
+    characterize_regions(df, k, save_dir, verbose=verbose)
+
+    if verbose:
         print(f"\n  relational figures → {save_dir}")
         print("    adjacency_enrichment.png  — who borders whom (seriated)")
         print("    layer_chain.png           — inferred layer chain graph")
         print("    cooccurrence_clr.png      — same-bin co-occurrence (compositional)")
         print("    cooccurrence_signature.png— feature-signature similarity")
         print("    cooccurrence_combined.png — combined same-tissue affinity")
+        print("    region_characterization.png — thickness/count/flanks + tissue-vs-CSF markers")
     return dict(adjacency_z=z, order=order, combined=combined)
 
 
