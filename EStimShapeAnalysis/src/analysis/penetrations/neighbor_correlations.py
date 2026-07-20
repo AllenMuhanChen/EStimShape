@@ -454,7 +454,45 @@ def _print_cooccurrence(clr_corr, rho, sig_sim, combined, k):
 
 
 # ---------------------------------------------------------------------------
-# Driver
+# Public entry point — call this from explore_decompositions.py so both the
+# adjacency and co-occurrence analyses run on the SAME fit / parameters, in the
+# same invocation.
+# ---------------------------------------------------------------------------
+
+def analyze_relations(df, loadings_df, method, k, save_dir, n_perm=N_PERM,
+                      verbose=True):
+    """Run both relational analyses on an already-fitted decomposition.
+
+    Parameters mirror what `explore_decompositions.py` already has in hand after
+    `load_and_perform_pca`: `df` (with PC1..PCk membership columns), the
+    `loadings_df`, the method/K, and the recipe's `save_dir`.
+    """
+    if verbose:
+        print(f"\nAdjacency enrichment ({n_perm} block-order permutations) ...")
+    obs, z, off_norm = adjacency_enrichment(df, k, n_perm=n_perm)
+    order = plot_adjacency(obs, z, off_norm, k, method, save_dir)
+    if verbose:
+        _print_adjacency(z, order, k)
+
+    if verbose:
+        print("\nCo-occurrence / same-tissue affinity ...")
+    clr_corr, rho, sig_sim, combined = cooccurrence(df, k, loadings_df)
+    plot_cooccurrence(clr_corr, sig_sim, combined, k, method, save_dir)
+    if verbose:
+        _print_cooccurrence(clr_corr, rho, sig_sim, combined, k)
+
+    if verbose:
+        print(f"\n  relational figures → {save_dir}")
+        print("    adjacency_enrichment.png  — who borders whom (seriated)")
+        print("    layer_chain.png           — inferred layer chain graph")
+        print("    cooccurrence_clr.png      — same-bin co-occurrence (compositional)")
+        print("    cooccurrence_signature.png— feature-signature similarity")
+        print("    cooccurrence_combined.png — combined same-tissue affinity")
+    return dict(adjacency_z=z, order=order, combined=combined)
+
+
+# ---------------------------------------------------------------------------
+# Standalone driver (same parameters as explore_decompositions.py's __main__)
 # ---------------------------------------------------------------------------
 
 def run(
@@ -490,24 +528,7 @@ def run(
         save_dir = os.path.join(base, tag)
         os.makedirs(save_dir, exist_ok=True)
 
-        # --- Analysis 1: adjacency ---
-        print(f"\nAdjacency enrichment ({N_PERM} block-order permutations) ...")
-        obs, z, off_norm = adjacency_enrichment(df, k)
-        order = plot_adjacency(obs, z, off_norm, k, method, save_dir)
-        _print_adjacency(z, order, k)
-
-        # --- Analysis 2: co-occurrence ---
-        print("\nCo-occurrence / same-tissue affinity ...")
-        clr_corr, rho, sig_sim, combined = cooccurrence(df, k, loadings_df)
-        plot_cooccurrence(clr_corr, sig_sim, combined, k, method, save_dir)
-        _print_cooccurrence(clr_corr, rho, sig_sim, combined, k)
-
-        print(f"\n  saved → {save_dir}")
-        print("    adjacency_enrichment.png  — who borders whom (seriated)")
-        print("    layer_chain.png           — inferred layer chain graph")
-        print("    cooccurrence_clr.png      — same-bin co-occurrence (compositional)")
-        print("    cooccurrence_signature.png— feature-signature similarity")
-        print("    cooccurrence_combined.png — combined same-tissue affinity")
+        analyze_relations(df, loadings_df, method, k, save_dir)
 
 
 if __name__ == "__main__":
