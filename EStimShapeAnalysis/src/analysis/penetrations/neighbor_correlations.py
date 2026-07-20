@@ -62,6 +62,19 @@ RNG = np.random.default_rng(0)
 # non-negativity clip); added then renormalised before taking logs.
 CLR_EPS = 1e-3
 
+# How to order the archetypes into the "layer chain":
+#   'path'     : max-weight open path — the ordering whose CONSECUTIVE pairs have
+#                the largest total adjacency enrichment (z). This is what you get
+#                by hand when you chain the strongest edges, and it uses the
+#                signed z (a negative/avoidant pair between neighbours is
+#                penalised), so noise nodes fall to the ends, not the middle.
+#                Solved exactly by brute force for k <= 8, else greedy + 2-opt.
+#   'spectral' : Fiedler seriation (global smoothness, clips negatives) — kept
+#                for comparison; tends to disagree with manual reading.
+#   list/tuple : an explicit order YOU supply, as 1-based archetype numbers
+#                (the A<n> labels), e.g. [1, 7, 2, 3, 6, 5, 4]. Overrides both.
+SERIATION = 'path'
+
 _METHOD_NAME = {'nmf': 'NMF', 'aa': 'Archetypal Analysis', 'gmm': 'Gaussian Mixture'}
 
 
@@ -175,10 +188,67 @@ def adjacency_enrichment(df, k, n_perm=N_PERM):
 
 # ---- seriation: turn the adjacency into a 1D layer ordering -----------------
 
+def _path_score(z, order):
+    """Total adjacency enrichment on the k-1 consecutive (backbone) pairs of an
+    ordering — the quantity the max-weight-path seriation maximises, and the
+    number that says 'is every neighbour in this line actually a strong edge?'."""
+    return float(sum(z[order[i], order[i + 1]] for i in range(len(order) - 1)))
+
+
+def _path_order(z):
+    """Max-weight open path (a.k.a. longest Hamiltonian path): the ordering whose
+    CONSECUTIVE pairs carry the most total enrichment. This is the automated
+    version of 'chain the strongest adjacencies by hand'.
+
+    Uses the SIGNED z (no clipping) so an avoidant pair placed next to each other
+    is penalised — which pushes noise / non-layer archetypes to the ENDS rather
+    than the middle (the failure mode of spectral seriation). Exact brute force
+    for k <= 8; greedy nearest-neighbour + 2-opt refinement above that."""
+    k = len(z)
+    W = np.array(z, float)
+    np.fill_diagonal(W, 0.0)
+
+    if k <= 8:
+        from itertools import permutations
+        best, best_s = None, -np.inf
+        for perm in permutations(range(k)):
+            if perm[0] > perm[-1]:           # a path and its reverse are identical
+                continue
+            s = _path_score(W, perm)
+            if s > best_s:
+                best_s, best = s, perm
+        return np.array(best)
+
+    # Heuristic for larger k: start from the single strongest edge, greedily
+    # extend at whichever end gains the most, then 2-opt to polish.
+    i0, j0 = np.unravel_index(np.argmax(W), W.shape)
+    order = [int(i0), int(j0)]
+    remaining = set(range(k)) - set(order)
+    while remaining:
+        best_gain, best_node, at_front = -np.inf, None, False
+        for n in remaining:
+            for front in (True, False):
+                end = order[0] if front else order[-1]
+                if W[n, end] > best_gain:
+                    best_gain, best_node, at_front = W[n, end], n, front
+        order.insert(0 if at_front else len(order), best_node)
+        remaining.remove(best_node)
+    improved = True
+    while improved:
+        improved = False
+        for a in range(k - 1):
+            for b in range(a + 1, k):
+                cand = order[:a] + order[a:b + 1][::-1] + order[b + 1:]
+                if _path_score(W, cand) > _path_score(W, order) + 1e-12:
+                    order, improved = cand, True
+    return np.array(order)
+
+
 def _spectral_order(affinity):
     """Fiedler (spectral) seriation: order nodes so that strongly-adjacent
-    archetypes land next to each other on a line — the layer-chain hypothesis.
-    Uses the 2nd eigenvector of the normalised graph Laplacian."""
+    archetypes land next to each other on a line, via the 2nd eigenvector of the
+    normalised graph Laplacian. Global smoothness objective; clips negatives, so
+    it can disagree with manual reading (kept only for comparison)."""
     W = np.array(affinity, float)
     np.fill_diagonal(W, 0.0)
     W = np.clip(W, 0, None)
@@ -187,6 +257,37 @@ def _spectral_order(affinity):
     Ln = np.eye(len(W)) - (dinv[:, None] * W * dinv[None, :])
     vals, vecs = np.linalg.eigh(Ln)
     return np.argsort(vecs[:, 1])        # Fiedler vector
+
+
+def _resolve_manual_order(spec, k):
+    """Turn a user-supplied SERIATION list of 1-based archetype numbers (A<n>
+    labels) into a 0-based order array, validating it's a full permutation."""
+    order = [int(v) - 1 for v in spec]
+    if sorted(order) != list(range(k)):
+        raise ValueError(f"SERIATION must be a permutation of 1..{k} "
+                         f"(the A1..A{k} labels); got {list(spec)}")
+    return np.array(order)
+
+
+def _seriate(z, k):
+    """Dispatch on the SERIATION config → an ordering of the k archetypes."""
+    if isinstance(SERIATION, (list, tuple, np.ndarray)):
+        return _resolve_manual_order(SERIATION, k)
+    if SERIATION == 'spectral':
+        return _spectral_order(np.clip(z, 0, None))
+    return _path_order(z)
+
+
+def _chain_quality(z, order):
+    """Fraction of all positive adjacency enrichment that lands on the chain's
+    consecutive (backbone) pairs. ~1 ⇒ the data really is a 1D chain and this
+    ordering captures it; low ⇒ lots of strong adjacencies jump over neighbours,
+    so the 'chain' is being forced onto non-chain structure."""
+    pos = np.clip(z, 0, None)
+    np.fill_diagonal(pos, 0.0)
+    total = np.triu(pos, 1).sum()
+    captured = sum(pos[order[i], order[i + 1]] for i in range(len(order) - 1))
+    return captured / total if total > 0 else float('nan')
 
 
 # ---------------------------------------------------------------------------
@@ -268,7 +369,7 @@ def _annotated_heatmap(ax, M, labels, cmap, vmin, vmax, order=None, cbar_label='
 
 def plot_adjacency(obs, z, off_norm, k, method, save_dir):
     labels = [_label(i) for i in range(k)]
-    order = _spectral_order(np.clip(z, 0, None))
+    order = _seriate(z, k)
 
     # The self-continuity DIAGONAL (a layer continuing into itself) is always
     # strongly positive and would dominate the colour scale; mask it so the
@@ -439,7 +540,17 @@ def _print_adjacency(z, order, k):
         top = ", ".join(f"{_label(j)}={zz:+.1f}" for j, zz in nb[:3])
         print(f"    {_label(i)}:  {top}")
     chain = " ↔ ".join(_label(i) for i in order)
-    print(f"\n  Seriated layer chain (direction arbitrary):  {chain}")
+    how = (SERIATION if isinstance(SERIATION, str) else 'manual')
+    q = _chain_quality(z, order)
+    print(f"\n  Layer chain ({how}, direction arbitrary):  {chain}")
+    print(f"    chain quality: {q:.0%} of positive adjacency lands on backbone pairs "
+          f"(higher = more genuinely 1D)")
+    # Show the other automatic ordering too, so a disagreement is visible.
+    alt = _spectral_order(np.clip(z, 0, None)) if how != 'spectral' else _path_order(z)
+    alt_name = 'spectral' if how != 'spectral' else 'path'
+    print(f"    for comparison — {alt_name} order:  "
+          + " ↔ ".join(_label(i) for i in alt)
+          + f"  (quality {_chain_quality(z, alt):.0%})")
 
 
 def _print_cooccurrence(clr_corr, rho, sig_sim, combined, k):
