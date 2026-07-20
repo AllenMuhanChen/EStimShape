@@ -356,7 +356,7 @@ if __name__ == "__main__":
         # chamber_param_tolerances=dict(t_mm=2, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=1.0),
         chamber_param_tolerances=dict(t_mm=2, r_deg=5.0, daz_deg=0.01, del_deg=0.01, ddepth_mm=0.01),
         variance_penalty=0.0,
-        softmin_beta=10,
+        softmin_beta=0,
         optimizer='cma-es',
         use_confidence_weights=True,
         top_downweight_mm=1,

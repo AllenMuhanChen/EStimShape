@@ -158,7 +158,7 @@ PIPE_AA_K7 = TissuePipeline(
     use_varimax=False,
     within_session_normalize=False,
     pc_smooth_sigma=2.0,
-    exclude_features=[],
+    exclude_features=["amplitude", "band_power_delta_theta",  "band_power_alpha_beta", "band_power_gamma"],
 )
 # ---------------------------------------------------------------------------
 # Shared helpers
