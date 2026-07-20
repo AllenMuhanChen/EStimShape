@@ -86,6 +86,24 @@ BAND_COLORS = {
     "gamma":       "tab:green",
 }
 
+# Activity-INSENSITIVE spectral-shape features: log10 ratios between band powers.
+# Raw band power confounds "which layer/tissue" with "how active this region is"
+# (visual cortex is engaged, motor cortex idle during passive viewing), which
+# corrupts pooled classification as the probe crosses regions of differing
+# activity. A region-wide activity gain multiplies ALL bands together, so it
+# CANCELS in a band-to-band ratio — leaving the spectral *shape* (which tracks
+# tissue/layer) without the activity offset. (The per-bin relative-power
+# normalisation cancels in the ratio too, so this is identical to the ratio of
+# absolute band powers.) gamma/alpha-beta is the spectrolaminar marker
+# (superficial gamma vs deep alpha/beta). Each (num, den) pair adds one column
+# log_ratio_<num>_<den> = log10(power_num / power_den), auto-picked up as a
+# decomposition feature. Set to [] to disable.
+BAND_RATIOS = [
+    ("gamma",      "alpha-beta"),    # spectrolaminar: superficial vs deep
+    ("gamma",      "delta-theta"),
+    ("alpha-beta", "delta-theta"),
+]
+
 # Band power/phase method: True=FOOOF-robust, False=legacy relative normalization
 USE_FOOOF_BAND_POWERS = False   # False: use legacy compute_relative_power normalization
 USE_ABSOLUTE_PHASE    = False   # False: use legacy compute_relative_phase normalization
@@ -1209,6 +1227,35 @@ def _band_power_fooof(
     return float(np.mean(np.log10(power_band) - np.log10(aperiodic)))
 
 
+def _sanitize_band(name: str) -> str:
+    return name.replace('-', '_')
+
+
+def _ratio_col(num: str, den: str) -> str:
+    """DB column name for a band ratio, e.g. ('gamma','alpha-beta') ->
+    'log_ratio_gamma_alpha_beta'."""
+    return f"log_ratio_{_sanitize_band(num)}_{_sanitize_band(den)}"
+
+
+def _log_band_ratio(num_val: Optional[float], den_val: Optional[float]) -> Optional[float]:
+    """Activity-insensitive log10(num / den) contrast between two band powers.
+
+    Correct for BOTH band-power representations:
+      * legacy relative power (linear, > 0)     -> log10(num) - log10(den)
+      * FOOOF log-power-above-aperiodic (log10) -> num - den  (already log units,
+                                                    so their difference IS the log
+                                                    ratio in linear space)
+    Returns None if either input is missing, or non-positive in the linear case.
+    """
+    if num_val is None or den_val is None:
+        return None
+    if USE_FOOOF_BAND_POWERS:
+        return float(num_val - den_val)
+    if num_val <= 0 or den_val <= 0:
+        return None
+    return float(np.log10(num_val) - np.log10(den_val))
+
+
 def save_to_repository(
     session_id: str,
     bin_depths: np.ndarray,
@@ -1237,6 +1284,9 @@ def save_to_repository(
     _ensure_column(conn, 'trough_to_peak_ms')
     _ensure_column(conn, 'mean_spike_amplitude')
     _ensure_column(conn, 'lfp_spectral_dissimilarity')
+    ratio_cols = [_ratio_col(num, den) for num, den in BAND_RATIOS]
+    for col in ratio_cols:
+        _ensure_column(conn, col)
     print(f"Table '{_PENETRATION_METRICS_TABLE}' ready.")
 
     n_inserted = 0
@@ -1271,6 +1321,20 @@ def save_to_repository(
             binned_spectral_dissim.get(idx) if binned_spectral_dissim else None,
         )
         conn.execute(_UPSERT_PENETRATION_METRICS_SQL, row)
+
+        # Activity-insensitive log band ratios (configurable via BAND_RATIOS).
+        # Written as a follow-up UPDATE so the static base upsert above is left
+        # untouched and the ratio set stays fully configurable.
+        if ratio_cols:
+            bp_by_band = {"delta-theta": bp_dt, "alpha-beta": bp_ab, "gamma": bp_g}
+            ratio_vals = [_log_band_ratio(bp_by_band[num], bp_by_band[den])
+                          for num, den in BAND_RATIOS]
+            set_clause = ", ".join(f"{c} = %s" for c in ratio_cols)
+            conn.execute(
+                f"UPDATE {_PENETRATION_METRICS_TABLE} SET {set_clause} "
+                f"WHERE session_id = %s AND depth_under_chamber_mm = %s",
+                (*ratio_vals, session_id, float(depth_mm)),
+            )
         n_inserted += 1
 
     print(f"Saved {n_inserted} depth-bin rows to {_PENETRATION_METRICS_TABLE} "
