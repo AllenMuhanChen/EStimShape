@@ -577,31 +577,40 @@ def region_runs(df, k):
         S = _score_matrix(sd, k)
         blocks = _argmax_blocks(S)
         spacing = float(np.median(np.abs(np.diff(depths)))) if len(depths) > 1 else np.nan
+        pen_lo, pen_hi = float(depths.min()), float(depths.max())
+        span = (pen_hi - pen_lo) or 1.0
         dom = [int(S[b].sum(0).argmax()) for b in blocks]
         for bi, b in enumerate(blocks):
+            center = float(depths[b].mean())
             runs.append(dict(
                 archetype=dom[bi],
                 thickness_mm=len(b) * spacing,
-                shallower=dom[bi - 1] if bi > 0 else None,
+                shallower=dom[bi - 1] if bi > 0 else None,   # in DEPTH order (smaller depth = shallower)
                 deeper=dom[bi + 1] if bi < len(blocks) - 1 else None,
+                pos_norm=(center - pen_lo) / span,           # 0 = shallowest bin, 1 = deepest
                 session=s,
             ))
     return runs
 
 
 def _flank_summary(runs, a):
-    """(top flanking archetypes pooled over both sides, top sandwich pair) for
-    archetype a — the angle-invariant 'what am I always between' fingerprint."""
+    """Directional flank fingerprint for archetype a. Returns (shallower-side
+    Counter, deeper-side Counter, unordered-sandwich Counter). The shallower-vs-
+    deeper ASYMMETRY is the L1 test: L1 has CSF/sulcus shallower + gray matter
+    deeper; a narrow-sulcus/pia crossing is gray-matter (a bank) or sulcus on
+    BOTH sides."""
     from collections import Counter
-    flanks, sandwiches = Counter(), Counter()
+    shallow, deep, sandwiches = Counter(), Counter(), Counter()
     for r in runs:
         if r['archetype'] != a:
             continue
-        sides = [x for x in (r['shallower'], r['deeper']) if x is not None]
-        flanks.update(sides)
+        if r['shallower'] is not None:
+            shallow[r['shallower']] += 1
+        if r['deeper'] is not None:
+            deep[r['deeper']] += 1
         if r['shallower'] is not None and r['deeper'] is not None:
             sandwiches[frozenset((r['shallower'], r['deeper']))] += 1
-    return flanks, sandwiches
+    return shallow, deep, sandwiches
 
 
 def characterize_regions(df, k, save_dir, discriminant_features=None, verbose=True):
@@ -617,7 +626,10 @@ def characterize_regions(df, k, save_dir, discriminant_features=None, verbose=Tr
                 for i in range(k)}
     counts = {i: len(thick_by[i]) for i in range(k)}
 
-    n_panels = 1 + len(feats)
+    pos_by = {i: [r['pos_norm'] for r in runs if r['archetype'] == i]
+              for i in range(k)}
+
+    n_panels = 2 + len(feats)
     fig, axes = plt.subplots(1, n_panels, figsize=(4.2 * n_panels, 5.2))
     if n_panels == 1:
         axes = [axes]
@@ -634,11 +646,23 @@ def characterize_regions(df, k, save_dir, discriminant_features=None, verbose=Tr
     axt.set_xticks(range(1, k + 1))
     axt.set_xticklabels(labels, fontsize=8)
     axt.set_ylabel("apparent thickness along track (mm)")
-    axt.set_title("Region thickness & occurrence count\n(thin + few + sandwiched ⇒ "
-                  "candidate L1; read with flanks — thickness is angle-dependent)",
-                  fontsize=9)
+    axt.set_title("Region thickness & occurrence count\n(thin + few ⇒ candidate L1 or "
+                  "narrow sulcus; read with depth + flanks)", fontsize=9)
 
-    for ax, f in zip(axes[1:], feats):
+    # Depth position: L1 clusters at the shallow end (~0, right at entry); a
+    # narrow-sulcus/pia crossing sits mid-track and spreads.
+    axp = axes[1]
+    axp.boxplot([pos_by[i] if pos_by[i] else [np.nan] for i in range(k)],
+                showfliers=False)
+    axp.set_xticks(range(1, k + 1))
+    axp.set_xticklabels(labels, fontsize=8)
+    axp.set_ylim(1.02, -0.02)                    # shallow (0) at TOP, like a probe
+    axp.set_ylabel("normalized depth on track (0=shallowest)")
+    axp.set_title("Depth position along track\n(shallow-clustered ⇒ L1; mid-track/"
+                  "spread ⇒ sulcus crossing)", fontsize=9)
+    axp.grid(True, axis='y', alpha=0.3)
+
+    for ax, f in zip(axes[2:], feats):
         vals = [df.loc[dom == i, f].dropna().values for i in range(k)]
         ax.boxplot([v if len(v) else [np.nan] for v in vals], showfliers=False)
         ax.set_xticks(range(1, k + 1))
@@ -648,30 +672,30 @@ def characterize_regions(df, k, save_dir, discriminant_features=None, verbose=Tr
     fig.suptitle(f"{_METHOD_NAME['aa']}  (K={k})  —  per-archetype region profile "
                  "(tissue-vs-CSF discriminants at dominant bins)", fontsize=12)
     fig.text(0.5, 0.005, "How to read:  CSF/sulcus ⇒ ~zero spiking, LOW spectral "
-             "dissimilarity, LOW impedance. A quiet-but-HIGH-impedance archetype that "
-             "is thin, infrequent, and sandwiched between sulcus and gray matter is "
-             "layer 1, not sulcus.", ha='center', va='bottom', fontsize=8, wrap=True)
+             "dissimilarity, LOW impedance. LAYER 1: quiet but nonzero spiking, "
+             "impedance high yet BELOW white matter, shallow-clustered, CSF-shallower/"
+             "GM-deeper, extreme gamma. NARROW SULCUS / PIA: silent, impedance ABOVE "
+             "white matter, mid-track, gray-matter or sulcus on BOTH sides, flat gamma.",
+             ha='center', va='bottom', fontsize=8, wrap=True)
     plt.tight_layout(rect=[0, 0.05, 1, 0.95])
     _save_fig(save_dir, 'region_characterization.png')
     plt.show()
 
     if verbose:
         print("\n  REGION CHARACTERIZATION — per archetype "
-              "(n runs · median thickness · typical flanks · key discriminants):")
+              "(n · thickness · depth · directional flanks · discriminants):")
         for i in range(k):
-            flanks, sandwiches = _flank_summary(runs, i)
+            shallow, deep, sandwiches = _flank_summary(runs, i)
             med_t = np.median(thick_by[i]) if thick_by[i] else float('nan')
-            top_fl = ", ".join(f"{_label(a)}×{n}" for a, n in flanks.most_common(2)) or "—"
-            top_sw = "—"
-            if sandwiches:
-                pair, n = sandwiches.most_common(1)[0]
-                top_sw = "/".join(_label(a) for a in pair) + f"×{n}"
+            med_p = np.median(pos_by[i]) if pos_by[i] else float('nan')
+            top_sh = ", ".join(f"{_label(a)}×{n}" for a, n in shallow.most_common(2)) or "—"
+            top_dp = ", ".join(f"{_label(a)}×{n}" for a, n in deep.most_common(2)) or "—"
             disc = "  ".join(
                 f"{f.replace('lfp_spectral_dissimilarity','spec_dissim').replace('relative_impedance','impedance')}"
                 f"={np.nanmedian(df.loc[dom == i, f].values):+.3g}"
                 for f in feats)
             print(f"    {_label(i)}: n={counts[i]:>3}  thick~{med_t:.3f}mm  "
-                  f"flanks[{top_fl}]  sandwich[{top_sw}]")
+                  f"depth~{med_p:.2f}  ↑shallower[{top_sh}]  ↓deeper[{top_dp}]")
             print(f"        {disc}")
 
 
