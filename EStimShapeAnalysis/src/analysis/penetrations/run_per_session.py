@@ -64,7 +64,7 @@ from src.analysis.penetrations.penetration_plots import (
 )
 from src.analysis.penetrations.run_pooled import (
     EXCUDE_REL_LFP, PIPE_PCA_exclude_rel_lfp, PIPE_PCA_new,
-    PIPE_AA_K5, PIPE_AA_K6, PIPE_AA_K3, PIPE_AA_K4,
+    PIPE_AA_K5, PIPE_AA_K6, PIPE_AA_K3, PIPE_AA_K4, PIPE_AA_K7,
 )
 
 
@@ -326,7 +326,7 @@ if __name__ == "__main__":
         exclude_features=[],
     )
     # PIPELINE = PIPE_PCA_V2
-    PIPELINE = PIPE_AA_K3
+    PIPELINE = PIPE_AA_K7
 
     # PIPELINE = PIPE_PCA_exclude_rel_lfp
 
@@ -356,10 +356,10 @@ if __name__ == "__main__":
         # chamber_param_tolerances=dict(t_mm=2, r_deg=2.5, daz_deg=0.5, del_deg=0.5, ddepth_mm=1.0),
         chamber_param_tolerances=dict(t_mm=2, r_deg=5.0, daz_deg=0.01, del_deg=0.01, ddepth_mm=0.01),
         variance_penalty=0.0,
-        softmin_beta=5,
+        softmin_beta=10,
         optimizer='cma-es',
         use_confidence_weights=True,
-        top_downweight_mm=5,
+        top_downweight_mm=1,
         top_downweight_factor=0.25,
         # Brain-extracted MRI: zero outside brain so the optimiser doesn't fit
         # to skull/scalp signal. Set to None to fall back to the config default.

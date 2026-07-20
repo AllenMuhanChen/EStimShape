@@ -49,7 +49,7 @@ from src.analysis.penetrations.pca_predict import (
     TissuePipeline,
     get_feature_correlations,
     get_loadings_df,
-    print_feature_correlations, MODEL_PCA_V5, MODEL_PCA_V6, MODEL_AA_K3, MODEL_AA_K4,
+    print_feature_correlations, MODEL_PCA_V5, MODEL_PCA_V6, MODEL_AA_K3, MODEL_AA_K4, MODEL_AAK7,
 )
 from src.analysis.penetrations.alignment_optimize import (
     MRI_VIEWER_CONFIG_PATH,
@@ -146,6 +146,17 @@ PIPE_AA_K3 = TissuePipeline(
     n_components=3,
     use_varimax=False,
     within_session_normalize=True,
+    pc_smooth_sigma=2.0,
+    exclude_features=[],
+)
+
+PIPE_AA_K7 = TissuePipeline(
+    name='AA_K7',
+    model=MODEL_AAK7,
+    decomp_method='aa',
+    n_components=7,
+    use_varimax=False,
+    within_session_normalize=False,
     pc_smooth_sigma=2.0,
     exclude_features=[],
 )

@@ -440,7 +440,7 @@ if __name__ == "__main__":
     explore(
         conn,
         exclude_sessions=exclude_sessions,
-        within_session_normalize=True,
+        within_session_normalize=False,
         pc_smooth_sigma=2.0,
-        exclude_features=None,
+        exclude_features=["amplitude", "band_power_delta_theta",  "band_power_alpha_beta", "band_power_gamma"],
     )
