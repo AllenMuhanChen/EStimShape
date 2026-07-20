@@ -858,6 +858,40 @@ def plot_fooof_band_power(
     _setup_depth_axis(ax, bin_depths)
 
 
+def plot_band_ratios(
+    normalized: Dict[int, Tuple],
+    b_spec: Dict[int, Tuple],
+    b_fits: Dict[int, PowerLawFit],
+    bin_depths: np.ndarray,
+    ax: plt.Axes,
+) -> None:
+    """Depth profile of the activity-insensitive log band ratios (BAND_RATIOS) —
+    the same values written to PenetrationMetrics. For gamma/alpha-beta the depth
+    where the curve crosses 0 (dashed line) is the spectrolaminar crossover:
+    gamma-dominant (superficial) above it, alpha/beta-dominant (deep) below."""
+    n_bins = len(bin_depths)
+    y = np.arange(n_bins)
+    colors = plt.cm.Dark2(np.linspace(0, 1, 8))
+    for k, (num, den) in enumerate(BAND_RATIOS):
+        vals = []
+        for i in range(n_bins):
+            if USE_FOOOF_BAND_POWERS:
+                pn = _band_power_fooof(b_spec, b_fits, i, *BANDS[num])
+                pd = _band_power_fooof(b_spec, b_fits, i, *BANDS[den])
+            else:
+                pn = _band_power_at_bin(normalized, i, *BANDS[num])
+                pd = _band_power_at_bin(normalized, i, *BANDS[den])
+            r = _log_band_ratio(pn, pd)
+            vals.append(r if r is not None else np.nan)
+        ax.plot(vals, y, 'o-', markersize=3, color=colors[k % len(colors)],
+                label=f"{num}/{den}")
+    ax.axvline(0.0, color='gray', linewidth=0.8, linestyle='--', alpha=0.6)
+    ax.set_xlabel("log₁₀(ratio)")
+    ax.set_title("Band Ratios")
+    ax.legend(loc="lower right", fontsize=6)
+    _setup_depth_axis(ax, bin_depths)
+
+
 def _spectral_metrics(
     binned_fits: Dict[int, PowerLawFit],
     binned_spectra: Dict[int, Tuple],
@@ -1516,9 +1550,10 @@ class PenetrationLFPAnalysis:
         ])
         n_bins = len(bin_depths)
 
-        # Layout: heatmap | band power | [power-law] | spike rate | polarity | peak count | T-P duration | amplitude | impedance | phase | driven | spectral dissimilarity
-        n_total      = 1 + 1 + n_pl + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1
-        width_ratios = [3, 1] + [1] * n_pl + [1, 1, 1, 1, 1, 1, 1, 1, 1]
+        # Layout: heatmap | band power | [power-law] | spike rate | polarity | peak count | T-P duration | amplitude | impedance | phase | driven | spectral dissimilarity | [band ratios]
+        n_ratio      = 1 if BAND_RATIOS else 0
+        n_total      = 1 + 1 + n_pl + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + n_ratio
+        width_ratios = [3, 1] + [1] * n_pl + [1] * (9 + n_ratio)
 
         fig_h = max(8, min(20, n_bins * 0.15))
         fig, axes = plt.subplots(
@@ -1546,6 +1581,8 @@ class PenetrationLFPAnalysis:
             plot_relative_phase(b_phase, bin_depths, axes[2 + n_pl + 6])
         plot_driven_depth(b_driven or {}, bin_depths, axes[2 + n_pl + 7])
         plot_spectral_dissimilarity(b_spectral_dissim or {}, bin_depths, axes[2 + n_pl + 8])
+        if n_ratio:
+            plot_band_ratios(normalized, b_spec, b_fits, bin_depths, axes[2 + n_pl + 9])
 
         # Lock y limits to the heatmap's extent so all panels align exactly
         axes[0].set_ylim(n_bins - 0.5, -0.5)
