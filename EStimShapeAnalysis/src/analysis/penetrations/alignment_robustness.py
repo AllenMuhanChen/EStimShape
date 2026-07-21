@@ -183,51 +183,93 @@ def _silent_optimize(df_conf, conn, mri_pipeline, **kw):
         return optimize_trajectory_alignment(df_conf, conn, mri_pipeline, **kw)
 
 
-def _random_global_start(rng, scale) -> np.ndarray:
-    """Randomised 9-vector global start: t (mm), r (deg), daz/del (deg), ddepth (mm)."""
+def _random_global_start(rng, scale, enabled_mask=None) -> np.ndarray:
+    """Randomised 9-vector global start: t (mm), r (deg), daz/del (deg), ddepth (mm).
+
+    Disabled dims (enabled_mask False) are set to 0 so the logged start is
+    honest — the optimiser's fixed_globals would zero them anyway.
+    """
     x0 = np.zeros(9)
     x0[:3] = rng.uniform(-scale['t'],      scale['t'],      3)   # tx ty tz
     x0[3:6] = rng.uniform(-scale['r'],     scale['r'],      3)   # rx ry rz
     x0[6:8] = rng.uniform(-scale['ang'],   scale['ang'],    2)   # daz del
     x0[8] = rng.uniform(-scale['depth'],   scale['depth'])       # ddepth
+    if enabled_mask is not None:
+        x0 = np.where(np.asarray(enabled_mask, dtype=bool), x0, 0.0)
     return x0
+
+
+def fixed_from_enabled(enabled, base_fixed=None) -> dict:
+    """Turn an 'enabled global params' list into a fixed_globals dict that
+    HARD-FREEZES every disabled global at 0.0.
+
+    This is the clean way to drop daz_deg/del_deg/ddepth_mm (or any global) from
+    the search: the optimiser removes the DOF entirely (simplex step ~0, value
+    forced each eval) instead of merely soft-penalising it via a tiny
+    chamber_param_tolerance — which still lets the optimiser wiggle it into
+    overfit corners. Merges with any explicit base_fixed (base wins on conflict).
+    """
+    fixed = dict(base_fixed or {})
+    for name in _OPT_PARAM_NAMES:
+        if name not in enabled and name not in fixed:
+            fixed[name] = 0.0
+    return fixed
+
+
+def _enabled_mask(enabled) -> np.ndarray:
+    return np.array([name in enabled for name in _OPT_PARAM_NAMES], dtype=bool)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Study A — multi-start Pareto sweep
 # ═══════════════════════════════════════════════════════════════════════════
 def sweep(df_conf, conn, mri_pipeline, *,
-          betas, penalties, per_session_opts, n_random_starts,
+          param_sets, betas, penalties, per_session_opts, n_random_starts,
           start_scale, base_kw, seed=0):
-    """Grid over (beta x chamber_param_penalty x per_session) with n random
-    global starts each. Returns a tidy DataFrame, one row per run."""
+    """Grid over (param_set x beta x chamber_param_penalty x per_session) with n
+    random global starts each. Returns a tidy DataFrame, one row per run.
+
+    param_sets : dict {name: [enabled global param names]}. Globals NOT listed
+        are hard-frozen at 0 (see fixed_from_enabled) — e.g. an entry
+        'rigid': ['tx_mm',...,'rz_deg'] drops daz/del/ddepth from the search, so
+        you can compare it head-to-head against the full 9-param model and see
+        whether the extra DOF buy real raw_r or just overfit.
+    """
     rng = np.random.default_rng(seed)
     rows = []
-    total = len(betas) * len(penalties) * len(per_session_opts) * n_random_starts
+    base_fixed = base_kw.get('fixed_globals')
+    total = (len(param_sets) * len(betas) * len(penalties)
+             * len(per_session_opts) * n_random_starts)
     done = 0
-    for beta in betas:
-        for pen in penalties:
-            for ps in per_session_opts:
-                for k in range(n_random_starts):
-                    x0 = (_random_global_start(rng, start_scale)
-                          if k > 0 else np.zeros(9))   # k==0 = the nominal start
-                    kw = dict(base_kw)
-                    kw.update(softmin_beta=beta, chamber_param_penalty=pen,
-                              enable_per_session_corrections=ps, x0_override=x0)
-                    try:
-                        res = _silent_optimize(df_conf, conn, mri_pipeline, **kw)
-                        row = _row_from_result(res, mri_pipeline, conn, df_conf, tags=dict(
-                            beta=beta, chamber_param_penalty=pen, per_session=ps,
-                            start=k, start_kind=('nominal' if k == 0 else 'random')))
-                    except Exception as exc:
-                        row = dict(beta=beta, chamber_param_penalty=pen, per_session=ps,
-                                   start=k, start_kind=('nominal' if k == 0 else 'random'),
-                                   raw_after=np.nan, error=str(exc))
-                    rows.append(row)
-                    done += 1
-                    print(f"  [{done:3d}/{total}] beta={beta} pen={pen} ps={ps} "
-                          f"start={k:2d}  raw={row.get('raw_after', float('nan')):.4f}  "
-                          f"shift={row.get('shift_mm', float('nan')):.2f}mm")
+    for pset_name, enabled in param_sets.items():
+        fixed = fixed_from_enabled(enabled, base_fixed)
+        mask = _enabled_mask(enabled)
+        n_free = int(mask.sum())
+        for beta in betas:
+            for pen in penalties:
+                for ps in per_session_opts:
+                    for k in range(n_random_starts):
+                        x0 = (_random_global_start(rng, start_scale, mask)
+                              if k > 0 else np.zeros(9))   # k==0 = nominal start
+                        kw = dict(base_kw)
+                        kw.update(softmin_beta=beta, chamber_param_penalty=pen,
+                                  enable_per_session_corrections=ps, x0_override=x0,
+                                  fixed_globals=fixed)
+                        tags = dict(param_set=pset_name, n_free_global=n_free,
+                                    beta=beta, chamber_param_penalty=pen,
+                                    per_session=ps, start=k,
+                                    start_kind=('nominal' if k == 0 else 'random'))
+                        try:
+                            res = _silent_optimize(df_conf, conn, mri_pipeline, **kw)
+                            row = _row_from_result(res, mri_pipeline, conn, df_conf, tags=tags)
+                        except Exception as exc:
+                            row = dict(tags, raw_after=np.nan, error=str(exc))
+                        rows.append(row)
+                        done += 1
+                        print(f"  [{done:3d}/{total}] set={pset_name} beta={beta} "
+                              f"pen={pen} ps={ps} start={k:2d}  "
+                              f"raw={row.get('raw_after', float('nan')):.4f}  "
+                              f"shift={row.get('shift_mm', float('nan')):.2f}mm")
     return pd.DataFrame(rows)
 
 
@@ -323,13 +365,14 @@ def make_plots(sweep_df: pd.DataFrame, out_dir: str, loso_df: Optional[pd.DataFr
     try:
         rigid = ['tx_mm', 'ty_mm', 'tz_mm', 'rx_deg', 'ry_deg', 'rz_deg']
         rnd = d[d['start_kind'] == 'random']
-        grp = rnd.groupby(['beta', 'chamber_param_penalty', 'per_session'])
+        grp = rnd.groupby(['param_set', 'beta', 'chamber_param_penalty', 'per_session'])
         stds = grp[rigid + ['raw_after']].std(numeric_only=True)
         fig, ax = plt.subplots(figsize=(9, max(3, 0.4 * len(stds) + 1)))
         im = ax.imshow(stds[rigid].values, aspect='auto', cmap='magma')
         ax.set_xticks(range(len(rigid))); ax.set_xticklabels(rigid, rotation=45, ha='right')
         ax.set_yticks(range(len(stds)))
-        ax.set_yticklabels([f'b={b} pen={p} ps={s}' for (b, p, s) in stds.index], fontsize=7)
+        ax.set_yticklabels([f'{ps_} b={b} pen={p} ses={s}'
+                            for (ps_, b, p, s) in stds.index], fontsize=7)
         ax.set_title('Endpoint spread across random starts (std) — low = identifiable')
         fig.colorbar(im, ax=ax, label='std of optimised param')
         fig.tight_layout(); fig.savefig(os.path.join(out_dir, 'multistart_stability.png'), dpi=140)
@@ -379,6 +422,18 @@ def summarize(sweep_df: pd.DataFrame) -> str:
                      f"of the best raw_r with {knee['shift_mm'] / max(best['shift_mm'], 1e-9):.2f}x "
                      f"the correction size.")
 
+    # param-set (dimensionality) comparison — does adding daz/del/ddepth buy raw_r?
+    if 'param_set' in d.columns:
+        lines.append("  -- param set (dimensionality) --")
+        for pset in d['param_set'].unique():
+            sub = d[d['param_set'] == pset]
+            k = pareto_knee(sub)
+            n_free = int(sub['n_free_global'].iloc[0]) if 'n_free_global' in sub else -1
+            lines.append(f"    {pset:<14s} (n_free={n_free}): best raw_r={sub['raw_after'].max():.4f}, "
+                         f"knee raw_r={k['raw_after'] if k is not None else float('nan'):.4f} @ "
+                         f"{k['shift_mm'] if k is not None else float('nan'):.2f}mm, "
+                         f"median ps_max={sub['ps_max'].median():.2f}")
+
     # global-only vs +per-session at matched settings
     for ps in sorted(d['per_session'].unique()):
         sub = d[d['per_session'] == ps]
@@ -390,12 +445,13 @@ def summarize(sweep_df: pd.DataFrame) -> str:
     rnd = d[d['start_kind'] == 'random']
     if not rnd.empty:
         rigid = ['tx_mm', 'ty_mm', 'tz_mm', 'rx_deg', 'ry_deg', 'rz_deg']
-        spread = rnd.groupby(['beta', 'chamber_param_penalty', 'per_session'])[rigid].std().mean(axis=1)
+        spread = (rnd.groupby(['param_set', 'beta', 'chamber_param_penalty', 'per_session'])[rigid]
+                  .std().mean(axis=1))
         worst = spread.idxmax(); best_id = spread.idxmin()
-        lines.append(f"  most identifiable  : beta={best_id[0]} pen={best_id[1]} ps={best_id[2]} "
-                     f"(mean rigid std={spread.min():.3f})")
-        lines.append(f"  least identifiable : beta={worst[0]} pen={worst[1]} ps={worst[2]} "
-                     f"(mean rigid std={spread.max():.3f})")
+        lines.append(f"  most identifiable  : set={best_id[0]} beta={best_id[1]} pen={best_id[2]} "
+                     f"ps={best_id[3]} (mean rigid std={spread.min():.3f})")
+        lines.append(f"  least identifiable : set={worst[0]} beta={worst[1]} pen={worst[2]} "
+                     f"ps={worst[3]} (mean rigid std={spread.max():.3f})")
     lines.append("=" * 70)
     return "\n".join(lines)
 
@@ -412,6 +468,16 @@ if __name__ == "__main__":
     EXCLUDE = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
     NO_SKULL_MRI = None          # set to brain-extracted volume path if you use one
     PIPELINE = PIPE_AA_K5        # the tissue model / decomposition recipe
+
+    # Which global params the optimiser is allowed to move. Globals not listed
+    # are HARD-FROZEN at 0 (cleaner than a tiny chamber_param_tolerance, which
+    # only soft-penalises them). 'rigid' drops daz/del/ddepth — the extra
+    # angular/depth DOF that tend to overfit; compare it against 'full'.
+    RIGID = ['tx_mm', 'ty_mm', 'tz_mm', 'rx_deg', 'ry_deg', 'rz_deg']
+    PARAM_SETS = {
+        'rigid': RIGID,                 # 6 DOF: translation + rotation only
+        'full':  list(_OPT_PARAM_NAMES),  # 9 DOF: + global daz/del/ddepth
+    }
 
     BETAS = [0.0, 1.0, 5.0, 20.0]         # 0 == mean aggregation
     PENALTIES = [0.0, 0.0001, 0.001, 0.01]  # chamber_param_penalty; 0 == unconstrained
@@ -443,8 +509,9 @@ if __name__ == "__main__":
         conn, PIPELINE, TABLE, EXCLUDE, MRI_VIEWER_CONFIG_PATH, NO_SKULL_MRI)
 
     print(f"\nSweeping "
-          f"{len(BETAS)*len(PENALTIES)*len(PER_SESSION)*N_RANDOM_STARTS} runs ...")
+          f"{len(PARAM_SETS)*len(BETAS)*len(PENALTIES)*len(PER_SESSION)*N_RANDOM_STARTS} runs ...")
     sweep_df = sweep(df_conf, conn, mri_pipeline,
+                     param_sets=PARAM_SETS,
                      betas=BETAS, penalties=PENALTIES, per_session_opts=PER_SESSION,
                      n_random_starts=N_RANDOM_STARTS, start_scale=START_SCALE,
                      base_kw=BASE_KW)
@@ -454,10 +521,12 @@ if __name__ == "__main__":
     if RUN_LOSO:
         print("\nLOSO cross-validation ...")
         loso_df = loso_cv(df_conf, conn, mri_pipeline, base_kw=BASE_KW, configs=[
-            ('global_unconstrained', dict(softmin_beta=5.0, chamber_param_penalty=0.0,
-                                          enable_per_session_corrections=False)),
-            ('global_constrained',   dict(softmin_beta=5.0, chamber_param_penalty=0.001,
-                                          enable_per_session_corrections=False)),
+            ('rigid', dict(softmin_beta=5.0, chamber_param_penalty=0.001,
+                           enable_per_session_corrections=False,
+                           fixed_globals=fixed_from_enabled(RIGID))),
+            ('full',  dict(softmin_beta=5.0, chamber_param_penalty=0.001,
+                           enable_per_session_corrections=False,
+                           fixed_globals=fixed_from_enabled(list(_OPT_PARAM_NAMES)))),
         ])
         loso_df.to_csv(os.path.join(OUT_DIR, 'loso.csv'), index=False)
 
