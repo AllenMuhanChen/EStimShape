@@ -648,9 +648,16 @@ def optimize_trajectory_alignment(
             return np.inf
         rs_arr = np.array(rs)
         if softmin_beta > 0 and len(rs_arr) > 1:
-            neg_br = -softmin_beta * rs_arr
-            lse = neg_br.max() + np.log(np.exp(neg_br - neg_br.max()).sum())
-            loss = lse / softmin_beta
+            # Normalized softmin: a softmax(-beta*r)-weighted average of the
+            # per-session r. Emphasises the worst-fitting sessions (-> min(r) as
+            # beta->inf, -> mean(r) as beta->0) while always staying within
+            # [min(r), mean(r)]. NB: this is NOT -logsumexp(-beta*r)/beta, which
+            # carries a spurious -log(N)/beta offset that drags the reported
+            # score below every session's r and makes it scale with the session
+            # count. The argmin is essentially the same; only the score's scale
+            # is fixed so it is interpretable and comparable across runs.
+            w = np.exp(-softmin_beta * (rs_arr - rs_arr.max()))
+            loss = -float((w * rs_arr).sum() / w.sum())
         else:
             loss = -rs_arr.mean()
         if include_reg and variance_penalty > 0 and len(rs_arr) > 1:
@@ -1040,9 +1047,16 @@ def optimize_trajectory_alignment_seg(
             return np.inf
         accs_arr = np.array(accs)
         if softmin_beta > 0 and len(accs_arr) > 1:
-            neg_br = -softmin_beta * accs_arr
-            lse = neg_br.max() + np.log(np.exp(neg_br - neg_br.max()).sum())
-            loss = lse / softmin_beta
+            # Normalized softmin: a softmax(-beta*acc)-weighted average of the
+            # per-session accuracy. Emphasises the worst sessions (-> min(acc) as
+            # beta->inf, -> mean(acc) as beta->0) while always staying within
+            # [min(acc), mean(acc)]. NB: this is NOT -logsumexp(-beta*acc)/beta,
+            # which carries a spurious -log(N)/beta offset that drags the score
+            # below every session's accuracy and makes it scale with the session
+            # count. The argmin is essentially the same; only the score's scale
+            # is fixed so it is interpretable and comparable across runs.
+            w = np.exp(-softmin_beta * (accs_arr - accs_arr.max()))
+            loss = -float((w * accs_arr).sum() / w.sum())
         else:
             loss = -accs_arr.mean()
         if include_reg and variance_penalty > 0 and len(accs_arr) > 1:
