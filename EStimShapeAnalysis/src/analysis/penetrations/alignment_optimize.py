@@ -423,6 +423,7 @@ def optimize_trajectory_alignment(
         chamber_in_brain_penalty: float = CHAMBER_IN_BRAIN_PENALTY,
         chamber_radius_mm: float = CHAMBER_RADIUS_MM,
         n_chamber_ring_samples: int = N_CHAMBER_RING_SAMPLES,
+        x0_override: Optional[np.ndarray] = None,
 ) -> dict:
     """
     Find the rigid-body + angle + depth correction that maximises the
@@ -563,6 +564,18 @@ def optimize_trajectory_alignment(
               f"daz={full_x0[6]:+.3f}  del={full_x0[7]:+.3f}  ddepth={full_x0[8]:+.3f}")
     else:
         print("  Starting from zero (no prior correction file provided)")
+
+    # Multi-start hook: overwrite the leading params with an explicit start
+    # vector (e.g. a randomised global start for a stability / basin sweep).
+    # Applied after zero/warm-start so it wins, but before fixed_globals so a
+    # held-fixed param still overrides the random draw.
+    if x0_override is not None:
+        ov = np.asarray(x0_override, dtype=float).ravel()
+        n_ov = min(len(ov), len(full_x0))
+        full_x0[:n_ov] = ov[:n_ov]
+        print(f"  Start overridden for multi-start (first {n_ov} params): "
+              + "  ".join(f"{full_param_names[i]}={full_x0[i]:+.3f}"
+                          for i in range(min(n_ov, 9))))
 
     for idx, val in fix_idx_val:
         full_x0[idx] = val
