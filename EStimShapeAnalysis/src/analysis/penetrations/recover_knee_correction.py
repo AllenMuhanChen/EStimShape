@@ -165,8 +165,8 @@ def diagnose(df, mri_pipeline, top=12):
         below = int((ib < MIN_INBRAIN).sum())
         print(f"  inbrain_frac: min={ib.min():.2f}  median={ib.median():.2f}  max={ib.max():.2f}  "
               f"| {below}/{len(ib)} rows below MIN_INBRAIN={MIN_INBRAIN}")
-        top = df.dropna(subset=['raw_after']).nlargest(10, 'raw_after')
-        if len(top) and top['inbrain_frac'].min() > MIN_INBRAIN and below == 0:
+        top_raw = df.dropna(subset=['raw_after']).nlargest(10, 'raw_after')
+        if len(top_raw) and top_raw['inbrain_frac'].min() > MIN_INBRAIN and below == 0:
             print("  *** WARNING: the filter will remove NOTHING — even the top-raw rows")
             print("      have high inbrain_frac. The metric is NOT discriminating. Almost")
             print("      certainly the sweep sampled a FULL-SKULL volume (NO_SKULL_MRI was")
