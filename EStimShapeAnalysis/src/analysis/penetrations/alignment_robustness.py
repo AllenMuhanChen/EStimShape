@@ -408,6 +408,35 @@ def pareto_front(df, min_inbrain=None, raw_max=None, x='shift_mm', y='raw_after'
     return d.loc[keep]
 
 
+def chamber_pose(mri_pipeline, params):
+    """(origin[3], normal[3]) of the chamber under a global correction vector —
+    the physical, interpretable pose used to compare corrections to each other
+    (origin distance in mm, normal angle in deg)."""
+    o, x, y, n = _apply_chamber_params(np.asarray(params, dtype=float), mri_pipeline)
+    return np.asarray(o, dtype=float), np.asarray(n, dtype=float)
+
+
+def pose_diff(mri_pipeline, params_a, params_b):
+    """(translation mm of origin, angle deg between normals) between two poses."""
+    oa, na = chamber_pose(mri_pipeline, params_a)
+    ob, nb = chamber_pose(mri_pipeline, params_b)
+    dpos = float(np.linalg.norm(oa - ob))
+    cos = float(np.clip(np.dot(na, nb) / (np.linalg.norm(na) * np.linalg.norm(nb) + 1e-12),
+                        -1.0, 1.0))
+    return dpos, float(np.degrees(np.arccos(cos)))
+
+
+def optimize_subset(df_conf, conn, mri_pipeline, session_ids, base_kw, x0_global=None):
+    """Run the optimiser (silently) on only the given session_ids, optionally
+    warm-started from a global 9-vector (so residual variation across subsets is
+    session-driven, not optimiser-local-minimum-driven)."""
+    sub = df_conf[df_conf['session_id'].isin(list(session_ids))]
+    kw = dict(base_kw)
+    if x0_global is not None:
+        kw['x0_override'] = np.asarray(x0_global, dtype=float)[:9]
+    return _silent_optimize(sub, conn, mri_pipeline, **kw)
+
+
 def _dedup_frontier(front, eps_shift=0.4, eps_raw=0.01):
     """Drop frontier points that are near-duplicates of an already-kept point
     (within eps in BOTH shift and raw), so candidates never land on top of each
