@@ -526,6 +526,9 @@ def candidate_report(cands, mri_pipeline, conn=None, df_conf=None):
             ps_max=float(r.get('ps_max', np.nan)),
             beta=r.get('beta'), per_session=r.get('per_session'), param_set=r.get('param_set'),
         )
+        # The actual chamber correction values, so you can see WHAT each candidate is.
+        for pn in _OPT_PARAM_NAMES:
+            rec[pn] = float(r[pn]) if pn in r and pd.notna(r[pn]) else np.nan
         if conn is not None and df_conf is not None:
             try:
                 rs = per_session_raw(mri_pipeline, opt_result_from_row(r, warn=False), conn, df_conf)
@@ -550,8 +553,12 @@ def plot_candidate_stats(stats_df, per_sess, out_path, min_inbrain=0.9):
     xp = np.arange(len(labels))
     has_ps = 'raw_std' in stats_df.columns and stats_df['raw_std'].notna().any()
 
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8))
-    axes = axes.ravel()
+    # 2 rows of stat panels + a wide bottom row for the chamber-param table.
+    fig = plt.figure(figsize=(14, 10))
+    gs = fig.add_gridspec(3, 3, height_ratios=[3, 3, 1.7])
+    axes = [fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1]), fig.add_subplot(gs[0, 2]),
+            fig.add_subplot(gs[1, 0]), fig.add_subplot(gs[1, 1]), fig.add_subplot(gs[1, 2])]
+    ax_tab = fig.add_subplot(gs[2, :])
 
     axes[0].bar(xp, stats_df['ratio'], color='steelblue')
     axes[0].set_title('efficiency:  raw_after / shift_mm  (higher = better)')
@@ -592,6 +599,26 @@ def plot_candidate_stats(stats_df, per_sess, out_path, min_inbrain=0.9):
         if ax.has_data():
             ax.set_xticks(xp)
             ax.set_xticklabels(labels)
+
+    # Chamber-parameter table: the ACTUAL correction values behind each candidate.
+    ax_tab.axis('off')
+    param_cols = [p for p in _OPT_PARAM_NAMES if p in stats_df.columns]
+    if param_cols:
+        col_labels = ['candidate'] + param_cols + ['shift_mm', 'raw_after']
+        cell_text = []
+        for _, s in stats_df.iterrows():
+            row = [s['name']] + [f"{s[p]:+.2f}" for p in param_cols]
+            row += [f"{s['shift_mm']:.2f}", f"{s['raw_after']:.3f}"]
+            cell_text.append(row)
+        tbl = ax_tab.table(cellText=cell_text, colLabels=col_labels,
+                           loc='center', cellLoc='center')
+        tbl.auto_set_font_size(False)
+        tbl.set_fontsize(8)
+        tbl.scale(1, 1.4)
+        ax_tab.set_title('chamber correction parameters per candidate '
+                         '(tx/ty/tz mm, rx/ry/rz deg, daz/del deg, ddepth mm)',
+                         fontsize=10)
+
     fig.suptitle('Candidate statistics', fontsize=13)
     fig.tight_layout()
     fig.savefig(out_path, dpi=140)
