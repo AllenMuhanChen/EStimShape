@@ -1,7 +1,7 @@
 """Recover a chamber-correction file from an existing robustness sweep.csv.
 
-No CLI — just edit the CONFIG block below and run the file. It rebuilds the
-MRI-viewer chamber-correction JSON (the kind apply_pca_opt_result / the viewer
+
+Rebuilds the MRI-viewer chamber-correction JSON (the kind apply_pca_opt_result / the viewer
 loads) from a row of sweep.csv, without re-running any optimisation.
 
   - By default it recovers the PARSIMONY KNEE (smallest correction within
@@ -41,7 +41,7 @@ SWEEP_CSV = "/home/connorlab/Documents/penetration_optimization_plots/_robustnes
 
 # MRI pipeline (needed only for the chamber centre / 4x4 geometry — no DB).
 MRI_CONFIG_PATH = MRI_VIEWER_CONFIG_PATH
-NO_SKULL_MRI    = None          # set to the brain-extracted volume path if you used one
+NO_SKULL_MRI    = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz"          # set to the brain-extracted volume path if you used one
 
 # Which row to recover:
 #   SELECT_ROW = None  -> the parsimony knee (recommended)
@@ -55,7 +55,7 @@ KNEE_TOL   = 0.01               # knee = smallest shift within this of the best 
 # trajectories are largely out of brain BEFORE picking the knee; KNEE_RAW_MAX
 # is a hard 'too good to be true' cap on raw_after.
 MIN_INBRAIN  = 0.90             # None to disable
-KNEE_RAW_MAX = None             # e.g. 0.90 to exclude a spurious high cluster
+KNEE_RAW_MAX = 0.875             # e.g. 0.90 to exclude a spurious high cluster
 
 # Where to drop a copy of the saved JSON (the canonical copy always goes to the
 # mri dir that apply_pca_opt_result reads). Defaults to the sweep.csv folder.

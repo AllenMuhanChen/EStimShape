@@ -591,14 +591,14 @@ def summarize(sweep_df: pd.DataFrame) -> str:
 #  Entry point — edit like run_per_session.__main__
 # ═══════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
-    from src.analysis.penetrations.run_pooled import PIPE_AA_K5  # pick your recipe
+    from src.analysis.penetrations.run_pooled import PIPE_AA_K5, PIPE_AA_K3  # pick your recipe
 
     # ---- CONFIG ----------------------------------------------------------
     OUT_DIR = "/home/connorlab/Documents/penetration_optimization_plots/_robustness"
     TABLE = "PenetrationMetrics"
     EXCLUDE = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
-    NO_SKULL_MRI = None          # set to brain-extracted volume path if you use one
-    PIPELINE = PIPE_AA_K5        # the tissue model / decomposition recipe
+    NO_SKULL_MRI = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz"          # set to brain-extracted volume path if you use one
+    PIPELINE = PIPE_AA_K3        # the tissue model / decomposition recipe
 
     # Which global params the optimiser is allowed to move. Globals not listed
     # are HARD-FROZEN at 0 (cleaner than a tiny chamber_param_tolerance, which
@@ -607,7 +607,7 @@ if __name__ == "__main__":
     RIGID = ['tx_mm', 'ty_mm', 'tz_mm', 'rx_deg', 'ry_deg', 'rz_deg']
     PARAM_SETS = {
         'rigid': RIGID,                 # 6 DOF: translation + rotation only
-        'full':  list(_OPT_PARAM_NAMES),  # 9 DOF: + global daz/del/ddepth
+        # 'full':  list(_OPT_PARAM_NAMES),  # 9 DOF: + global daz/del/ddepth
     }
 
     BETAS = [0.0, 1.0, 5.0, 20.0]         # 0 == mean aggregation
@@ -615,7 +615,7 @@ if __name__ == "__main__":
     PER_SESSION = [False, True]
     N_RANDOM_STARTS = 8          # start 0 is the nominal (zero) start; 1..7 random
     START_SCALE = dict(t=6.0, r=6.0, ang=4.0, depth=4.0)   # random-start ranges
-    MAXITER = 20000
+    MAXITER = 100000
     RUN_LOSO = False             # decisive overfitting test; N optimisations/config
     SAVE_KNEE = True             # write the parsimony-knee correction file at the end
     KNEE_MIN_INBRAIN = 0.90      # exclude edge-grazing degenerate optima from the knee
@@ -624,12 +624,13 @@ if __name__ == "__main__":
     # that we are NOT varying). Match your production run_per_session settings.
     BASE_KW = dict(
         maxiter=MAXITER,
-        optimizer='nelder-mead',
+        optimizer='cma-es',
         use_confidence_weights=True,
         variance_penalty=0.0,
-        chamber_dist_penalty=0.001,
+        chamber_dist_penalty=0.000,
         session_corr_penalty=0.1,
-        top_downweight_mm=0.0,
+        top_downweight_mm=1.0,
+        top_downweight_factor=0.25
     )
     # ----------------------------------------------------------------------
 
