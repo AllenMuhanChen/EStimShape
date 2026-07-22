@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import json
 import os
 from typing import Optional
 
@@ -51,6 +52,7 @@ from src.analysis.penetrations.alignment_optimize import (
     get_penetration_for_session,
     load_mri_pipeline,
     optimize_trajectory_alignment,
+    save_optimized_params,
 )
 from src.analysis.penetrations.pca_predict import (
     compute_tissue_confidence,
@@ -148,6 +150,11 @@ def _row_from_result(opt_result, mri_pipeline, conn, df_conf, tags: dict) -> dic
     })
     for name, val in zip(_OPT_PARAM_NAMES, g):
         row[name] = float(val)
+    # Store the per-session offsets so the correction is reconstructable exactly
+    # from the CSV later (keys/values coerced to plain str/float for JSON).
+    psc = opt_result.get('per_session_corrections', {}) or {}
+    row['per_session_json'] = json.dumps(
+        {str(k): {kk: float(vv) for kk, vv in v.items()} for k, v in psc.items()})
     return row
 
 
@@ -283,6 +290,61 @@ def pareto_knee(df: pd.DataFrame, tol=0.01, x='shift_mm', y='raw_after'):
     y_best = d[y].max()
     near = d[d[y] >= y_best - tol]
     return near.loc[near[x].idxmin()]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Recover a correction file from a sweep row (the harness itself never writes
+#  correction files — only sweep.csv — so this rebuilds one on demand).
+# ═══════════════════════════════════════════════════════════════════════════
+def save_correction_from_row(row, mri_pipeline, copy_dir=None) -> str:
+    """Rebuild and save the MRI-viewer chamber-correction JSON from one sweep
+    row, via alignment_optimize.save_optimized_params.
+
+    The chamber 4x4 the viewer applies is built purely from the 9 global params
+    (tx..ddepth) + the chamber centre, all of which are in the row, so the
+    GLOBAL correction is reconstructed EXACTLY. Per-session offsets are taken
+    from the row's per_session_json if present (written by newer runs); older
+    CSVs lack that column, in which case only the global part is recovered and
+    a warning is printed. Apply the saved file with
+    alignment_optimize.apply_pca_opt_result(path, mri_pipeline).
+    """
+    g = np.array([float(row[n]) for n in _OPT_PARAM_NAMES])
+
+    psc = {}
+    if 'per_session_json' in row and isinstance(row['per_session_json'], str) and row['per_session_json']:
+        try:
+            psc = json.loads(row['per_session_json'])
+        except Exception:
+            psc = {}
+    if not psc and bool(row.get('per_session', False)):
+        print("  WARNING: this row used per-session corrections but the CSV has "
+              "no per_session_json column (older run). Only the GLOBAL chamber "
+              "correction is being saved; re-run this exact config to also "
+              "recover the per-session offsets.")
+
+    opt_result = {
+        'params': g,
+        'param_names': list(_OPT_PARAM_NAMES),
+        'score_before': float(row.get('raw_before', np.nan)),
+        'score_after':  float(row.get('raw_after', np.nan)),
+        'per_session_corrections': psc,
+        'softmin_beta': float(row.get('beta', 5.0)),
+    }
+    return save_optimized_params(opt_result, mri_pipeline, copy_dir=copy_dir)
+
+
+def save_knee_correction(sweep, mri_pipeline, copy_dir=None, tol=0.01) -> Optional[str]:
+    """Find the parsimony knee in a sweep (DataFrame or path to sweep.csv) and
+    write its correction file. Returns the saved path (or None if no knee)."""
+    df = pd.read_csv(sweep) if isinstance(sweep, str) else sweep
+    knee = pareto_knee(df, tol=tol)
+    if knee is None:
+        print("  No knee found (no successful runs in the sweep).")
+        return None
+    print(f"  Knee: raw_r={knee['raw_after']:.4f}  shift={knee['shift_mm']:.2f}mm  "
+          f"set={knee.get('param_set')}  beta={knee.get('beta')}  "
+          f"pen={knee.get('chamber_param_penalty')}  per_session={knee.get('per_session')}")
+    return save_correction_from_row(knee, mri_pipeline, copy_dir=copy_dir)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -486,6 +548,7 @@ if __name__ == "__main__":
     START_SCALE = dict(t=6.0, r=6.0, ang=4.0, depth=4.0)   # random-start ranges
     MAXITER = 20000
     RUN_LOSO = False             # decisive overfitting test; N optimisations/config
+    SAVE_KNEE = True             # write the parsimony-knee correction file at the end
 
     # kwargs held fixed across the whole sweep (everything the optimiser needs
     # that we are NOT varying). Match your production run_per_session settings.
@@ -532,4 +595,11 @@ if __name__ == "__main__":
 
     make_plots(sweep_df, OUT_DIR, loso_df=loso_df)
     print(summarize(sweep_df))
+
+    if SAVE_KNEE:
+        print("\nSaving parsimony-knee correction file ...")
+        knee_path = save_knee_correction(sweep_df, mri_pipeline, copy_dir=OUT_DIR)
+        if knee_path:
+            print(f"  Apply with: apply_pca_opt_result('{knee_path}', mri_pipeline)")
+
     print(f"\nOutputs → {OUT_DIR}")
