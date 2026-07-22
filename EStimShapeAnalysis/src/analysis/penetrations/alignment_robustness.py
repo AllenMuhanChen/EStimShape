@@ -113,6 +113,56 @@ def sample_shift_mm(mri_pipeline: dict, opt_result: dict,
     return float(np.sqrt(np.concatenate(sq).mean()))
 
 
+def inbrain_fraction(mri_pipeline: dict, opt_result: dict,
+                     conn: Connection, df_conf: pd.DataFrame) -> float:
+    """Fraction of ALL trajectory sample points that land on positive (in-brain)
+    voxels of the (no-skull) MRI, under the optimised pose.
+
+    This is the guard against the degenerate optimum that maximises Pearson r by
+    grazing the brain EDGE: such poses hit few positive voxels (most samples fall
+    in the 0 region outside the brain) yet still score r~1 because the handful of
+    in-brain samples ramp monotonically. A genuine alignment keeps most of each
+    penetration inside the brain, so inbrain_fraction ~1; an edge-grazer is low.
+    Only meaningful with a brain-extracted MRI (outside-brain voxels == 0).
+    """
+    from src.mri.chamber import calc_penetration_target
+    from scipy.ndimage import map_coordinates
+
+    params = np.asarray(opt_result['params'], dtype=float)
+    daz_g, del_g, ddepth_g = params[6], params[7], params[8]
+    psc = opt_result.get('per_session_corrections', {}) or {}
+    data = mri_pipeline['data']
+    inv = mri_pipeline['inv_corrected']
+    cor_offset = mri_pipeline['cor_offset']
+    oc, xc, yc, nc = _apply_chamber_params(params, mri_pipeline)
+
+    tot = 0
+    pos = 0
+    for sid in df_conf['session_id'].unique():
+        pen = get_penetration_for_session(conn, sid)
+        if pen is None:
+            continue
+        depths = df_conf.loc[df_conf['session_id'] == sid,
+                             'depth_under_chamber_mm'].values
+        if len(depths) == 0 or depths.max() <= 0:
+            continue
+        sc = psc.get(sid, psc.get(str(sid), {})) or {}
+        dep = depths + ddepth_g + sc.get('ddepth_mm', 0.0)
+        try:
+            _, d, t = calc_penetration_target(
+                oc, pen['az_deg'] + daz_g + sc.get('daz_deg', 0.0),
+                pen['el_deg'] + del_g + sc.get('del_deg', 0.0),
+                float(dep.max()) + 1.0, xc, yc, nc, cor_offset)
+            pts = t + dep[:, None] * d[None, :]
+            vox = (inv @ np.hstack([pts, np.ones((len(pts), 1))]).T).T[:, :3]
+            vals = map_coordinates(data, vox.T, order=1, mode='constant', cval=0.0)
+            tot += len(vals)
+            pos += int((np.asarray(vals) > 0).sum())
+        except Exception:
+            continue
+    return float(pos) / tot if tot else np.nan
+
+
 def _per_session_stats(opt_result: dict) -> tuple[float, float]:
     """(RMS, max) of the per-session correction magnitudes across sessions.
 
@@ -147,6 +197,7 @@ def _row_from_result(opt_result, mri_pipeline, conn, df_conf, tags: dict) -> dic
         'ps_rms':      ps_rms,
         'ps_max':      ps_max,
         'shift_mm':    sample_shift_mm(mri_pipeline, opt_result, conn, df_conf),
+        'inbrain_frac': inbrain_fraction(mri_pipeline, opt_result, conn, df_conf),
     })
     for name, val in zip(_OPT_PARAM_NAMES, g):
         row[name] = float(val)
@@ -280,11 +331,24 @@ def sweep(df_conf, conn, mri_pipeline, *,
     return pd.DataFrame(rows)
 
 
-def pareto_knee(df: pd.DataFrame, tol=0.01, x='shift_mm', y='raw_after'):
-    """The parsimonious pick: among runs whose y is within `tol` of the best y
-    observed, the one with the smallest x. That's 'most of the raw correlation
-    for the least correction'."""
+def pareto_knee(df: pd.DataFrame, tol=0.01, x='shift_mm', y='raw_after',
+                min_inbrain=None, raw_max=None):
+    """The parsimonious pick: among runs whose y is within `tol` of the best y,
+    the one with the smallest x — 'most raw correlation for the least correction'.
+
+    Degeneracy guards (IMPORTANT — high Pearson r alone is fooled by edge-grazing
+    poses that sit mostly OUTSIDE the brain, see inbrain_fraction):
+      min_inbrain : drop rows whose inbrain_frac is below this before choosing,
+          so the 'best raw' bar is set by genuine in-brain solutions, not
+          edge-grazers. Strongly recommended (e.g. 0.9) for no-skull sweeps.
+      raw_max     : also drop rows with y above this (a hard 'too good to be
+          true' cap) — use if a spurious cluster sits above the real ceiling.
+    """
     d = df.dropna(subset=[x, y])
+    if min_inbrain is not None and 'inbrain_frac' in d.columns:
+        d = d[d['inbrain_frac'].fillna(0.0) >= min_inbrain]
+    if raw_max is not None:
+        d = d[d[y] <= raw_max]
     if d.empty:
         return None
     y_best = d[y].max()
@@ -333,11 +397,16 @@ def save_correction_from_row(row, mri_pipeline, copy_dir=None) -> str:
     return save_optimized_params(opt_result, mri_pipeline, copy_dir=copy_dir)
 
 
-def save_knee_correction(sweep, mri_pipeline, copy_dir=None, tol=0.01) -> Optional[str]:
+def save_knee_correction(sweep, mri_pipeline, copy_dir=None, tol=0.01,
+                         min_inbrain=None, raw_max=None) -> Optional[str]:
     """Find the parsimony knee in a sweep (DataFrame or path to sweep.csv) and
-    write its correction file. Returns the saved path (or None if no knee)."""
+    write its correction file. Returns the saved path (or None if no knee).
+
+    min_inbrain / raw_max are the degeneracy guards forwarded to pareto_knee —
+    set min_inbrain (e.g. 0.9) on no-skull sweeps so edge-grazing poses that
+    score high r while sitting outside the brain are excluded."""
     df = pd.read_csv(sweep) if isinstance(sweep, str) else sweep
-    knee = pareto_knee(df, tol=tol)
+    knee = pareto_knee(df, tol=tol, min_inbrain=min_inbrain, raw_max=raw_max)
     if knee is None:
         print("  No knee found (no successful runs in the sweep).")
         return None
@@ -549,6 +618,7 @@ if __name__ == "__main__":
     MAXITER = 20000
     RUN_LOSO = False             # decisive overfitting test; N optimisations/config
     SAVE_KNEE = True             # write the parsimony-knee correction file at the end
+    KNEE_MIN_INBRAIN = 0.90      # exclude edge-grazing degenerate optima from the knee
 
     # kwargs held fixed across the whole sweep (everything the optimiser needs
     # that we are NOT varying). Match your production run_per_session settings.
@@ -598,7 +668,8 @@ if __name__ == "__main__":
 
     if SAVE_KNEE:
         print("\nSaving parsimony-knee correction file ...")
-        knee_path = save_knee_correction(sweep_df, mri_pipeline, copy_dir=OUT_DIR)
+        knee_path = save_knee_correction(sweep_df, mri_pipeline, copy_dir=OUT_DIR,
+                                         min_inbrain=KNEE_MIN_INBRAIN)
         if knee_path:
             print(f"  Apply with: apply_pca_opt_result('{knee_path}', mri_pipeline)")
 
