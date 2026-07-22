@@ -408,15 +408,57 @@ def pareto_front(df, min_inbrain=None, raw_max=None, x='shift_mm', y='raw_after'
     return d.loc[keep]
 
 
-def select_candidates(df, n=3, min_inbrain=0.9, raw_max=None):
-    """Pick up to `n` non-degenerate, efficiency-optimal candidates spanning the
-    Pareto frontier (cheap/low-raw -> expensive/high-raw). Use these as the few
-    corrections to save & eyeball instead of committing to one knee."""
+def _dedup_frontier(front, eps_shift=0.4, eps_raw=0.01):
+    """Drop frontier points that are near-duplicates of an already-kept point
+    (within eps in BOTH shift and raw), so candidates never land on top of each
+    other. Keeps the first (lower-shift) of each cluster."""
+    kept = []
+    for idx, r in front.sort_values('shift_mm').iterrows():
+        if all(not (abs(r['shift_mm'] - front.loc[k, 'shift_mm']) < eps_shift and
+                    abs(r['raw_after'] - front.loc[k, 'raw_after']) < eps_raw)
+               for k in kept):
+            kept.append(idx)
+    return front.loc[kept]
+
+
+def select_candidates(df, n=3, min_inbrain=0.9, raw_max=None, method='knee'):
+    """Pick up to `n` non-degenerate, efficiency-optimal candidates on the Pareto
+    frontier — the points with the most raw correlation per unit correction size.
+
+    method:
+      'knee'  (default) — rank frontier points by how far they beat the straight
+          cheap->expensive tradeoff line (max of raw_norm - shift_norm, i.e. the
+          normalised distance above the min->max diagonal). This picks the
+          elbow region — high correlation while the shift is still small — NOT
+          the useless low-raw far-left corner nor the expensive flat tail.
+      'ratio' — rank by raw_after / shift_mm (steepest from the origin); favours
+          the very cheapest corrections.
+      'span'  — evenly spaced along the frontier (legacy; not efficiency-based).
+    Near-duplicate frontier points are merged first so candidates are distinct.
+    """
     front = pareto_front(df, min_inbrain=min_inbrain, raw_max=raw_max)
-    if front.empty or len(front) <= n:
+    if front.empty:
         return front
-    idxs = sorted(set(np.linspace(0, len(front) - 1, n).round().astype(int)))
-    return front.iloc[idxs]
+    front = _dedup_frontier(front)
+    if len(front) <= n:
+        return front.sort_values('shift_mm')
+
+    x = front['shift_mm'].to_numpy(float)
+    y = front['raw_after'].to_numpy(float)
+    xr = (x.max() - x.min()) or 1.0
+    yr = (y.max() - y.min()) or 1.0
+    xn, yn = (x - x.min()) / xr, (y - y.min()) / yr
+
+    if method == 'ratio':
+        score = y / np.maximum(x, 1e-9)
+    elif method == 'span':
+        idxs = sorted(set(np.linspace(0, len(front) - 1, n).round().astype(int)))
+        return front.iloc[idxs]
+    else:  # 'knee'
+        score = yn - xn
+
+    top = np.argsort(-score)[:n]
+    return front.iloc[sorted(top)].sort_values('shift_mm')
 
 
 def save_candidates(cands, mri_pipeline, copy_dir=None) -> list:

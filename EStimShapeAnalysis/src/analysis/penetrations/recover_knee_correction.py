@@ -52,8 +52,10 @@ NO_SKULL_MRI    = None          # set to the brain-extracted volume path if you 
 # Candidate selection:
 #   SELECT_ROW = None  -> auto-select N_CANDIDATES non-degenerate frontier points
 #   SELECT_ROW = <int> -> recover just that one 0-based CSV row
-SELECT_ROW   = None
-N_CANDIDATES = 3                # how many frontier candidates to save when auto-selecting
+SELECT_ROW    = None
+N_CANDIDATES  = 3               # how many frontier candidates to save when auto-selecting
+SELECT_METHOD = 'knee'          # 'knee' = most correlation per shift (elbow of the frontier);
+                                # 'ratio' = steepest raw/shift; 'span' = evenly spaced (legacy)
 
 # Degeneracy guards (a high Pearson r is fooled by edge-grazing poses that sit
 # mostly OUTSIDE the brain). Requires the sweep.csv to have an 'inbrain_frac'
@@ -221,7 +223,8 @@ def main():
     # Resolve candidates. Auto mode = the few best non-degenerate frontier points.
     if SELECT_ROW is None:
         front = pareto_front(df, min_inbrain=MIN_INBRAIN, raw_max=RAW_MAX)
-        cands = select_candidates(df, n=N_CANDIDATES, min_inbrain=MIN_INBRAIN, raw_max=RAW_MAX)
+        cands = select_candidates(df, n=N_CANDIDATES, min_inbrain=MIN_INBRAIN,
+                                  raw_max=RAW_MAX, method=SELECT_METHOD)
         if cands is None or cands.empty:
             print("No non-degenerate candidates found — loosen MIN_INBRAIN / RAW_MAX, "
                   "or set SELECT_ROW. (If the CSV has no inbrain_frac column, re-run "
