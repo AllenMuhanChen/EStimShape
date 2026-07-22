@@ -3,8 +3,10 @@
 Goal: eliminate 'which sessions were used' as a driver of the alignment answer.
 Instead of many configs, we LOCK one config (mean aggregation beta=0, per-session
 ON, rigid = daz/del/ddepth frozen) and vary only the SESSION SUBSET: each run
-optimises on a random ~SUBSAMPLE_FRAC of sessions, warm-started from the
-full-data solution so the only thing that moves is the session composition.
+optimises on a random ~SUBSAMPLE_FRAC of sessions, starting from the NOMINAL ZERO
+pose (the real start the pipeline uses). With a fixed start Nelder-Mead is
+deterministic, so the only thing that moves between runs is the session
+composition — that variation IS the session effect (see WARM_START).
 
 Outputs (in OUT_DIR):
   - resamples.csv : ONE ROW PER RESAMPLE CORRECTION, in the SAME schema as the
@@ -75,7 +77,14 @@ SUBSAMPLE_FRAC = 0.75           # fraction of sessions per subset
 MIN_SESSIONS   = 8
 MIN_INBRAIN    = 0.90           # resamples below this are degenerate -> excluded from consensus
 SEED           = 0
-WARM_START     = True           # warm-start each subset from the full-data solution
+# Start each subset from the NOMINAL ZERO pose (the real start the pipeline
+# actually uses) so the result is 'what would the pipeline conclude from this
+# subset'. With a fixed start Nelder-Mead is deterministic, so variation across
+# subsets is PURELY the session effect — no random-start noise to remove.
+# Set True only if you want to warm-start from the full-data optimum for speed;
+# that ANCHORS every subset to the full-data answer and UNDER-reports the
+# session-driven spread, so it is NOT recommended for this analysis.
+WARM_START     = False
 # ═══════════════════════════════════════════════════════════════════════════
 
 
