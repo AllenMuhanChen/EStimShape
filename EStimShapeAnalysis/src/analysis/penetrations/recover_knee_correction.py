@@ -157,8 +157,21 @@ def diagnose(df, mri_pipeline, top=12):
 
     has_ib = 'inbrain_frac' in df.columns
     if not has_ib:
-        print("  NOTE: this CSV has no inbrain_frac column (older run) — cannot flag")
-        print("        edge-grazing degenerate optima. Re-run the sweep to get it.")
+        print("  NOTE: this CSV has NO inbrain_frac column (older run) — the in-brain")
+        print("        filter CANNOT work; every row (incl. degenerates) passes.")
+        print("        Re-run the sweep (records inbrain_frac) or backfill the column.")
+    else:
+        ib = df['inbrain_frac'].dropna()
+        below = int((ib < MIN_INBRAIN).sum())
+        print(f"  inbrain_frac: min={ib.min():.2f}  median={ib.median():.2f}  max={ib.max():.2f}  "
+              f"| {below}/{len(ib)} rows below MIN_INBRAIN={MIN_INBRAIN}")
+        top = df.dropna(subset=['raw_after']).nlargest(10, 'raw_after')
+        if len(top) and top['inbrain_frac'].min() > MIN_INBRAIN and below == 0:
+            print("  *** WARNING: the filter will remove NOTHING — even the top-raw rows")
+            print("      have high inbrain_frac. The metric is NOT discriminating. Almost")
+            print("      certainly the sweep sampled a FULL-SKULL volume (NO_SKULL_MRI was")
+            print("      not set), so skull/scalp counts as 'in brain'. Re-run the sweep")
+            print("      with NO_SKULL_MRI pointing at your brain-extracted volume.")
 
     d = df.dropna(subset=['raw_after']).copy()
     knee = pareto_knee(d, tol=KNEE_TOL, min_inbrain=MIN_INBRAIN, raw_max=KNEE_RAW_MAX)
