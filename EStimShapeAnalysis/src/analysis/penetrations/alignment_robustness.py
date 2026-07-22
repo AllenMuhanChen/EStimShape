@@ -525,6 +525,7 @@ def candidate_report(cands, mri_pipeline, conn=None, df_conf=None):
             t_norm_mm=float(r.get('t_norm_mm', np.nan)),
             ps_max=float(r.get('ps_max', np.nan)),
             beta=r.get('beta'), per_session=r.get('per_session'), param_set=r.get('param_set'),
+            chamber_param_penalty=r.get('chamber_param_penalty'),
         )
         # The actual chamber correction values, so you can see WHAT each candidate is.
         for pn in _OPT_PARAM_NAMES:
@@ -604,20 +605,27 @@ def plot_candidate_stats(stats_df, per_sess, out_path, min_inbrain=0.9):
     ax_tab.axis('off')
     param_cols = [p for p in _OPT_PARAM_NAMES if p in stats_df.columns]
     if param_cols:
-        col_labels = ['candidate'] + param_cols + ['shift_mm', 'raw_after']
+        cfg_cols = [c for c in ['beta', 'chamber_param_penalty', 'per_session', 'param_set']
+                    if c in stats_df.columns]
+        col_labels = (['candidate'] + param_cols + ['shift_mm', 'raw_after']
+                      + [{'chamber_param_penalty': 'cham_pen'}.get(c, c) for c in cfg_cols])
         cell_text = []
         for _, s in stats_df.iterrows():
             row = [s['name']] + [f"{s[p]:+.2f}" for p in param_cols]
             row += [f"{s['shift_mm']:.2f}", f"{s['raw_after']:.3f}"]
+            for c in cfg_cols:
+                v = s[c]
+                row.append(f"{v:g}" if isinstance(v, (int, float)) else str(v))
             cell_text.append(row)
         tbl = ax_tab.table(cellText=cell_text, colLabels=col_labels,
                            loc='center', cellLoc='center')
         tbl.auto_set_font_size(False)
-        tbl.set_fontsize(8)
+        tbl.set_fontsize(7)
         tbl.scale(1, 1.4)
-        ax_tab.set_title('chamber correction parameters per candidate '
-                         '(tx/ty/tz mm, rx/ry/rz deg, daz/del deg, ddepth mm)',
-                         fontsize=10)
+        ax_tab.set_title('chamber correction parameters + config per candidate '
+                         '(tx/ty/tz mm, rx/ry/rz deg, daz/del deg, ddepth mm; '
+                         'cham_pen = chamber_param_penalty)',
+                         fontsize=9)
 
     fig.suptitle('Candidate statistics', fontsize=13)
     fig.tight_layout()

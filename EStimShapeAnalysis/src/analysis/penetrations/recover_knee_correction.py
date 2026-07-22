@@ -198,13 +198,14 @@ def diagnose(df, mri_pipeline, top=12):
         Mt, Ma = _mat_stats(row_M(r))
         print(f"  {label:<10s} raw_after={r['raw_after']:.4f}  inbrain={_ib(r)}  "
               f"shift_mm={r.get('shift_mm', float('nan')):.2f}  |t|={Mt:.2f}mm  rot={Ma:.2f}deg  "
-              f"set={r.get('param_set')}  ps={r.get('per_session')}  beta={r.get('beta')}")
+              f"set={r.get('param_set')}  ps={r.get('per_session')}  beta={r.get('beta')}  "
+              f"cham_pen={r.get('chamber_param_penalty')}")
 
     if knee is not None:
         describe("KNEE", knee)
     describe("BEST-raw", best)
 
-    print(f"\n  Top {top} rows by raw_after (raw, inbrain, shift, |t|, rot):")
+    print(f"\n  Top {top} rows by raw_after (raw, inbrain, shift, |t|, rot, cham_pen):")
     cols = d.sort_values('raw_after', ascending=False).head(top)
     for i, (_, r) in enumerate(cols.iterrows()):
         Mt, Ma = _mat_stats(row_M(r))
@@ -212,7 +213,8 @@ def diagnose(df, mri_pipeline, top=12):
         if has_ib and pd.notna(r.get('inbrain_frac')) and r['inbrain_frac'] < 0.8:
             flag = "  <-- LIKELY EDGE-GRAZER (mostly out of brain)"
         print(f"    #{i:<2d} idx={r.name:<4} raw={r['raw_after']:.4f}  inbrain={_ib(r)}  "
-              f"shift={r.get('shift_mm', float('nan')):5.2f}mm  |t|={Mt:5.2f}mm  rot={Ma:5.2f}deg"
+              f"shift={r.get('shift_mm', float('nan')):5.2f}mm  |t|={Mt:5.2f}mm  rot={Ma:5.2f}deg  "
+              f"beta={r.get('beta')}  cham_pen={r.get('chamber_param_penalty')}  ps={r.get('per_session')}"
               f"{flag}")
     print("  A high raw_after with LOW inbrain is a degenerate edge-grazing pose —")
     print("  it scores well but sits outside the brain. Prefer the highest-raw row")
@@ -251,7 +253,8 @@ def main():
     for i, (_, r) in enumerate(cands.iterrows(), 1):
         ib = f"{r['inbrain_frac']:.2f}" if pd.notna(r.get('inbrain_frac')) else "n/a"
         print(f"  c{i}: raw={r.get('raw_after'):.4f}  inbrain={ib}  "
-              f"shift={r.get('shift_mm'):.2f}mm  set={r.get('param_set')}  ps={r.get('per_session')}")
+              f"shift={r.get('shift_mm'):.2f}mm  set={r.get('param_set')}  ps={r.get('per_session')}  "
+              f"beta={r.get('beta')}  cham_pen={r.get('chamber_param_penalty')}")
 
     if PLOT:
         plot_path = PLOT_PATH or os.path.join(copy_dir, 'recovered_candidates.png')
