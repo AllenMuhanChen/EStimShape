@@ -31,8 +31,10 @@ from src.analysis.penetrations.alignment_optimize import (
     load_mri_pipeline,
 )
 from src.analysis.penetrations.alignment_robustness import (
+    candidate_report,
     pareto_front,
     pareto_knee,
+    plot_candidate_stats,
     save_candidates,
     save_correction_from_row,
     select_candidates,
@@ -80,6 +82,17 @@ DIAGNOSE = True
 # dark). Lets you see exactly which corrections were picked.
 PLOT      = True
 PLOT_PATH = None                # None -> 'recovered_candidates.png' next to the CSV
+
+# Extra bar-chart stats for the candidates (efficiency ratio, in-brain, size).
+# COMPUTE_PERSESSION adds per-session fit mean/SD/min + a box plot showing which
+# candidate is most CONSISTENT across sessions — this recomputes per-session r
+# so it needs the DB + tissue pipeline (fill DB_* / PIPELINE_NAME below).
+STATS_PLOT         = True
+COMPUTE_PERSESSION = False
+DB = dict(database="allen_data_repository", user="xper_rw", password="up2nite", host="172.30.6.61")
+PIPELINE_NAME = "PIPE_AA_K5"    # attribute name in run_pooled; must match the sweep's recipe
+TABLE         = "PenetrationMetrics"
+EXCLUDE       = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
 
 # Set to a candidate number (1..N_CANDIDATES) to ALSO write that one into the
 # live chamber-correction file (overwrites it). None = save files + plot only,
@@ -245,6 +258,28 @@ def main():
         plot_path = PLOT_PATH or os.path.join(copy_dir, 'recovered_candidates.png')
         plot_candidates(df, cands, plot_path, front=front)
         print(f"  Candidate plot → {plot_path}")
+
+    if STATS_PLOT:
+        conn2 = df_conf = None
+        if COMPUTE_PERSESSION:
+            try:
+                from clat.util.connection import Connection
+                from src.analysis.penetrations.alignment_robustness import prepare_data
+                import src.analysis.penetrations.run_pooled as rp
+                pipeline = getattr(rp, PIPELINE_NAME)
+                print("  Computing per-session consistency stats (DB) ...")
+                conn2 = Connection(**DB)
+                df_conf, _ = prepare_data(conn2, pipeline, TABLE, EXCLUDE,
+                                          MRI_CONFIG_PATH, NO_SKULL_MRI)
+            except Exception as exc:
+                print(f"  per-session stats disabled ({exc}); showing CSV-only stats.")
+                conn2 = df_conf = None
+        stats_df, per_sess = candidate_report(cands, mri_pipeline, conn=conn2, df_conf=df_conf)
+        stats_path = os.path.join(copy_dir, 'candidate_stats.png')
+        plot_candidate_stats(stats_df, per_sess, stats_path, min_inbrain=(MIN_INBRAIN or 0.9))
+        stats_df.to_csv(os.path.join(copy_dir, 'candidate_stats.csv'), index=False)
+        print(f"  Stats plot → {stats_path}")
+        print(stats_df.to_string(index=False))
 
     print("\nSaving candidate correction files ...")
     saved = save_candidates(cands, mri_pipeline, copy_dir=copy_dir)
