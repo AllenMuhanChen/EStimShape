@@ -461,6 +461,114 @@ def select_candidates(df, n=3, min_inbrain=0.9, raw_max=None, method='knee'):
     return front.iloc[sorted(top)].sort_values('shift_mm')
 
 
+def per_session_raw(mri_pipeline, opt_result, conn, df_conf):
+    """Per-session UNWEIGHTED Pearson r for a candidate pose (array over sessions).
+    Needs the DB (angles) + df_conf (depths/tissue). Used for consistency stats:
+    a high-mean but high-variance candidate fits some sessions and misses others.
+    """
+    import contextlib
+    import io
+    from src.analysis.penetrations.alignment_optimize import (
+        compute_mri_comparison, compute_trajectory_fit_scores, apply_optimized_pipeline)
+    with contextlib.redirect_stdout(io.StringIO()):
+        opt_pipeline, daz, del_, ddepth = apply_optimized_pipeline(mri_pipeline, opt_result)
+        one = compute_mri_comparison(
+            df_conf.copy(), conn, opt_pipeline, daz=daz, del_=del_, ddepth=ddepth,
+            per_session_corrections=opt_result.get('per_session_corrections'))
+        fs = compute_trajectory_fit_scores(one)
+    col = 'fit_score_unweighted' if 'fit_score_unweighted' in fs.columns else 'fit_score'
+    return fs[col].dropna().to_numpy()
+
+
+def candidate_report(cands, mri_pipeline, conn=None, df_conf=None):
+    """Build a per-candidate stats table. CSV-derived stats (efficiency ratio,
+    in-brain, correction size) always; per-session fit mean/SD/min/worst only if
+    conn + df_conf are given (recompute). Returns (stats_df, per_session_dict)."""
+    recs, per_sess = [], {}
+    for i, (_, r) in enumerate(cands.iterrows(), 1):
+        name = f'c{i}'
+        rec = dict(
+            name=name,
+            raw_after=float(r['raw_after']),
+            shift_mm=float(r['shift_mm']),
+            ratio=float(r['raw_after']) / max(float(r['shift_mm']), 1e-9),
+            inbrain=float(r['inbrain_frac']) if pd.notna(r.get('inbrain_frac')) else np.nan,
+            t_norm_mm=float(r.get('t_norm_mm', np.nan)),
+            ps_max=float(r.get('ps_max', np.nan)),
+            beta=r.get('beta'), per_session=r.get('per_session'), param_set=r.get('param_set'),
+        )
+        if conn is not None and df_conf is not None:
+            try:
+                rs = per_session_raw(mri_pipeline, opt_result_from_row(r, warn=False), conn, df_conf)
+                rec.update(raw_mean=float(np.mean(rs)), raw_std=float(np.std(rs)),
+                           raw_min=float(np.min(rs)), n_sess=int(len(rs)))
+                per_sess[name] = rs
+            except Exception as exc:
+                print(f"  per-session stats failed for {name}: {exc}")
+        recs.append(rec)
+    return pd.DataFrame(recs), per_sess
+
+
+def plot_candidate_stats(stats_df, per_sess, out_path, min_inbrain=0.9):
+    """Multi-panel bar figure of candidate stats: efficiency ratio, raw fit
+    mean±SD (consistency), per-session r distribution, worst-session r, in-brain
+    fraction, and correction size."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    labels = stats_df['name'].tolist()
+    xp = np.arange(len(labels))
+    has_ps = 'raw_std' in stats_df.columns and stats_df['raw_std'].notna().any()
+
+    fig, axes = plt.subplots(2, 3, figsize=(14, 8))
+    axes = axes.ravel()
+
+    axes[0].bar(xp, stats_df['ratio'], color='steelblue')
+    axes[0].set_title('efficiency:  raw_after / shift_mm  (higher = better)')
+
+    if has_ps:
+        axes[1].bar(xp, stats_df['raw_mean'], yerr=stats_df['raw_std'], capsize=5, color='seagreen')
+        axes[1].set_title('raw fit: mean ± SD across sessions\n(shorter bar of error = more consistent)')
+    else:
+        axes[1].bar(xp, stats_df['raw_after'], color='seagreen')
+        axes[1].set_title('raw_after (mean r)\n[per-session SD needs DB]')
+
+    if per_sess:
+        axes[2].boxplot([per_sess[n] for n in labels], tick_labels=labels, showmeans=True)
+        axes[2].set_title('per-session r distribution\n(tight box = consistent)')
+    else:
+        axes[2].axis('off')
+        axes[2].text(0.5, 0.5, 'per-session distribution\nneeds DB (COMPUTE_PERSESSION)',
+                     ha='center', va='center', fontsize=9)
+
+    if has_ps:
+        axes[3].bar(xp, stats_df['raw_min'], color='indianred')
+        axes[3].set_title('worst-session r (min)\n(higher = no session left behind)')
+    else:
+        axes[3].axis('off')
+
+    axes[4].bar(xp, stats_df['inbrain'], color='goldenrod')
+    axes[4].axhline(min_inbrain, ls='--', color='k', lw=1)
+    axes[4].set_ylim(0, 1.02)
+    axes[4].set_title('in-brain fraction  (1 = fully in brain)')
+
+    w = 0.38
+    axes[5].bar(xp - w / 2, stats_df['shift_mm'], w, label='shift (RMS mm)', color='slategray')
+    axes[5].bar(xp + w / 2, stats_df['t_norm_mm'], w, label='|translation| mm', color='darkkhaki')
+    axes[5].legend(fontsize=8)
+    axes[5].set_title('correction size (smaller = more parsimonious)')
+
+    for ax in axes:
+        if ax.has_data():
+            ax.set_xticks(xp)
+            ax.set_xticklabels(labels)
+    fig.suptitle('Candidate statistics', fontsize=13)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=140)
+    plt.close(fig)
+
+
 def save_candidates(cands, mri_pipeline, copy_dir=None) -> list:
     """Save each candidate row as its own correction file (suffix _c1.._cN,
     ordered cheapest->highest-raw). Returns list of (row, path)."""
