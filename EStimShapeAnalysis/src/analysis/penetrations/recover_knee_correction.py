@@ -85,10 +85,13 @@ PLOT_PATH = None                # None -> 'recovered_candidates.png' next to the
 
 # Extra bar-chart stats for the candidates (efficiency ratio, in-brain, size).
 # COMPUTE_PERSESSION adds per-session fit mean/SD/min + a box plot showing which
-# candidate is most CONSISTENT across sessions — this recomputes per-session r
-# so it needs the DB + tissue pipeline (fill DB_* / PIPELINE_NAME below).
+# candidate is most CONSISTENT across sessions. This recomputes per-session r,
+# so it CONNECTS TO THE DB below and rebuilds df_conf via the tissue pipeline —
+# leave it True to get the SD / box / worst-session panels (set False only for a
+# quick no-DB run). If the connection or PIPELINE_NAME is wrong it falls back to
+# the CSV-only panels and prints why.
 STATS_PLOT         = True
-COMPUTE_PERSESSION = False
+COMPUTE_PERSESSION = True
 DB = dict(database="allen_data_repository", user="xper_rw", password="up2nite", host="172.30.6.61")
 PIPELINE_NAME = "PIPE_AA_K5"    # attribute name in run_pooled; must match the sweep's recipe
 TABLE         = "PenetrationMetrics"
@@ -275,6 +278,16 @@ def main():
                 print(f"  per-session stats disabled ({exc}); showing CSV-only stats.")
                 conn2 = df_conf = None
         stats_df, per_sess = candidate_report(cands, mri_pipeline, conn=conn2, df_conf=df_conf)
+        if 'raw_mean' in stats_df.columns:
+            dev = float((stats_df['raw_mean'] - stats_df['raw_after']).abs().max())
+            if dev > 0.05:
+                print(f"  WARNING: recomputed per-session mean differs from the CSV's "
+                      f"raw_after by up to {dev:.3f}. PIPELINE_NAME / EXCLUDE / "
+                      f"NO_SKULL_MRI here probably don't match the sweep — the SD/box "
+                      f"panels won't correspond to the stored raw_after until they do.")
+        elif COMPUTE_PERSESSION:
+            print("  (per-session SD panels are empty — the DB step did not run; see the "
+                  "message above. Check DB, PIPELINE_NAME, and that clat can connect.)")
         stats_path = os.path.join(copy_dir, 'candidate_stats.png')
         plot_candidate_stats(stats_df, per_sess, stats_path, min_inbrain=(MIN_INBRAIN or 0.9))
         stats_df.to_csv(os.path.join(copy_dir, 'candidate_stats.csv'), index=False)
