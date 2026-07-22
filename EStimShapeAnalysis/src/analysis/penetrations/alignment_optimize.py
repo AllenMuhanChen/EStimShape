@@ -1198,8 +1198,14 @@ def save_optimized_params(
         opt_result: dict,
         mri_pipeline: dict,
         copy_dir: Optional[str] = None,
+        suffix: str = '',
 ) -> str:
-    """Save optimisation result to a timestamped file for later comparison."""
+    """Save optimisation result to a timestamped file for later comparison.
+
+    suffix : appended to the filename stem (before .json) so several results
+        saved in the same second — e.g. a batch of candidate corrections —
+        don't collide (opt_<ts>_c1.json, _c2.json, ...).
+    """
     import datetime
 
     params = opt_result['params']
@@ -1213,7 +1219,7 @@ def save_optimized_params(
     results_dir = OPTIMIZATIONS_path
     os.makedirs(results_dir, exist_ok=True)
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-    result_path = os.path.join(results_dir, f'opt_{timestamp}.json')
+    result_path = os.path.join(results_dir, f'opt_{timestamp}{suffix}.json')
 
     result_data = {
         'timestamp': datetime.datetime.now().isoformat(),
