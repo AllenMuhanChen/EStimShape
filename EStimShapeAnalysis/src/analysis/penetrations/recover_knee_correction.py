@@ -83,15 +83,11 @@ DIAGNOSE = True
 PLOT      = True
 PLOT_PATH = None                # None -> 'recovered_candidates.png' next to the CSV
 
-# Extra bar-chart stats for the candidates (efficiency ratio, in-brain, size).
-# COMPUTE_PERSESSION adds per-session fit mean/SD/min + a box plot showing which
-# candidate is most CONSISTENT across sessions. This recomputes per-session r,
-# so it CONNECTS TO THE DB below and rebuilds df_conf via the tissue pipeline —
-# leave it True to get the SD / box / worst-session panels (set False only for a
-# quick no-DB run). If the connection or PIPELINE_NAME is wrong it falls back to
-# the CSV-only panels and prints why.
-STATS_PLOT         = True
-COMPUTE_PERSESSION = True
+# Candidate stats bar charts: efficiency ratio, in-brain, correction size, AND
+# the per-session fit mean/SD/min + box plot (which candidate is most CONSISTENT
+# across sessions). The per-session panels recompute per-session r, so the script
+# connects to the DB below and rebuilds df_conf via the tissue pipeline. This is
+# part of the feature, not optional; it must match the sweep's recipe/volume.
 DB = dict(database="allen_data_repository", user="xper_rw", password="up2nite", host="172.30.6.61")
 PIPELINE_NAME = "PIPE_AA_K5"    # attribute name in run_pooled; must match the sweep's recipe
 TABLE         = "PenetrationMetrics"
@@ -262,37 +258,34 @@ def main():
         plot_candidates(df, cands, plot_path, front=front)
         print(f"  Candidate plot → {plot_path}")
 
-    if STATS_PLOT:
-        conn2 = df_conf = None
-        if COMPUTE_PERSESSION:
-            try:
-                from clat.util.connection import Connection
-                from src.analysis.penetrations.alignment_robustness import prepare_data
-                import src.analysis.penetrations.run_pooled as rp
-                pipeline = getattr(rp, PIPELINE_NAME)
-                print("  Computing per-session consistency stats (DB) ...")
-                conn2 = Connection(**DB)
-                df_conf, _ = prepare_data(conn2, pipeline, TABLE, EXCLUDE,
-                                          MRI_CONFIG_PATH, NO_SKULL_MRI)
-            except Exception as exc:
-                print(f"  per-session stats disabled ({exc}); showing CSV-only stats.")
-                conn2 = df_conf = None
-        stats_df, per_sess = candidate_report(cands, mri_pipeline, conn=conn2, df_conf=df_conf)
-        if 'raw_mean' in stats_df.columns:
-            dev = float((stats_df['raw_mean'] - stats_df['raw_after']).abs().max())
-            if dev > 0.05:
-                print(f"  WARNING: recomputed per-session mean differs from the CSV's "
-                      f"raw_after by up to {dev:.3f}. PIPELINE_NAME / EXCLUDE / "
-                      f"NO_SKULL_MRI here probably don't match the sweep — the SD/box "
-                      f"panels won't correspond to the stored raw_after until they do.")
-        elif COMPUTE_PERSESSION:
-            print("  (per-session SD panels are empty — the DB step did not run; see the "
-                  "message above. Check DB, PIPELINE_NAME, and that clat can connect.)")
-        stats_path = os.path.join(copy_dir, 'candidate_stats.png')
-        plot_candidate_stats(stats_df, per_sess, stats_path, min_inbrain=(MIN_INBRAIN or 0.9))
-        stats_df.to_csv(os.path.join(copy_dir, 'candidate_stats.csv'), index=False)
-        print(f"  Stats plot → {stats_path}")
-        print(stats_df.to_string(index=False))
+    # Candidate stats incl. per-session consistency (mean/SD/min + box plot).
+    # Connects to the DB and rebuilds df_conf so the SD/box/worst-session panels
+    # are populated — this is part of the feature. If the connection genuinely
+    # fails, it errors loudly so you fix it, rather than silently degrading.
+    from clat.util.connection import Connection
+    from src.analysis.penetrations.alignment_robustness import prepare_data
+    import src.analysis.penetrations.run_pooled as rp
+    pipeline = getattr(rp, PIPELINE_NAME)
+    print("  Computing per-session consistency stats (DB) ...")
+    conn2 = Connection(**DB)
+    df_conf, _ = prepare_data(conn2, pipeline, TABLE, EXCLUDE, MRI_CONFIG_PATH, NO_SKULL_MRI)
+
+    stats_df, per_sess = candidate_report(cands, mri_pipeline, conn=conn2, df_conf=df_conf)
+    if 'raw_mean' in stats_df.columns:
+        dev = float((stats_df['raw_mean'] - stats_df['raw_after']).abs().max())
+        if dev > 0.05:
+            print(f"  WARNING: recomputed per-session mean differs from the CSV's raw_after "
+                  f"by up to {dev:.3f}. PIPELINE_NAME / EXCLUDE / NO_SKULL_MRI here probably "
+                  f"don't match the sweep — the SD/box panels won't correspond to raw_after "
+                  f"until they do.")
+    else:
+        print("  WARNING: per-session recompute failed for every candidate (see errors "
+              "above) — SD/box panels will be empty. Check PIPELINE_NAME / df_conf columns.")
+    stats_path = os.path.join(copy_dir, 'candidate_stats.png')
+    plot_candidate_stats(stats_df, per_sess, stats_path, min_inbrain=(MIN_INBRAIN or 0.9))
+    stats_df.to_csv(os.path.join(copy_dir, 'candidate_stats.csv'), index=False)
+    print(f"  Stats plot → {stats_path}")
+    print(stats_df.to_string(index=False))
 
     print("\nSaving candidate correction files ...")
     saved = save_candidates(cands, mri_pipeline, copy_dir=copy_dir)
