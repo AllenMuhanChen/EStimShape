@@ -113,10 +113,18 @@ def sample_shift_mm(mri_pipeline: dict, opt_result: dict,
     return float(np.sqrt(np.concatenate(sq).mean()))
 
 
+# A sample counts as 'in brain' when its MRI intensity exceeds this. 0.0 assumes
+# a clean brain-extracted volume (exactly 0 outside the brain). Raise it if your
+# no-skull volume has a non-zero background so background noise isn't counted as
+# brain (a good value is a little above the background level).
+INBRAIN_THRESH = 0.0
+
+
 def inbrain_fraction(mri_pipeline: dict, opt_result: dict,
-                     conn: Connection, df_conf: pd.DataFrame) -> float:
-    """Fraction of ALL trajectory sample points that land on positive (in-brain)
-    voxels of the (no-skull) MRI, under the optimised pose.
+                     conn: Connection, df_conf: pd.DataFrame,
+                     thresh: float = None) -> float:
+    """Fraction of ALL trajectory sample points that land on in-brain voxels
+    (MRI intensity > thresh) of the (no-skull) MRI, under the optimised pose.
 
     This is the guard against the degenerate optimum that maximises Pearson r by
     grazing the brain EDGE: such poses hit few positive voxels (most samples fall
@@ -128,6 +136,8 @@ def inbrain_fraction(mri_pipeline: dict, opt_result: dict,
     from src.mri.chamber import calc_penetration_target
     from scipy.ndimage import map_coordinates
 
+    if thresh is None:
+        thresh = INBRAIN_THRESH
     params = np.asarray(opt_result['params'], dtype=float)
     daz_g, del_g, ddepth_g = params[6], params[7], params[8]
     psc = opt_result.get('per_session_corrections', {}) or {}
@@ -157,7 +167,7 @@ def inbrain_fraction(mri_pipeline: dict, opt_result: dict,
             vox = (inv @ np.hstack([pts, np.ones((len(pts), 1))]).T).T[:, :3]
             vals = map_coordinates(data, vox.T, order=1, mode='constant', cval=0.0)
             tot += len(vals)
-            pos += int((np.asarray(vals) > 0).sum())
+            pos += int((np.asarray(vals) > thresh).sum())
         except Exception:
             continue
     return float(pos) / tot if tot else np.nan
@@ -369,8 +379,22 @@ def pareto_front(df, min_inbrain=None, raw_max=None, x='shift_mm', y='raw_after'
     Returned sorted by shift ascending (raw_after therefore strictly increasing).
     """
     d = df.dropna(subset=[x, y]).copy()
-    if min_inbrain is not None and 'inbrain_frac' in d.columns:
+    if min_inbrain is not None:
+        if 'inbrain_frac' not in d.columns:
+            print("  [pareto_front] min_inbrain requested but the sweep has NO "
+                  "'inbrain_frac' column (old run) — degenerate edge-grazers CANNOT "
+                  "be filtered. Re-run the sweep (or backfill the column). Refusing "
+                  "to return possibly-degenerate points.")
+            return d.iloc[0:0]
+        n0 = len(d)
         d = d[d['inbrain_frac'].fillna(0.0) >= min_inbrain]
+        print(f"  [pareto_front] in-brain filter: kept {len(d)}/{n0} rows with "
+              f"inbrain_frac >= {min_inbrain}")
+        if n0 > 0 and len(d) == n0:
+            print("  [pareto_front] WARNING: the filter removed NOTHING — every row "
+                  "passes. Either all solutions are genuinely in-brain, or the metric "
+                  "is not discriminating (the sweep likely sampled a FULL-SKULL volume; "
+                  "set NO_SKULL_MRI in the sweep so outside-brain voxels are 0).")
     if raw_max is not None:
         d = d[d[y] <= raw_max]
     if d.empty:
@@ -405,6 +429,58 @@ def save_candidates(cands, mri_pipeline, copy_dir=None) -> list:
     return out
 
 
+def opt_result_from_row(row, warn=True) -> dict:
+    """Reconstruct a minimal opt_result dict from one sweep-CSV row.
+
+    The 9 global params (tx..ddepth) come straight from the row columns; the
+    per-session offsets from the row's per_session_json if present (newer runs).
+    Enough for both save_correction_from_row (needs params[:9] for the 4x4) and
+    inbrain_fraction / sample_shift_mm (need params + per_session_corrections)."""
+    g = np.array([float(row[n]) for n in _OPT_PARAM_NAMES])
+    psc = {}
+    pj = row.get('per_session_json') if hasattr(row, 'get') else None
+    if isinstance(pj, str) and pj:
+        try:
+            psc = json.loads(pj)
+        except Exception:
+            psc = {}
+    if warn and not psc and bool(row.get('per_session', False)):
+        print("  WARNING: this row used per-session corrections but the CSV has no "
+              "per_session_json column (older run). Only the GLOBAL pose is used; "
+              "per-session angle/depth offsets are omitted.")
+    return {
+        'params': g,
+        'param_names': list(_OPT_PARAM_NAMES),
+        'score_before': float(row.get('raw_before', np.nan)),
+        'score_after':  float(row.get('raw_after', np.nan)),
+        'per_session_corrections': psc,
+        'softmin_beta': float(row.get('beta', 5.0)),
+    }
+
+
+def backfill_inbrain(df, mri_pipeline, conn, df_conf, thresh=None):
+    """Add/refresh an 'inbrain_frac' column on an existing sweep DataFrame WITHOUT
+    re-running the optimisation — only the cheap MRI-sampling per stored pose.
+
+    IMPORTANT: mri_pipeline must be loaded with the BRAIN-EXTRACTED (no-skull)
+    volume, so voxels outside the brain are ~0 and the fraction is meaningful.
+    Returns the same df with the column filled in (mutated in place too)."""
+    vals = []
+    n = len(df)
+    for i, (_, row) in enumerate(df.iterrows()):
+        try:
+            res = opt_result_from_row(row, warn=False)
+            v = inbrain_fraction(mri_pipeline, res, conn, df_conf, thresh=thresh)
+        except Exception as exc:
+            print(f"  row {i}: inbrain failed ({exc})")
+            v = np.nan
+        vals.append(v)
+        if (i + 1) % 20 == 0 or i + 1 == n:
+            print(f"  backfilled {i + 1}/{n}  (last inbrain={v:.3f})")
+    df['inbrain_frac'] = vals
+    return df
+
+
 def save_correction_from_row(row, mri_pipeline, copy_dir=None, suffix='') -> str:
     """Rebuild and save the MRI-viewer chamber-correction JSON from one sweep
     row, via alignment_optimize.save_optimized_params.
@@ -417,28 +493,7 @@ def save_correction_from_row(row, mri_pipeline, copy_dir=None, suffix='') -> str
     a warning is printed. Apply the saved file with
     alignment_optimize.apply_pca_opt_result(path, mri_pipeline).
     """
-    g = np.array([float(row[n]) for n in _OPT_PARAM_NAMES])
-
-    psc = {}
-    if 'per_session_json' in row and isinstance(row['per_session_json'], str) and row['per_session_json']:
-        try:
-            psc = json.loads(row['per_session_json'])
-        except Exception:
-            psc = {}
-    if not psc and bool(row.get('per_session', False)):
-        print("  WARNING: this row used per-session corrections but the CSV has "
-              "no per_session_json column (older run). Only the GLOBAL chamber "
-              "correction is being saved; re-run this exact config to also "
-              "recover the per-session offsets.")
-
-    opt_result = {
-        'params': g,
-        'param_names': list(_OPT_PARAM_NAMES),
-        'score_before': float(row.get('raw_before', np.nan)),
-        'score_after':  float(row.get('raw_after', np.nan)),
-        'per_session_corrections': psc,
-        'softmin_beta': float(row.get('beta', 5.0)),
-    }
+    opt_result = opt_result_from_row(row)
     return save_optimized_params(opt_result, mri_pipeline, copy_dir=copy_dir, suffix=suffix)
 
 
