@@ -360,7 +360,52 @@ def pareto_knee(df: pd.DataFrame, tol=0.01, x='shift_mm', y='raw_after',
 #  Recover a correction file from a sweep row (the harness itself never writes
 #  correction files — only sweep.csv — so this rebuilds one on demand).
 # ═══════════════════════════════════════════════════════════════════════════
-def save_correction_from_row(row, mri_pipeline, copy_dir=None) -> str:
+def pareto_front(df, min_inbrain=None, raw_max=None, x='shift_mm', y='raw_after'):
+    """Non-degenerate efficient frontier: the non-dominated rows in (maximise y,
+    minimise x) space, after dropping edge-grazers (inbrain_frac < min_inbrain).
+
+    These are exactly the 'highest correlation achievable at each correction
+    size' points — no other run gives more raw_after for equal-or-less shift.
+    Returned sorted by shift ascending (raw_after therefore strictly increasing).
+    """
+    d = df.dropna(subset=[x, y]).copy()
+    if min_inbrain is not None and 'inbrain_frac' in d.columns:
+        d = d[d['inbrain_frac'].fillna(0.0) >= min_inbrain]
+    if raw_max is not None:
+        d = d[d[y] <= raw_max]
+    if d.empty:
+        return d
+    d = d.sort_values([x, y], ascending=[True, False])
+    keep, best_y = [], -np.inf
+    for idx, r in d.iterrows():
+        if r[y] > best_y:
+            keep.append(idx)
+            best_y = r[y]
+    return d.loc[keep]
+
+
+def select_candidates(df, n=3, min_inbrain=0.9, raw_max=None):
+    """Pick up to `n` non-degenerate, efficiency-optimal candidates spanning the
+    Pareto frontier (cheap/low-raw -> expensive/high-raw). Use these as the few
+    corrections to save & eyeball instead of committing to one knee."""
+    front = pareto_front(df, min_inbrain=min_inbrain, raw_max=raw_max)
+    if front.empty or len(front) <= n:
+        return front
+    idxs = sorted(set(np.linspace(0, len(front) - 1, n).round().astype(int)))
+    return front.iloc[idxs]
+
+
+def save_candidates(cands, mri_pipeline, copy_dir=None) -> list:
+    """Save each candidate row as its own correction file (suffix _c1.._cN,
+    ordered cheapest->highest-raw). Returns list of (row, path)."""
+    out = []
+    for i, (_, r) in enumerate(cands.iterrows(), 1):
+        p = save_correction_from_row(r, mri_pipeline, copy_dir=copy_dir, suffix=f'_c{i}')
+        out.append((r, p))
+    return out
+
+
+def save_correction_from_row(row, mri_pipeline, copy_dir=None, suffix='') -> str:
     """Rebuild and save the MRI-viewer chamber-correction JSON from one sweep
     row, via alignment_optimize.save_optimized_params.
 
@@ -394,7 +439,7 @@ def save_correction_from_row(row, mri_pipeline, copy_dir=None) -> str:
         'per_session_corrections': psc,
         'softmin_beta': float(row.get('beta', 5.0)),
     }
-    return save_optimized_params(opt_result, mri_pipeline, copy_dir=copy_dir)
+    return save_optimized_params(opt_result, mri_pipeline, copy_dir=copy_dir, suffix=suffix)
 
 
 def save_knee_correction(sweep, mri_pipeline, copy_dir=None, tol=0.01,
@@ -468,24 +513,30 @@ def make_plots(sweep_df: pd.DataFrame, out_dir: str, loso_df: Optional[pd.DataFr
     os.makedirs(out_dir, exist_ok=True)
     d = sweep_df.dropna(subset=['shift_mm', 'raw_after'])
 
-    # 1. Pareto: raw_r vs correction magnitude
+    # 1. Pareto: raw_r vs correction magnitude, coloured by in-brain fraction so
+    #    edge-grazing degenerate optima (high r, low in-brain) are obvious.
     try:
-        fig, ax = plt.subplots(figsize=(7, 5))
+        has_ib = 'inbrain_frac' in d.columns and d['inbrain_frac'].notna().any()
+        fig, ax = plt.subplots(figsize=(7.5, 5.5))
+        cvar = d['inbrain_frac'].fillna(0.0) if has_ib else d['beta']
         for ps, mk in [(True, 'o'), (False, 's')]:
             sub = d[d['per_session'] == ps]
-            sc = ax.scatter(sub['shift_mm'], sub['raw_after'], c=sub['beta'],
-                            marker=mk, cmap='viridis', s=40, alpha=0.8,
+            cv = sub['inbrain_frac'].fillna(0.0) if has_ib else sub['beta']
+            sc = ax.scatter(sub['shift_mm'], sub['raw_after'], c=cv, marker=mk,
+                            cmap='viridis', vmin=(0.0 if has_ib else None),
+                            vmax=(1.0 if has_ib else None), s=40, alpha=0.85,
                             label=('with per-session' if ps else 'global only'))
-        knee = pareto_knee(d)
+        knee = pareto_knee(d, min_inbrain=(0.9 if has_ib else None))
         if knee is not None:
-            ax.scatter([knee['shift_mm']], [knee['raw_after']], s=260,
-                       facecolors='none', edgecolors='red', linewidths=2,
-                       label='parsimony knee', zorder=5)
+            ax.scatter([knee['shift_mm']], [knee['raw_after']], s=280,
+                       facecolors='none', edgecolors='red', linewidths=2.2,
+                       label='parsimony knee (guarded)', zorder=5)
         ax.set_xlabel('correction magnitude  (RMS mm shift of sampled points from nominal)')
         ax.set_ylabel('raw correlation  (mean unweighted Pearson r)')
         ax.set_title('Fit quality vs correction size — knee = most r for least correction')
         ax.legend(fontsize=8)
-        fig.colorbar(sc, ax=ax, label='softmin beta')
+        fig.colorbar(sc, ax=ax,
+                     label=('in-brain fraction (dark = edge-grazer)' if has_ib else 'softmin beta'))
         fig.tight_layout(); fig.savefig(os.path.join(out_dir, 'pareto_fit_vs_correction.png'), dpi=140)
         plt.close(fig)
     except Exception as exc:
