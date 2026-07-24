@@ -8,7 +8,12 @@ pose (the real start the pipeline uses). With a fixed start Nelder-Mead is
 deterministic, so the only thing that moves between runs is the session
 composition — that variation IS the session effect (see WARM_START).
 
-Outputs (in OUT_DIR):
+Each run writes to its own dir OUT_BASE/<RUN_TAG>_<timestamp> (never overwrites a
+previous run) and saves config.json (all parameters used) + summary.json (results).
+
+Outputs (in the per-run dir):
+  - config.json / summary.json : parameters used / results (consensus pose, spread,
+      leverage, consensus-vs-full-data distance).
   - resamples.csv : ONE ROW PER RESAMPLE CORRECTION, in the SAME schema as the
       robustness sweep.csv (raw_after, shift_mm, inbrain_frac, the 9 global
       params, per_session_json, ...) PLUS resample columns (origin/normal,
@@ -25,6 +30,7 @@ rows are directly comparable regardless of which subset produced them.
 
 No CLI — edit CONFIG and run.
 """
+import datetime
 import json
 import os
 
@@ -52,7 +58,12 @@ from src.analysis.penetrations.alignment_robustness import (
 # ═══════════════════════════════════════════════════════════════════════════
 #  CONFIG
 # ═══════════════════════════════════════════════════════════════════════════
-OUT_DIR = "/home/connorlab/Documents/penetration_optimization_plots/_session_resample"
+# Every run writes to OUT_BASE/<RUN_TAG>_<timestamp> (timestamp always appended),
+# so a new run NEVER overwrites a previous one. A config.json of all parameters
+# and a summary.json of results are written into that per-run dir. Use RUN_TAG to
+# label the run (e.g. the pipeline you're testing).
+OUT_BASE = "/home/connorlab/Documents/penetration_optimization_plots/_session_resample"
+RUN_TAG  = None                 # e.g. "PIPE_AA_K5" or "ica_v2"; None -> timestamp only
 
 DB = dict(database="allen_data_repository", user="xper_rw", password="up2nite", host="172.30.6.61")
 PIPELINE_NAME = "PIPE_AA_K5"
@@ -109,7 +120,29 @@ def _row_for_correction(res, subset, mri_pipeline, conn, df_full, b):
 
 
 def main():
-    os.makedirs(OUT_DIR, exist_ok=True)
+    ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    run_name = f"{RUN_TAG}_{ts}" if RUN_TAG else ts
+    out_dir = os.path.join(OUT_BASE, run_name)
+    os.makedirs(out_dir, exist_ok=True)
+
+    run_config = dict(
+        timestamp=ts, run_tag=RUN_TAG,
+        pipeline_name=PIPELINE_NAME, table=TABLE, exclude=list(EXCLUDE),
+        mri_config_path=MRI_CONFIG_PATH, no_skull_mri=NO_SKULL_MRI,
+        beta=BETA, per_session=PER_SESSION, rigid=list(RIGID), maxiter=MAXITER,
+        chamber_dist_penalty=CHAMBER_DIST_PENALTY,
+        chamber_param_penalty=CHAMBER_PARAM_PENALTY,
+        session_corr_penalty=SESSION_CORR_PENALTY,
+        B=B, subsample_frac=SUBSAMPLE_FRAC, min_sessions=MIN_SESSIONS,
+        min_inbrain=MIN_INBRAIN, seed=SEED, warm_start=WARM_START,
+        db=dict(host=DB.get('host'), user=DB.get('user'), database=DB.get('database')),  # password omitted
+    )
+    with open(os.path.join(out_dir, 'config.json'), 'w') as f:
+        json.dump(run_config, f, indent=2)
+    print(f"Run dir → {out_dir}")
+    print(f"  config.json written ({run_config['pipeline_name']}, B={B}, "
+          f"subsample={SUBSAMPLE_FRAC}, beta={BETA}, per_session={PER_SESSION})")
+
     conn = Connection(**DB)
     import src.analysis.penetrations.run_pooled as rp
     pipeline = getattr(rp, PIPELINE_NAME)
@@ -156,7 +189,7 @@ def main():
               f"shift={row['shift_mm']:.2f}mm  {'DEGEN' if row['degenerate'] else ''}")
 
     df_res = pd.DataFrame(rows)
-    res_csv = os.path.join(OUT_DIR, 'resamples.csv')
+    res_csv = os.path.join(out_dir, 'resamples.csv')
     df_res.to_csv(res_csv, index=False)
     print(f"\nresamples.csv → {res_csv}  ({len(df_res)} rows)")
 
@@ -172,7 +205,7 @@ def main():
                                'raw_after': float(nd['raw_after'].median()),
                                'beta': BETA, 'per_session': False, 'param_set': 'rigid'})
     o_c, n_c = chamber_pose(mri_pipeline, [med[n] for n in _OPT_PARAM_NAMES])
-    cons_path = save_correction_from_row(consensus_row, mri_pipeline, copy_dir=OUT_DIR,
+    cons_path = save_correction_from_row(consensus_row, mri_pipeline, copy_dir=out_dir,
                                          suffix='_consensus')
     print(f"\nConsensus correction (median pose) → {cons_path}")
     print(f"  consensus origin=({o_c[0]:.2f},{o_c[1]:.2f},{o_c[2]:.2f})mm")
@@ -201,14 +234,34 @@ def main():
         lev.append(dict(session=str(sid), leverage_mm=dp, leverage_deg=da,
                         n_incl=len(inc), n_excl=len(exc)))
     lev_df = pd.DataFrame(lev).sort_values('leverage_mm', ascending=False)
-    lev_df.to_csv(os.path.join(OUT_DIR, 'leverage.csv'), index=False)
+    lev_df.to_csv(os.path.join(out_dir, 'leverage.csv'), index=False)
     if not lev_df.empty:
         print("\nTop session leverage (pose shift when a session is in vs out):")
         for _, r in lev_df.head(8).iterrows():
             print(f"  {r['session']}: {r['leverage_mm']:.2f}mm  {r['leverage_deg']:.2f}deg")
 
-    _plots(df_res, nd, dpos, dang, lev_df, cons_params, mri_pipeline, OUT_DIR)
-    print(f"\nOutputs → {OUT_DIR}")
+    # ---- Results summary (alongside config.json) ----
+    summary = dict(
+        n_resamples=int(len(df_res)),
+        n_non_degenerate=int((~df_res['degenerate']).sum()),
+        consensus_params=med,
+        consensus_origin=[float(v) for v in o_c],
+        consensus_normal=[float(v) for v in n_c],
+        full_data_params={n: float(x0_full[i]) for i, n in enumerate(_OPT_PARAM_NAMES)},
+        full_data_origin=[float(v) for v in o_full],
+        pose_spread_origin_mm=dict(median=float(np.median(dpos)), p95=float(np.percentile(dpos, 95))),
+        pose_spread_normal_deg=dict(median=float(np.median(dang)), p95=float(np.percentile(dang, 95))),
+        consensus_vs_full_data=dict(
+            origin_mm=float(np.linalg.norm(np.array(o_c) - np.array(o_full)))),
+        top_leverage=(lev_df.head(10).to_dict('records') if not lev_df.empty else []),
+        resamples_csv=res_csv, consensus_correction=cons_path,
+    )
+    with open(os.path.join(out_dir, 'summary.json'), 'w') as f:
+        json.dump(summary, f, indent=2)
+
+    _plots(df_res, nd, dpos, dang, lev_df, cons_params, mri_pipeline, out_dir)
+    print(f"\nOutputs → {out_dir}  (config.json, summary.json, resamples.csv, "
+          f"leverage.csv, consensus correction, plots)")
     print("To pick alternate corrections: run recover_knee_correction.py with "
           f"SWEEP_CSV = '{res_csv}'.")
 
