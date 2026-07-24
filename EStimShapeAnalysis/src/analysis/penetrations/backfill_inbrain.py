@@ -35,18 +35,18 @@ SWEEP_CSV = "/home/connorlab/Documents/penetration_optimization_plots/_robustnes
 OUT_CSV   = None            # None -> overwrite SWEEP_CSV in place; or a new path
 
 # Must match the sweep's tissue recipe + session set so depths/sessions line up.
-from src.analysis.penetrations.run_pooled import PIPE_AA_K5   # noqa: E402
-PIPELINE = PIPE_AA_K5
+from src.analysis.penetrations.run_pooled import PIPE_AA_K5, PIPE_AA_K3  # noqa: E402
+PIPELINE = PIPE_AA_K3
 TABLE    = "PenetrationMetrics"
 EXCLUDE  = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
 
 MRI_CONFIG_PATH = MRI_VIEWER_CONFIG_PATH
 # REQUIRED for a meaningful result: the brain-extracted (no-skull) volume.
-NO_SKULL_MRI = None         # e.g. "/path/to/subject_ns_rigid_aligned.par"
+NO_SKULL_MRI = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz"
 
 # In-brain intensity threshold. 0.0 for a clean brain-extracted volume (exactly
 # 0 outside). Raise slightly if the volume has a non-zero background.
-INBRAIN_THRESH = 0.0
+INBRAIN_THRESH = 0.1
 
 # DB connection (same as run_per_session).
 DB = dict(database="allen_data_repository", user="xper_rw",

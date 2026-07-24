@@ -912,7 +912,7 @@ def summarize(sweep_df: pd.DataFrame) -> str:
 #  Entry point — edit like run_per_session.__main__
 # ═══════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
-    from src.analysis.penetrations.run_pooled import PIPE_AA_K5, PIPE_AA_K3  # pick your recipe
+    from src.analysis.penetrations.run_pooled import PIPE_AA_K5, PIPE_AA_K3, PIPE_AA_K7  # pick your recipe
 
     # ---- CONFIG ----------------------------------------------------------
     # Every run writes to OUT_BASE/<RUN_TAG>_<timestamp> (timestamp always
@@ -923,7 +923,7 @@ if __name__ == "__main__":
     TABLE = "PenetrationMetrics"
     EXCLUDE = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
     NO_SKULL_MRI = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz"          # set to brain-extracted volume path if you use one
-    PIPELINE = PIPE_AA_K3        # the tissue model / decomposition recipe
+    PIPELINE = PIPE_AA_K7        # the tissue model / decomposition recipe
 
     # Which global params the optimiser is allowed to move. Globals not listed
     # are HARD-FROZEN at 0 (cleaner than a tiny chamber_param_tolerance, which
@@ -938,7 +938,7 @@ if __name__ == "__main__":
     BETAS = [0.0, 1.0, 5.0, 20.0]         # 0 == mean aggregation
     PENALTIES = [0.0, 0.0001, 0.001, 0.01]  # chamber_param_penalty; 0 == unconstrained
     PER_SESSION = [False, True]
-    N_RANDOM_STARTS = 8          # start 0 is the nominal (zero) start; 1..7 random
+    N_RANDOM_STARTS = 16          # start 0 is the nominal (zero) start; 1..7 random
     START_SCALE = dict(t=6.0, r=6.0, ang=4.0, depth=4.0)   # random-start ranges
     MAXITER = 100000
     RUN_LOSO = False             # decisive overfitting test; N optimisations/config

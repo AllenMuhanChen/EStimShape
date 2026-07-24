@@ -2,7 +2,7 @@
 
 No CLI — just edit the CONFIG block below and run the file. It rebuilds the
 MRI-viewer chamber-correction JSON (the kind apply_pca_opt_result / the viewer
-loads) from rows of sweep.csv, without re-running any optimisation.
+loads) from a row of sweep.csv, without re-running any optimisation.
 
   - By default it AUTOMATICALLY selects the best few NON-DEGENERATE candidates:
     the Pareto frontier (highest raw correlation per unit correction size) after
@@ -55,7 +55,7 @@ NO_SKULL_MRI    = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_correcte
 #   SELECT_ROW = None  -> auto-select N_CANDIDATES non-degenerate frontier points
 #   SELECT_ROW = <int> -> recover just that one 0-based CSV row
 SELECT_ROW    = None
-N_CANDIDATES  = 3               # how many frontier candidates to save when auto-selecting
+N_CANDIDATES  = 5               # how many frontier candidates to save when auto-selecting
 SELECT_METHOD = 'knee'          # 'knee' = most correlation per shift (elbow of the frontier);
                                 # 'ratio' = steepest raw/shift; 'span' = evenly spaced (legacy)
 
@@ -89,7 +89,7 @@ PLOT_PATH = None                # None -> 'recovered_candidates.png' next to the
 # connects to the DB below and rebuilds df_conf via the tissue pipeline. This is
 # part of the feature, not optional; it must match the sweep's recipe/volume.
 DB = dict(database="allen_data_repository", user="xper_rw", password="up2nite", host="172.30.6.61")
-PIPELINE_NAME = "PIPE_AA_K5"    # attribute name in run_pooled; must match the sweep's recipe
+PIPELINE_NAME = "PIPE_AA_K3"    # attribute name in run_pooled; must match the sweep's recipe
 TABLE         = "PenetrationMetrics"
 EXCLUDE       = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
 
@@ -188,7 +188,7 @@ def diagnose(df, mri_pipeline, top=12):
             print("      with NO_SKULL_MRI pointing at your brain-extracted volume.")
 
     d = df.dropna(subset=['raw_after']).copy()
-    knee = pareto_knee(d, tol=KNEE_TOL, min_inbrain=MIN_INBRAIN, raw_max=KNEE_RAW_MAX)
+    knee = pareto_knee(d, tol=KNEE_TOL, min_inbrain=MIN_INBRAIN, raw_max=RAW_MAX)
     best = d.loc[d['raw_after'].idxmax()]
 
     def _ib(r):

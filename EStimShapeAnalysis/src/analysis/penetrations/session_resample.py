@@ -66,19 +66,19 @@ OUT_BASE = "/home/connorlab/Documents/penetration_optimization_plots/_session_re
 RUN_TAG  = None                 # e.g. "PIPE_AA_K5" or "ica_v2"; None -> timestamp only
 
 DB = dict(database="allen_data_repository", user="xper_rw", password="up2nite", host="172.30.6.61")
-PIPELINE_NAME = "PIPE_AA_K5"
+PIPELINE_NAME = "PIPE_AA_K7"
 TABLE   = "PenetrationMetrics"
 EXCLUDE = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
 
 MRI_CONFIG_PATH = MRI_VIEWER_CONFIG_PATH
-NO_SKULL_MRI    = None          # REQUIRED brain-extracted volume (for inbrain_frac)
+NO_SKULL_MRI    = "/home/connorlab/Documents/MRI/45X_MRI/45X_110315_4_1_corrected_warper_native/rigid_aligned/subject_ns_rigid_aligned.nii.gz"          # REQUIRED brain-extracted volume (for inbrain_frac)
 
 # Locked optimiser config (what dominated the knee).
 BETA            = 0.0           # mean aggregation
 PER_SESSION     = True
 RIGID           = ['tx_mm', 'ty_mm', 'tz_mm', 'rx_deg', 'ry_deg', 'rz_deg']  # freeze daz/del/ddepth
-MAXITER         = 4000          # warm-started, so it converges fast
-CHAMBER_DIST_PENALTY = 0.001
+MAXITER         = 100000          # warm-started, so it converges fast
+CHAMBER_DIST_PENALTY = 0.000
 CHAMBER_PARAM_PENALTY = 0.0001
 SESSION_CORR_PENALTY = 0.1
 
