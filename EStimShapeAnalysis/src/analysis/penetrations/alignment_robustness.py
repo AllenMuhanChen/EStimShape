@@ -27,8 +27,9 @@ and produces three complementary readouts:
      correction that raises in-sample but not held-out raw_r is memorising.
 
 Run it like run_per_session.py: edit the CONFIG block + __main__ and execute.
-Nothing is written to the real corrections files; results go to OUT_DIR as a
-CSV plus a few summary PNGs.
+Nothing is written to the real corrections files; each run writes to its own
+OUT_BASE/<RUN_TAG>_<timestamp> dir (never overwriting a previous run) with
+config.json (params used), summary.json (results), sweep.csv, and plots.
 """
 from __future__ import annotations
 
@@ -914,7 +915,11 @@ if __name__ == "__main__":
     from src.analysis.penetrations.run_pooled import PIPE_AA_K5  # pick your recipe
 
     # ---- CONFIG ----------------------------------------------------------
-    OUT_DIR = "/home/connorlab/Documents/penetration_optimization_plots/_robustness"
+    # Every run writes to OUT_BASE/<RUN_TAG>_<timestamp> (timestamp always
+    # appended) so a new run NEVER overwrites a previous one; config.json (all
+    # params) + summary.json (results) are written into that per-run dir.
+    OUT_BASE = "/home/connorlab/Documents/penetration_optimization_plots/_robustness"
+    RUN_TAG = None               # e.g. "PIPE_AA_K5"; None -> timestamp only
     TABLE = "PenetrationMetrics"
     EXCLUDE = ["260327_0", "260331_0", "260402_0", "260520_0", "260423_0"]
     NO_SKULL_MRI = None          # set to brain-extracted volume path if you use one
@@ -953,7 +958,27 @@ if __name__ == "__main__":
     )
     # ----------------------------------------------------------------------
 
-    os.makedirs(OUT_DIR, exist_ok=True)
+    import datetime
+    _ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    out_dir = os.path.join(OUT_BASE, f"{RUN_TAG}_{_ts}" if RUN_TAG else _ts)
+    os.makedirs(out_dir, exist_ok=True)
+
+    _run_config = dict(
+        timestamp=_ts, run_tag=RUN_TAG,
+        pipeline_name=getattr(PIPELINE, 'name', str(PIPELINE)),
+        pipeline_tag=(PIPELINE.tag() if hasattr(PIPELINE, 'tag') else None),
+        table=TABLE, exclude=list(EXCLUDE), no_skull_mri=NO_SKULL_MRI,
+        param_sets={k: list(v) for k, v in PARAM_SETS.items()},
+        betas=list(BETAS), penalties=list(PENALTIES), per_session=list(PER_SESSION),
+        n_random_starts=N_RANDOM_STARTS, start_scale=dict(START_SCALE),
+        maxiter=MAXITER, run_loso=RUN_LOSO, save_knee=SAVE_KNEE,
+        knee_min_inbrain=KNEE_MIN_INBRAIN, base_kw=dict(BASE_KW),
+    )
+    with open(os.path.join(out_dir, 'config.json'), 'w') as f:
+        json.dump(_run_config, f, indent=2)
+    print(f"Run dir → {out_dir}")
+    print(f"  config.json written (pipeline={_run_config['pipeline_name']})")
+
     conn = Connection(database="allen_data_repository", user="xper_rw",
                       password="up2nite", host="172.30.6.61")
 
@@ -968,7 +993,7 @@ if __name__ == "__main__":
                      betas=BETAS, penalties=PENALTIES, per_session_opts=PER_SESSION,
                      n_random_starts=N_RANDOM_STARTS, start_scale=START_SCALE,
                      base_kw=BASE_KW)
-    sweep_df.to_csv(os.path.join(OUT_DIR, 'sweep.csv'), index=False)
+    sweep_df.to_csv(os.path.join(out_dir, 'sweep.csv'), index=False)
 
     loso_df = None
     if RUN_LOSO:
@@ -981,16 +1006,42 @@ if __name__ == "__main__":
                            enable_per_session_corrections=False,
                            fixed_globals=fixed_from_enabled(list(_OPT_PARAM_NAMES)))),
         ])
-        loso_df.to_csv(os.path.join(OUT_DIR, 'loso.csv'), index=False)
+        loso_df.to_csv(os.path.join(out_dir, 'loso.csv'), index=False)
 
-    make_plots(sweep_df, OUT_DIR, loso_df=loso_df)
+    make_plots(sweep_df, out_dir, loso_df=loso_df)
     print(summarize(sweep_df))
 
+    knee_path = None
     if SAVE_KNEE:
         print("\nSaving parsimony-knee correction file ...")
-        knee_path = save_knee_correction(sweep_df, mri_pipeline, copy_dir=OUT_DIR,
+        knee_path = save_knee_correction(sweep_df, mri_pipeline, copy_dir=out_dir,
                                          min_inbrain=KNEE_MIN_INBRAIN)
         if knee_path:
             print(f"  Apply with: apply_pca_opt_result('{knee_path}', mri_pipeline)")
 
-    print(f"\nOutputs → {OUT_DIR}")
+    # ---- Results summary (alongside config.json) ----
+    _d = sweep_df.dropna(subset=['raw_after'])
+    _best = _d.loc[_d['raw_after'].idxmax()] if not _d.empty else None
+    _knee = pareto_knee(_d, min_inbrain=KNEE_MIN_INBRAIN) if not _d.empty else None
+
+    def _row_summary(r):
+        if r is None:
+            return None
+        return {k: (float(r[k]) if k in r and isinstance(r.get(k), (int, float)) else r.get(k))
+                for k in ['raw_after', 'shift_mm', 'inbrain_frac', 'param_set', 'beta',
+                          'chamber_param_penalty', 'per_session']}
+
+    _summary = dict(
+        n_runs=int(len(sweep_df)),
+        n_non_degenerate=(int((sweep_df['inbrain_frac'] >= KNEE_MIN_INBRAIN).sum())
+                          if 'inbrain_frac' in sweep_df.columns else None),
+        best_raw=_row_summary(_best),
+        knee=_row_summary(_knee),
+        knee_correction=knee_path,
+        sweep_csv=os.path.join(out_dir, 'sweep.csv'),
+    )
+    with open(os.path.join(out_dir, 'summary.json'), 'w') as f:
+        json.dump(_summary, f, indent=2)
+
+    print(f"\nOutputs → {out_dir}  (config.json, summary.json, sweep.csv, plots"
+          + (", loso.csv" if RUN_LOSO else "") + ")")
