@@ -73,6 +73,10 @@ Recommendation in practice: read BIC for GMM and silhouette for everyone else;
 use the gap statistic as the reality check on whether K should be small (or 1).
 The printed summary lists each method's auto-K and the consensus.
 
+For an interactive version (flip between methods / slide K live), see
+``run_channel_decomposition_app`` — it reuses the fitting and plotting helpers
+in this module.
+
 Run:  python -m src.analysis.cluster.explore_channel_decompositions
 """
 import os
