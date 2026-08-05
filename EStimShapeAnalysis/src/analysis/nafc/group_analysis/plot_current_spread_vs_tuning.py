@@ -7,13 +7,17 @@ the more basic question the whole project rests on: **as you drive more current,
 does the stimulated tissue's tuning stay locally similar, or does the tuning
 neighbourhood you're perturbing get larger?**
 
-This module makes that relationship explicit, one point per experiment:
+This module makes that relationship explicit, one point per estim spec
+(condition) — each spec delivers its OWN current, so we do NOT average specs
+within an experiment (that would collapse the very current variation the X-axis
+shows). Set aggregate_by='experiment' if you deliberately want per-experiment
+means instead.
 
     X = current spread   (for now: current_per_second = a1 x num_channels x
-                          pulse_rate_hz, averaged over the experiment's specs)
+                          pulse_rate_hz, per spec)
     Y = tuning similarity of each estim channel to its physical neighbours on the
         probe (Spearman rho of ga_mean_response, the ``channel_corr`` metric),
-        averaged over the experiment's specs.
+        averaged over the spec's estim channels.
 
 Three tuning families x three probe scales, laid out as a grid so you can read
 how the picture changes from a local patch to the whole probe:
@@ -31,16 +35,16 @@ how the picture changes from a local patch to the whole probe:
       - half-probe  n=16
       - whole-probe n=32   effectively the whole probe (<=32 channels)
 
-Each panel is one point per experiment (specs averaged within the experiment,
-filtered to a trial type), coloured by the estim effect on behaviour (ON − OFF %):
-red = positive, blue = negative, on a symmetric scale shared across panels. So a
-panel reads as "where in current-spread × tuning space do the effects land, and
-which way do they point" — no line is fit.
+Each panel is one point per spec (filtered to a trial type), coloured by the
+estim effect on behaviour (ON − OFF %): red = positive, blue = negative, on a
+symmetric scale shared across panels. So a panel reads as "where in
+current-spread × tuning space do the effects land, and which way do they point"
+— no line is fit.
 
 The tuning metric is trial-type-independent (it comes from GA responses, not
 behaviour); filtering by trial type only selects WHICH specs (those actually
-delivered in that trial type) enter each experiment's average, so you compare
-like with like against the effect analyses.
+delivered in that trial type) enter the plot, so you compare like with like
+against the effect analyses.
 
 Run this file to produce one figure per trial type (uses the shared COMPARISON_*
 config in analyze_estim_isolation_effect). Needs the GA response vectors that
@@ -243,7 +247,12 @@ def build_current_spread_tuning_table(trial_types, *, start_session_id=None,
 def aggregate_per_experiment(df, metric_cols):
     """Collapse the per-spec table to one row per (trial_type, session): mean
     current_per_second, mean estim effect, and mean of each tuning metric across
-    the experiment's specs."""
+    the experiment's specs.
+
+    NOTE: this averages away the per-condition current variation within an
+    experiment (different specs deliver different currents), so it is NOT the
+    default point unit — use it only when you deliberately want one point per
+    experiment. See build_points."""
     if len(df) == 0:
         return df
     agg_map = {X_COLUMN: (X_COLUMN, 'mean'),
@@ -254,15 +263,33 @@ def aggregate_per_experiment(df, metric_cols):
               .agg(**agg_map))
 
 
+def build_points(df, metric_cols, aggregate_by='spec'):
+    """The plotting unit. 'spec' (default) = one point per estim spec/condition,
+    keeping each spec's own current, tuning, and effect (this is almost always what
+    you want — different specs in an experiment deliver different currents).
+    'experiment' collapses to one point per (trial_type, session), averaging those
+    away."""
+    if aggregate_by == 'experiment':
+        return aggregate_per_experiment(df, metric_cols)
+    if aggregate_by != 'spec':
+        raise ValueError(f"aggregate_by must be 'spec' or 'experiment'; got {aggregate_by!r}")
+    keep = (['trial_type', 'session_id', 'estim_spec_id', X_COLUMN, 'effect_size']
+            + list(metric_cols))
+    keep = [c for c in keep if c in df.columns]
+    return df[keep].copy()
+
+
 # ---------------------------------------------------------------------------
 # Plotting
 # ---------------------------------------------------------------------------
 
 def plot_current_spread_vs_tuning_for_trial_type(agg_tt, *, scales=DEFAULT_SCALES,
                                                  threshold=DEFAULT_HIGH_CORR_THRESHOLD,
-                                                 trial_type='', output_path=None):
+                                                 trial_type='', point_noun='spec',
+                                                 output_path=None):
     """Grid of tuning-family (rows) x probe-scale (cols) panels for one trial type.
-    One point per experiment; X = current_per_second, Y = the tuning metric."""
+    One point per `point_noun` (spec/condition by default); X = current_per_second,
+    Y = the tuning metric, colour = estim effect."""
     scale_items = sorted(scales.items(), key=lambda kv: kv[1])  # (label, n) low->high
     nrows, ncols = len(FAMILIES), len(scale_items)
     fig, axes = plt.subplots(nrows, ncols, figsize=(4.6 * ncols, 4.0 * nrows),
@@ -285,7 +312,7 @@ def plot_current_spread_vs_tuning_for_trial_type(agg_tt, *, scales=DEFAULT_SCALE
             eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
             has_eff = np.isfinite(eff)
 
-            # Experiments with no computable effect can't be coloured — show gray.
+            # Points with no computable effect can't be coloured — show gray.
             if (~has_eff).any():
                 ax.scatter(x[~has_eff], y[~has_eff], s=55, alpha=0.6,
                            color='lightgray', edgecolors='gray', linewidths=0.4)
@@ -298,7 +325,7 @@ def plot_current_spread_vs_tuning_for_trial_type(agg_tt, *, scales=DEFAULT_SCALE
             title_bits = []
             if r == 0:
                 title_bits.append(scale_label)
-            title_bits.append(f"n={len(x)}")
+            title_bits.append(f"n={len(x)} {point_noun}s")
             ax.set_title("\n".join(title_bits), fontsize=10)
 
             if r == nrows - 1:
@@ -316,7 +343,7 @@ def plot_current_spread_vs_tuning_for_trial_type(agg_tt, *, scales=DEFAULT_SCALE
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
 
-    fig.suptitle(f"Current spread vs tuning geometry — one point per experiment "
+    fig.suptitle(f"Current spread vs tuning geometry — one point per {point_noun} "
                  f"(colour = estim effect)"
                  f"{('  [' + str(trial_type) + ']') if trial_type else ''}",
                  fontsize=14, fontweight='bold')
@@ -341,14 +368,16 @@ def run_current_spread_vs_tuning(trial_types=None, *, start_session_id=None,
                                  threshold=DEFAULT_HIGH_CORR_THRESHOLD,
                                  exclude_other_estim=True,
                                  min_on_trials=COMPARISON_MIN_ON_TRIALS,
-                                 save_dir=None):
+                                 aggregate_by='spec', save_dir=None):
     """Build the table and draw one figure per trial type. trial_types=None
-    auto-discovers them. Returns (per_spec_df, per_experiment_df)."""
+    auto-discovers them. aggregate_by='spec' (default) plots one point per estim
+    spec/condition (keeps each condition's own current); 'experiment' averages per
+    session. Returns (per_spec_df, points_df)."""
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
     print(f"[config] CURRENT-SPREAD vs TUNING  trial_types={trial_types}  "
           f"effect_metric={effect_metric}  scales={scales}  threshold={threshold}  "
-          f"min_on={min_on_trials}")
+          f"min_on={min_on_trials}  point={aggregate_by}")
 
     df, metric_cols = build_current_spread_tuning_table(
         trial_types, start_session_id=start_session_id,
@@ -360,19 +389,19 @@ def run_current_spread_vs_tuning(trial_types=None, *, start_session_id=None,
         print("Nothing to plot.")
         return df, pd.DataFrame()
 
-    per_exp = aggregate_per_experiment(df, metric_cols)
+    points = build_points(df, metric_cols, aggregate_by)
     for tt in trial_types:
-        agg_tt = per_exp[per_exp['trial_type'] == tt]
-        if len(agg_tt) == 0:
-            print(f"  (no experiments for trial_type={tt!r})")
+        pts_tt = points[points['trial_type'] == tt]
+        if len(pts_tt) == 0:
+            print(f"  (no {aggregate_by}s for trial_type={tt!r})")
             continue
-        print(f"\n=== {tt}: {len(agg_tt)} experiments ===")
+        print(f"\n=== {tt}: {len(pts_tt)} {aggregate_by}s ===")
         out_path = (os.path.join(save_dir, f"current_spread_vs_tuning_{_slug(tt)}.png")
                     if save_dir else None)
         plot_current_spread_vs_tuning_for_trial_type(
-            agg_tt, scales=scales, threshold=threshold, trial_type=tt,
-            output_path=out_path)
-    return df, per_exp
+            pts_tt, scales=scales, threshold=threshold, trial_type=tt,
+            point_noun=aggregate_by, output_path=out_path)
+    return df, points
 
 
 def main():
