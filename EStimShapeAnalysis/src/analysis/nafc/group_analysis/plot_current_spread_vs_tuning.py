@@ -13,8 +13,9 @@ within an experiment (that would collapse the very current variation the X-axis
 shows). Set aggregate_by='experiment' if you deliberately want per-experiment
 means instead.
 
-    X = current spread   (for now: current_per_second = a1 x num_channels x
-                          pulse_rate_hz, per spec)
+    X = a current metric per spec, set by X_METRIC (default 'total_current_uA' =
+        a1 × num_channels; or 'current_per_second' = a1 × num_channels ×
+        pulse_rate_hz; or 'n_active_channels')
     Y = tuning similarity of each estim channel to its physical neighbours on the
         probe (Spearman rho of ga_mean_response, the ``channel_corr`` metric),
         averaged over the spec's estim channels.
@@ -113,12 +114,15 @@ def _present_polarities(df):
     return present + others
 
 
-def _attach_polarity(df):
-    """Add a per-spec 'polarity' column (PositiveFirst / NegativeFirst) from
-    EStimParameters, in place; returns df."""
+def _attach_estim_metrics(df):
+    """Add per-spec 'polarity' and 'total_current_uA' (= Σ a1 over active channels
+    = a1 × num_channels) columns from EStimParameters, in place; returns df."""
     power = _fetch_estim_power_and_polarity(sorted(df['session_id'].unique().tolist()))
     df['polarity'] = [
         (power.get((s, int(spec)), {}) or {}).get('polarity')
+        for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    df['total_current_uA'] = [
+        (power.get((s, int(spec)), {}) or {}).get('total_current_uA')
         for s, spec in zip(df['session_id'], df['estim_spec_id'])]
     return df
 
@@ -145,8 +149,25 @@ DEFAULT_SCALES = {
 # rho above this counts as "highly correlated" for the area family.
 DEFAULT_HIGH_CORR_THRESHOLD = 0.5
 
-X_COLUMN = 'current_per_second'
-X_LABEL = 'current spread  (current_per_second, µA·Hz)'
+# ---------------------------------------------------------------------------
+# X-axis current metric. Change X_METRIC to switch what "current spread" means on
+# the X axis of EVERY plot in this module (scatter, half-distance, heatmaps).
+#   'current_per_second' = a1 × num_channels × pulse_rate_hz (µA·Hz) — dose rate
+#   'total_current_uA'   = a1 × num_channels (µA) — "current × num_channels"
+#   'n_active_channels'  = number of active stim channels
+# All three columns are attached to the tables, so switching needs only this edit.
+# ---------------------------------------------------------------------------
+X_METRIC = 'total_current_uA'
+X_LABELS = {
+    'current_per_second': 'current spread  (current_per_second = a1×n_ch×rate, µA·Hz)',
+    'total_current_uA': 'total current  (a1 × num_channels, µA)',
+    'n_active_channels': 'num active channels',
+}
+# Current columns retained on every points table (so any can be selected as X).
+CURRENT_COLUMNS = ('current_per_second', 'total_current_uA', 'n_active_channels')
+
+X_COLUMN = X_METRIC
+X_LABEL = X_LABELS.get(X_METRIC, X_METRIC)
 
 
 def _metric_col(family, n_neighbors):
@@ -259,7 +280,7 @@ def build_current_spread_tuning_table(trial_types, *, start_session_id=None,
     if not frames:
         return pd.DataFrame(), metric_cols
     df = pd.concat(frames, ignore_index=True)
-    _attach_polarity(df)
+    _attach_estim_metrics(df)
 
     tuning_by_session = {}
     for sid in sorted(df['session_id'].unique().tolist()):
@@ -290,8 +311,9 @@ def aggregate_per_experiment(df, metric_cols):
     experiment. See build_points."""
     if len(df) == 0:
         return df
-    agg_map = {X_COLUMN: (X_COLUMN, 'mean'),
-               'effect_size': ('effect_size', 'mean')}
+    agg_map = {'effect_size': ('effect_size', 'mean')}
+    # Average every available current metric (so X can be any of them).
+    agg_map.update({c: (c, 'mean') for c in CURRENT_COLUMNS if c in df.columns})
     agg_map.update({c: (c, 'mean') for c in metric_cols})
     agg_map['n_specs'] = ('estim_spec_id', 'size')
     # Keep polarity as a grouping key so a per-experiment point never mixes anodic
@@ -311,9 +333,9 @@ def build_points(df, metric_cols, aggregate_by='spec'):
         return aggregate_per_experiment(df, metric_cols)
     if aggregate_by != 'spec':
         raise ValueError(f"aggregate_by must be 'spec' or 'experiment'; got {aggregate_by!r}")
-    keep = (['trial_type', 'polarity', 'session_id', 'estim_spec_id', X_COLUMN,
-             'effect_size'] + list(metric_cols))
-    keep = [c for c in keep if c in df.columns]
+    keep = (['trial_type', 'polarity', 'session_id', 'estim_spec_id', 'effect_size']
+            + list(CURRENT_COLUMNS) + list(metric_cols))
+    keep = [c for c in dict.fromkeys(keep) if c in df.columns]  # de-dup, keep order
     return df[keep].copy()
 
 
@@ -440,7 +462,7 @@ def run_current_spread_vs_tuning(trial_types=None, *, start_session_id=None,
                 continue
             tag = tt + (f"  [{_pol_short(pol)}]" if pol is not None else "")
             print(f"\n=== {tag}: {len(pts_tt)} {aggregate_by}s ===")
-            fname = f"current_spread_vs_tuning_{_slug(tt)}" + \
+            fname = f"tuning_vs_{_slug(X_COLUMN)}_{_slug(tt)}" + \
                     (f"_{_pol_short(pol)}" if pol is not None else "") + ".png"
             out_path = os.path.join(save_dir, fname) if save_dir else None
             plot_current_spread_vs_tuning_for_trial_type(
@@ -667,7 +689,7 @@ def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
     if not frames:
         return pd.DataFrame()
     df = pd.concat(frames, ignore_index=True)
-    _attach_polarity(df)
+    _attach_estim_metrics(df)
 
     hd_by_session = {}
     for sid in sorted(df['session_id'].unique().tolist()):
@@ -796,7 +818,7 @@ def run_half_distance_vs_current(trial_types=None, *, start_session_id=None,
         return df, pd.DataFrame()
 
     points = build_points(df, [HALFDIST_COL], aggregate_by)
-    out_path = (os.path.join(save_dir, "corr_half_distance_vs_current.png")
+    out_path = (os.path.join(save_dir, f"corr_half_distance_vs_{_slug(X_COLUMN)}.png")
                 if save_dir else None)
     plot_metric_vs_current_by_trialtype(
         points, HALFDIST_COL,
@@ -1063,7 +1085,7 @@ def run_half_distance_effect_heatmap(trial_types=None, *, start_session_id=None,
         print("Nothing to plot.")
         return df, pd.DataFrame()
     points = build_points(df, [HALFDIST_COL], aggregate_by)
-    out_path = (os.path.join(save_dir, "corr_half_distance_effect_heatmap.png")
+    out_path = (os.path.join(save_dir, f"corr_half_distance_heatmap_vs_{_slug(X_COLUMN)}.png")
                 if save_dir else None)
     plot_effect_heatmap_by_trialtype(
         points, HALFDIST_COL, y_label='corr half-distance (µm)',
@@ -1107,7 +1129,7 @@ def run_tuning_effect_heatmap(trial_types=None, *, start_session_id=None,
             if len(pts_tt) == 0:
                 continue
             tag = tt + (f"  [{_pol_short(pol)}]" if pol is not None else "")
-            fname = f"tuning_effect_heatmap_{_slug(tt)}" + \
+            fname = f"tuning_heatmap_vs_{_slug(X_COLUMN)}_{_slug(tt)}" + \
                     (f"_{_pol_short(pol)}" if pol is not None else "") + ".png"
             out_path = os.path.join(save_dir, fname) if save_dir else None
             plot_effect_heatmap_grid(
