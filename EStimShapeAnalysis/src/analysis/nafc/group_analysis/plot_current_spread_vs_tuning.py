@@ -175,6 +175,43 @@ def _metric_col(family, n_neighbors):
 
 
 # ---------------------------------------------------------------------------
+# Shared axis limits — computed once from the whole points table so every panel
+# (and every separate polarity / trial-type figure) uses identical x/y limits and
+# is directly comparable.
+# ---------------------------------------------------------------------------
+
+def _axis_limits(series, pad=0.05):
+    """(lo, hi) padded limits over the finite values of `series`, or None."""
+    v = pd.to_numeric(series, errors='coerce')
+    v = v[np.isfinite(v)]
+    if len(v) == 0:
+        return None
+    lo, hi = float(v.min()), float(v.max())
+    if lo == hi:
+        d = abs(lo) or 1.0
+        return (lo - 0.5 * d, hi + 0.5 * d)
+    m = (hi - lo) * pad
+    return (lo - m, hi + m)
+
+
+def _family_ylims(points, scales):
+    """{family: (lo, hi)} y-limits per tuning family, pooled across its scale
+    columns, so every panel in a family row shares one Y scale."""
+    out = {}
+    for fam in FAMILIES:
+        cols = [_metric_col(fam, n) for n in scales.values()
+                if _metric_col(fam, n) in points.columns]
+        if not cols:
+            continue
+        vals = pd.concat([pd.to_numeric(points[c], errors='coerce') for c in cols],
+                         ignore_index=True)
+        lim = _axis_limits(vals)
+        if lim:
+            out[fam] = lim
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Per-session tuning computation
 # ---------------------------------------------------------------------------
 
@@ -346,20 +383,26 @@ def build_points(df, metric_cols, aggregate_by='spec'):
 def plot_current_spread_vs_tuning_for_trial_type(agg_tt, *, scales=DEFAULT_SCALES,
                                                  threshold=DEFAULT_HIGH_CORR_THRESHOLD,
                                                  trial_type='', point_noun='spec',
-                                                 output_path=None):
+                                                 xlim=None, ylim_by_family=None,
+                                                 vmax=None, output_path=None):
     """Grid of tuning-family (rows) x probe-scale (cols) panels for one trial type.
     One point per `point_noun` (spec/condition by default); X = current_per_second,
-    Y = the tuning metric, colour = estim effect."""
+    Y = the tuning metric, colour = estim effect. xlim / ylim_by_family (a
+    {family: (lo, hi)} dict) / vmax fix the axes and colour scale so separate
+    figures are comparable; if None they are computed from this figure's own data."""
     scale_items = sorted(scales.items(), key=lambda kv: kv[1])  # (label, n) low->high
+    if xlim is None:
+        xlim = _axis_limits(agg_tt[X_COLUMN]) if X_COLUMN in agg_tt.columns else None
+    if ylim_by_family is None:
+        ylim_by_family = _family_ylims(agg_tt, scales)
     nrows, ncols = len(FAMILIES), len(scale_items)
     fig, axes = plt.subplots(nrows, ncols, figsize=(4.6 * ncols, 4.0 * nrows),
                              squeeze=False, constrained_layout=True)
 
     # Symmetric diverging colour scale for the estim effect (red = positive,
     # blue = negative), shared across every panel.
-    eff_all = pd.to_numeric(agg_tt.get('effect_size'), errors='coerce')
-    finite_eff = eff_all[np.isfinite(eff_all)] if eff_all is not None else pd.Series([], dtype=float)
-    vmax = max(float(np.abs(finite_eff).max()), 1e-6) if len(finite_eff) else 1.0
+    if vmax is None:
+        vmax = _effect_vmax(agg_tt)
 
     scatter_ref = None
     for r, family in enumerate(FAMILIES):
@@ -388,6 +431,10 @@ def plot_current_spread_vs_tuning_for_trial_type(agg_tt, *, scales=DEFAULT_SCALE
             title_bits.append(f"n={len(x)} {point_noun}s")
             ax.set_title("\n".join(title_bits), fontsize=10)
 
+            if xlim:
+                ax.set_xlim(xlim)
+            if ylim_by_family and family in ylim_by_family:
+                ax.set_ylim(ylim_by_family[family])
             if r == nrows - 1:
                 ax.set_xlabel(X_LABEL, fontsize=9)
             if c == 0:
@@ -451,6 +498,11 @@ def run_current_spread_vs_tuning(trial_types=None, *, start_session_id=None,
         return df, pd.DataFrame()
 
     points = build_points(df, metric_cols, aggregate_by)
+    # Shared limits + colour scale from ALL points so every (trial_type, polarity)
+    # figure matches.
+    xlim = _axis_limits(points[X_COLUMN])
+    ylim_by_family = _family_ylims(points, scales)
+    vmax = _effect_vmax(points)
     polarities = (_present_polarities(points)
                   if (by_polarity and points['polarity'].notna().any()) else [None])
     for tt in trial_types:
@@ -467,7 +519,8 @@ def run_current_spread_vs_tuning(trial_types=None, *, start_session_id=None,
             out_path = os.path.join(save_dir, fname) if save_dir else None
             plot_current_spread_vs_tuning_for_trial_type(
                 pts_tt, scales=scales, threshold=threshold, trial_type=tag,
-                point_noun=aggregate_by, output_path=out_path)
+                point_noun=aggregate_by, xlim=xlim, ylim_by_family=ylim_by_family,
+                vmax=vmax, output_path=out_path)
     return df, points
 
 
@@ -731,6 +784,10 @@ def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
     finite_eff = eff_all[np.isfinite(eff_all)] if eff_all is not None else pd.Series([], dtype=float)
     vmax = max(float(np.abs(finite_eff).max()), 1e-6) if len(finite_eff) else 1.0
 
+    # Shared limits across every panel (all trial types / polarities).
+    xlim = _axis_limits(points[X_COLUMN])
+    ylim = _axis_limits(points[y_col])
+
     scatter_ref = None
     for r, pol in enumerate(row_pols):
         for c, tt in enumerate(tts):
@@ -762,6 +819,10 @@ def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
                 lines.append(_pol_short(pol).upper())
             lines.append(f"n={len(x)} {point_noun}s")
             ax.set_title("\n".join(lines), fontsize=10)
+            if xlim:
+                ax.set_xlim(xlim)
+            if ylim:
+                ax.set_ylim(ylim)
             if r == nrows - 1:
                 ax.set_xlabel(X_LABEL, fontsize=9)
             if c == 0:
@@ -868,10 +929,14 @@ DEFAULT_HEATMAP_MODE = 'mean'        # 'mean' = local weighted mean effect;
 
 def _gaussian_effect_field(x, y, eff, *, gridsize=DEFAULT_HEATMAP_GRID,
                            bandwidth=DEFAULT_HEATMAP_BW, mode=DEFAULT_HEATMAP_MODE,
-                           density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR, pad_frac=0.05):
+                           density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR, pad_frac=0.05,
+                           xrange=None, yrange=None):
     """Convolve a Gaussian with each (x, y) point carrying value `eff` and evaluate
     on a grid. Axes are standardised (per-axis std) before weighting so the kernel
     isn't dominated by whichever axis has the larger raw units.
+
+    xrange / yrange (lo, hi), when given, fix the evaluated grid extent so every
+    panel shares one coordinate frame (else the data range ± pad is used).
 
     mode='mean' -> field[cell] = sum_i w_i eff_i / sum_i w_i (local mean effect,
     same units as effect); 'sum' -> field[cell] = sum_i w_i eff_i (unnormalised
@@ -890,8 +955,14 @@ def _gaussian_effect_field(x, y, eff, *, gridsize=DEFAULT_HEATMAP_GRID,
     ymin, ymax = float(y.min()), float(y.max())
     px = pad_frac * ((xmax - xmin) or 1.0)
     py = pad_frac * ((ymax - ymin) or 1.0)
-    gx = np.linspace(xmin - px, xmax + px, gridsize)
-    gy = np.linspace(ymin - py, ymax + py, gridsize)
+    if xrange is not None:
+        gx = np.linspace(xrange[0], xrange[1], gridsize)
+    else:
+        gx = np.linspace(xmin - px, xmax + px, gridsize)
+    if yrange is not None:
+        gy = np.linspace(yrange[0], yrange[1], gridsize)
+    else:
+        gy = np.linspace(ymin - py, ymax + py, gridsize)
     GX, GY = np.meshgrid(gx, gy)
     dx = (GX[..., None] - x[None, None, :]) / sx
     dy = (GY[..., None] - y[None, None, :]) / sy
@@ -911,25 +982,37 @@ def _gaussian_effect_field(x, y, eff, *, gridsize=DEFAULT_HEATMAP_GRID,
 def _draw_effect_heatmap(ax, sub, y_col, *, vmax, bandwidth=DEFAULT_HEATMAP_BW,
                          gridsize=DEFAULT_HEATMAP_GRID, mode=DEFAULT_HEATMAP_MODE,
                          density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR,
-                         show_points=True):
+                         show_points=True, xrange=None, yrange=None):
     """Draw one smoothed effect heatmap panel. Returns the pcolormesh (for the
-    shared colorbar) or None if too few points."""
+    shared colorbar) or None if too few points. xrange/yrange fix the grid extent
+    and axis limits so panels are comparable."""
     d = sub[[X_COLUMN, y_col, 'effect_size']].dropna()
     ax.set_facecolor('#ededed')  # masked/no-data cells show through as gray
+
+    def _apply_lims():
+        if xrange is not None:
+            ax.set_xlim(xrange)
+        if yrange is not None:
+            ax.set_ylim(yrange)
+
     if len(d) < 3:
         ax.text(0.5, 0.5, f"n={len(d)} (too few)", ha='center', va='center',
                 transform=ax.transAxes, fontsize=9, color='gray')
+        _apply_lims()
         return None
     res = _gaussian_effect_field(
         d[X_COLUMN].to_numpy(), d[y_col].to_numpy(), d['effect_size'].to_numpy(),
-        gridsize=gridsize, bandwidth=bandwidth, mode=mode, density_floor=density_floor)
+        gridsize=gridsize, bandwidth=bandwidth, mode=mode, density_floor=density_floor,
+        xrange=xrange, yrange=yrange)
     if res is None:
+        _apply_lims()
         return None
     gx, gy, field, _ = res
     mesh = ax.pcolormesh(gx, gy, np.ma.masked_invalid(field), cmap='RdBu_r',
                          vmin=-vmax, vmax=vmax, shading='auto')
     if show_points:
         ax.scatter(d[X_COLUMN], d[y_col], s=9, c='black', alpha=0.35, linewidths=0)
+    _apply_lims()
     return mesh
 
 
@@ -961,6 +1044,9 @@ def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_typ
     fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.4 * nrows),
                              squeeze=False, constrained_layout=True)
     vmax = _effect_vmax(points)
+    # Shared grid extent + axis limits across every panel.
+    xrange = _axis_limits(points[X_COLUMN])
+    yrange = _axis_limits(points[y_col])
 
     mesh_ref = None
     for r, pol in enumerate(row_pols):
@@ -971,7 +1057,8 @@ def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_typ
                 sub = sub[sub['polarity'] == pol]
             mesh = _draw_effect_heatmap(
                 ax, sub, y_col, vmax=vmax, bandwidth=bandwidth, gridsize=gridsize,
-                mode=mode, density_floor=density_floor, show_points=show_points)
+                mode=mode, density_floor=density_floor, show_points=show_points,
+                xrange=xrange, yrange=yrange)
             if mesh is not None:
                 mesh_ref = mesh
             lines = []
@@ -1010,15 +1097,23 @@ def plot_effect_heatmap_grid(pts, *, scales, threshold, trial_type='',
                              bandwidth=DEFAULT_HEATMAP_BW,
                              gridsize=DEFAULT_HEATMAP_GRID,
                              density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR,
-                             show_points=True, output_path=None):
+                             show_points=True, xrange=None, ylim_by_family=None,
+                             vmax=None, output_path=None):
     """Smoothed-effect heatmap version of the tuning grid (rows = mean/max/area,
     cols = probe scale) for one already-filtered subset (e.g. one trial_type ×
-    polarity). Each panel smooths the effect over (current_per_second, metric)."""
+    polarity). Each panel smooths the effect over (current_per_second, metric).
+    xrange / ylim_by_family / vmax fix the shared frame across separate figures;
+    if None they are computed from this subset."""
     scale_items = sorted(scales.items(), key=lambda kv: kv[1])
     nrows, ncols = len(FAMILIES), len(scale_items)
     fig, axes = plt.subplots(nrows, ncols, figsize=(4.6 * ncols, 4.0 * nrows),
                              squeeze=False, constrained_layout=True)
-    vmax = _effect_vmax(pts)
+    if vmax is None:
+        vmax = _effect_vmax(pts)
+    if xrange is None:
+        xrange = _axis_limits(pts[X_COLUMN]) if X_COLUMN in pts.columns else None
+    if ylim_by_family is None:
+        ylim_by_family = _family_ylims(pts, scales)
 
     mesh_ref = None
     for r, family in enumerate(FAMILIES):
@@ -1027,7 +1122,8 @@ def plot_effect_heatmap_grid(pts, *, scales, threshold, trial_type='',
             mesh = _draw_effect_heatmap(
                 ax, pts, _metric_col(family, n), vmax=vmax, bandwidth=bandwidth,
                 gridsize=gridsize, mode=mode, density_floor=density_floor,
-                show_points=show_points)
+                show_points=show_points, xrange=xrange,
+                yrange=(ylim_by_family or {}).get(family))
             if mesh is not None:
                 mesh_ref = mesh
             if r == 0:
@@ -1119,6 +1215,10 @@ def run_tuning_effect_heatmap(trial_types=None, *, start_session_id=None,
         print("Nothing to plot.")
         return df, pd.DataFrame()
     points = build_points(df, metric_cols, aggregate_by)
+    # Shared frame across every (trial_type, polarity) figure.
+    xrange = _axis_limits(points[X_COLUMN])
+    ylim_by_family = _family_ylims(points, scales)
+    vmax = _effect_vmax(points)
     polarities = (_present_polarities(points)
                   if (by_polarity and points['polarity'].notna().any()) else [None])
     for tt in trial_types:
@@ -1135,6 +1235,7 @@ def run_tuning_effect_heatmap(trial_types=None, *, start_session_id=None,
             plot_effect_heatmap_grid(
                 pts_tt, scales=scales, threshold=threshold, trial_type=tag,
                 point_noun=aggregate_by, mode=mode, bandwidth=bandwidth,
+                xrange=xrange, ylim_by_family=ylim_by_family, vmax=vmax,
                 output_path=out_path)
     return df, points
 
