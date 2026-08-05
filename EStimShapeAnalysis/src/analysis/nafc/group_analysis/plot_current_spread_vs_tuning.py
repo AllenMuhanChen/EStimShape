@@ -46,8 +46,13 @@ behaviour); filtering by trial type only selects WHICH specs (those actually
 delivered in that trial type) enter the plot, so you compare like with like
 against the effect analyses.
 
-Run this file to produce one figure per trial type (uses the shared COMPARISON_*
-config in analyze_estim_isolation_effect). Needs the GA response vectors that
+All plots also split by polarity (anodic = PositiveFirst / cathodic =
+NegativeFirst) by default (by_polarity=True): the tuning grid emits a separate
+figure per (trial_type, polarity), and the half-distance plot puts polarity on
+its rows and trial types on its columns. Set by_polarity=False to pool.
+
+Run this file (uses the shared COMPARISON_* config in
+analyze_estim_isolation_effect). Needs the GA response vectors that
 compute_estim_neighbor_scores reads — but computes the correlations directly, so
 it does NOT depend on EStimNeighborScores having been populated.
 """
@@ -66,6 +71,7 @@ from src.analysis.nafc.group_analysis import analyze_estim_isolation_effect as i
 from src.analysis.nafc.group_analysis.analyze_estim_isolation_effect import (
     _discover_trial_types,
     _effect_and_current_table,
+    _fetch_estim_power_and_polarity,
     _rc_for_trial_type,
     _slug,
     COMPARISON_METRIC,
@@ -87,6 +93,34 @@ from src.cluster.cluster_isolation_score import fetch_active_estim_channels_by_s
 # The stored channel-correlation metric (Spearman rho of ga_mean_response vectors)
 # whose per-pair values we re-aggregate three ways.
 CORR_METRIC_NAME = 'channel_corr'
+
+# Polarity split (anodic = PositiveFirst / leading anodic phase; cathodic =
+# NegativeFirst). Order fixes the panel/figure order.
+POLARITY_ORDER = ('PositiveFirst', 'NegativeFirst')
+POLARITY_SHORT = {'PositiveFirst': 'anodic', 'NegativeFirst': 'cathodic'}
+
+
+def _pol_short(polarity):
+    return POLARITY_SHORT.get(polarity, str(polarity))
+
+
+def _present_polarities(df):
+    """Polarity values present in df, anodic then cathodic, then any others; None
+    excluded."""
+    present = [p for p in POLARITY_ORDER if (df['polarity'] == p).any()]
+    others = [p for p in df['polarity'].dropna().unique().tolist()
+              if p not in POLARITY_ORDER]
+    return present + others
+
+
+def _attach_polarity(df):
+    """Add a per-spec 'polarity' column (PositiveFirst / NegativeFirst) from
+    EStimParameters, in place; returns df."""
+    power = _fetch_estim_power_and_polarity(sorted(df['session_id'].unique().tolist()))
+    df['polarity'] = [
+        (power.get((s, int(spec)), {}) or {}).get('polarity')
+        for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    return df
 
 # Tuning families (rows). Each is a different aggregation of the same per-neighbour
 # correlations. Order here is the row order in the figure.
@@ -225,6 +259,7 @@ def build_current_spread_tuning_table(trial_types, *, start_session_id=None,
     if not frames:
         return pd.DataFrame(), metric_cols
     df = pd.concat(frames, ignore_index=True)
+    _attach_polarity(df)
 
     tuning_by_session = {}
     for sid in sorted(df['session_id'].unique().tolist()):
@@ -259,8 +294,11 @@ def aggregate_per_experiment(df, metric_cols):
                'effect_size': ('effect_size', 'mean')}
     agg_map.update({c: (c, 'mean') for c in metric_cols})
     agg_map['n_specs'] = ('estim_spec_id', 'size')
-    return (df.groupby(['trial_type', 'session_id'], as_index=False)
-              .agg(**agg_map))
+    # Keep polarity as a grouping key so a per-experiment point never mixes anodic
+    # and cathodic specs.
+    group_keys = [k for k in ('trial_type', 'polarity', 'session_id')
+                  if k in df.columns]
+    return df.groupby(group_keys, as_index=False).agg(**agg_map)
 
 
 def build_points(df, metric_cols, aggregate_by='spec'):
@@ -273,8 +311,8 @@ def build_points(df, metric_cols, aggregate_by='spec'):
         return aggregate_per_experiment(df, metric_cols)
     if aggregate_by != 'spec':
         raise ValueError(f"aggregate_by must be 'spec' or 'experiment'; got {aggregate_by!r}")
-    keep = (['trial_type', 'session_id', 'estim_spec_id', X_COLUMN, 'effect_size']
-            + list(metric_cols))
+    keep = (['trial_type', 'polarity', 'session_id', 'estim_spec_id', X_COLUMN,
+             'effect_size'] + list(metric_cols))
     keep = [c for c in keep if c in df.columns]
     return df[keep].copy()
 
@@ -368,16 +406,17 @@ def run_current_spread_vs_tuning(trial_types=None, *, start_session_id=None,
                                  threshold=DEFAULT_HIGH_CORR_THRESHOLD,
                                  exclude_other_estim=True,
                                  min_on_trials=COMPARISON_MIN_ON_TRIALS,
-                                 aggregate_by='spec', save_dir=None):
+                                 aggregate_by='spec', by_polarity=True, save_dir=None):
     """Build the table and draw one figure per trial type. trial_types=None
     auto-discovers them. aggregate_by='spec' (default) plots one point per estim
     spec/condition (keeps each condition's own current); 'experiment' averages per
-    session. Returns (per_spec_df, points_df)."""
+    session. by_polarity=True draws a separate figure per (trial_type, polarity)
+    — anodic vs cathodic. Returns (per_spec_df, points_df)."""
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
     print(f"[config] CURRENT-SPREAD vs TUNING  trial_types={trial_types}  "
           f"effect_metric={effect_metric}  scales={scales}  threshold={threshold}  "
-          f"min_on={min_on_trials}  point={aggregate_by}")
+          f"min_on={min_on_trials}  point={aggregate_by}  by_polarity={by_polarity}")
 
     df, metric_cols = build_current_spread_tuning_table(
         trial_types, start_session_id=start_session_id,
@@ -390,17 +429,23 @@ def run_current_spread_vs_tuning(trial_types=None, *, start_session_id=None,
         return df, pd.DataFrame()
 
     points = build_points(df, metric_cols, aggregate_by)
+    polarities = (_present_polarities(points)
+                  if (by_polarity and points['polarity'].notna().any()) else [None])
     for tt in trial_types:
-        pts_tt = points[points['trial_type'] == tt]
-        if len(pts_tt) == 0:
-            print(f"  (no {aggregate_by}s for trial_type={tt!r})")
-            continue
-        print(f"\n=== {tt}: {len(pts_tt)} {aggregate_by}s ===")
-        out_path = (os.path.join(save_dir, f"current_spread_vs_tuning_{_slug(tt)}.png")
-                    if save_dir else None)
-        plot_current_spread_vs_tuning_for_trial_type(
-            pts_tt, scales=scales, threshold=threshold, trial_type=tt,
-            point_noun=aggregate_by, output_path=out_path)
+        for pol in polarities:
+            pts_tt = points[points['trial_type'] == tt]
+            if pol is not None:
+                pts_tt = pts_tt[pts_tt['polarity'] == pol]
+            if len(pts_tt) == 0:
+                continue
+            tag = tt + (f"  [{_pol_short(pol)}]" if pol is not None else "")
+            print(f"\n=== {tag}: {len(pts_tt)} {aggregate_by}s ===")
+            fname = f"current_spread_vs_tuning_{_slug(tt)}" + \
+                    (f"_{_pol_short(pol)}" if pol is not None else "") + ".png"
+            out_path = os.path.join(save_dir, fname) if save_dir else None
+            plot_current_spread_vs_tuning_for_trial_type(
+                pts_tt, scales=scales, threshold=threshold, trial_type=tag,
+                point_noun=aggregate_by, output_path=out_path)
     return df, points
 
 
@@ -555,6 +600,7 @@ def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
     if not frames:
         return pd.DataFrame()
     df = pd.concat(frames, ignore_index=True)
+    _attach_polarity(df)
 
     hd_by_session = {}
     for sid in sorted(df['session_id'].unique().tolist()):
@@ -573,18 +619,21 @@ def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
 
 
 def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
-                                        trial_types, point_noun='spec',
-                                        output_path=None):
-    """One subplot per trial type: X = current_per_second, Y = y_col, colour =
-    estim effect (RdBu_r, symmetric). Generic scatter used by the half-distance
-    (and any other single-Y) current-spread plot."""
+                                        trial_types, by_polarity=True,
+                                        point_noun='spec', output_path=None):
+    """Grid of X = current_per_second vs Y = y_col, colour = estim effect (RdBu_r,
+    symmetric). Columns = trial types; rows = polarity (anodic/cathodic) when
+    by_polarity and polarity is present, else a single row. Generic scatter used by
+    the half-distance (and any other single-Y) current-spread plot."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
         return None
-    n = len(tts)
-    ncols = min(3, n)
-    nrows = int(np.ceil(n / ncols))
+    row_pols = (_present_polarities(points)
+                if (by_polarity and 'polarity' in points.columns
+                    and points['polarity'].notna().any()) else [None])
+
+    ncols, nrows = len(tts), len(row_pols)
     fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.4 * nrows),
                              squeeze=False, constrained_layout=True)
 
@@ -593,40 +642,45 @@ def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
     vmax = max(float(np.abs(finite_eff).max()), 1e-6) if len(finite_eff) else 1.0
 
     scatter_ref = None
-    for i, tt in enumerate(tts):
-        ax = axes[i // ncols][i % ncols]
-        sub = points[points['trial_type'] == tt][[X_COLUMN, y_col, 'effect_size']] \
-            .dropna(subset=[X_COLUMN, y_col])
-        x = sub[X_COLUMN].to_numpy(dtype=float)
-        y = sub[y_col].to_numpy(dtype=float)
-        eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
-        has_eff = np.isfinite(eff)
+    for r, pol in enumerate(row_pols):
+        for c, tt in enumerate(tts):
+            ax = axes[r][c]
+            sub = points[points['trial_type'] == tt]
+            if pol is not None:
+                sub = sub[sub['polarity'] == pol]
+            sub = sub[[X_COLUMN, y_col, 'effect_size']].dropna(subset=[X_COLUMN, y_col])
+            x = sub[X_COLUMN].to_numpy(dtype=float)
+            y = sub[y_col].to_numpy(dtype=float)
+            eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
+            has_eff = np.isfinite(eff)
 
-        if (~has_eff).any():
-            ax.scatter(x[~has_eff], y[~has_eff], s=45, alpha=0.6, color='lightgray',
-                       edgecolors='gray', linewidths=0.4)
-        if has_eff.any():
-            sc = ax.scatter(x[has_eff], y[has_eff], c=eff[has_eff], cmap='RdBu_r',
-                            vmin=-vmax, vmax=vmax, s=58, alpha=0.9,
-                            edgecolors='black', linewidths=0.5)
-            scatter_ref = sc
+            if (~has_eff).any():
+                ax.scatter(x[~has_eff], y[~has_eff], s=45, alpha=0.6, color='lightgray',
+                           edgecolors='gray', linewidths=0.4)
+            if has_eff.any():
+                sc = ax.scatter(x[has_eff], y[has_eff], c=eff[has_eff], cmap='RdBu_r',
+                                vmin=-vmax, vmax=vmax, s=58, alpha=0.9,
+                                edgecolors='black', linewidths=0.5)
+                scatter_ref = sc
 
-        ax.set_title(f"{tt}\nn={len(x)} {point_noun}s", fontsize=11)
-        if i // ncols == nrows - 1:
-            ax.set_xlabel(X_LABEL, fontsize=9)
-        if i % ncols == 0:
-            ax.set_ylabel(y_label, fontsize=10)
-        ax.grid(True, alpha=0.3)
-
-    for j in range(n, nrows * ncols):
-        axes[j // ncols][j % ncols].axis('off')
+            if r == 0:
+                ax.set_title(f"{tt}\nn={len(x)} {point_noun}s", fontsize=11)
+            else:
+                ax.set_title(f"n={len(x)} {point_noun}s", fontsize=9)
+            if r == nrows - 1:
+                ax.set_xlabel(X_LABEL, fontsize=9)
+            if c == 0:
+                prefix = f"[{_pol_short(pol)}]  " if pol is not None else ""
+                ax.set_ylabel(prefix + y_label, fontsize=10)
+            ax.grid(True, alpha=0.3)
 
     if scatter_ref is not None:
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
 
-    fig.suptitle(f"{title} — one point per {point_noun} (colour = estim effect)",
+    fig.suptitle(f"{title} — one point per {point_noun} (colour = estim effect"
+                 f"{'; rows = anodic/cathodic' if len(row_pols) > 1 else ''})",
                  fontsize=14, fontweight='bold')
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -645,14 +699,15 @@ def run_half_distance_vs_current(trial_types=None, *, start_session_id=None,
                                  min_on_trials=COMPARISON_MIN_ON_TRIALS,
                                  far_fraction=DEFAULT_FAR_FRACTION,
                                  near_bins=DEFAULT_NEAR_BINS,
-                                 aggregate_by='spec', save_dir=None):
-    """Build the half-distance table and draw the all-trial-types-as-subplots
-    figure. Returns (df, points_df)."""
+                                 aggregate_by='spec', by_polarity=True, save_dir=None):
+    """Build the half-distance table and draw the grid (cols = trial types; rows =
+    anodic/cathodic when by_polarity). Returns (df, points_df)."""
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
     print(f"[config] CORR HALF-DISTANCE vs CURRENT  trial_types={trial_types}  "
           f"effect_metric={effect_metric}  far_fraction={far_fraction}  "
-          f"near_bins={near_bins}  min_on={min_on_trials}  point={aggregate_by}")
+          f"near_bins={near_bins}  min_on={min_on_trials}  point={aggregate_by}  "
+          f"by_polarity={by_polarity}")
 
     df = build_current_spread_halfdist_table(
         trial_types, start_session_id=start_session_id,
@@ -671,7 +726,8 @@ def run_half_distance_vs_current(trial_types=None, *, start_session_id=None,
         points, HALFDIST_COL,
         y_label='correlation half-distance (µm)  — how far high corr reaches',
         title='How far high correlation spreads vs current spread',
-        trial_types=trial_types, point_noun=aggregate_by, output_path=out_path)
+        trial_types=trial_types, by_polarity=by_polarity,
+        point_noun=aggregate_by, output_path=out_path)
     return df, points
 
 
