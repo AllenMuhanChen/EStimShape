@@ -157,9 +157,9 @@ DEFAULT_HIGH_CORR_THRESHOLD = 0.5
 #   'n_active_channels'  = number of active stim channels
 # All three columns are attached to the tables, so switching needs only this edit.
 # ---------------------------------------------------------------------------
-X_METRIC = 'total_current_uA'
+X_METRIC = 'current_per_second'
 X_LABELS = {
-    'current_per_second': 'current spread  (current_per_second = a1×n_ch×rate, µA·Hz)',
+    'current_per_second': 'current_per_second (µA·Hz)',
     'total_current_uA': 'total current  (a1 × num_channels, µA)',
     'n_active_channels': 'num active channels',
 }
