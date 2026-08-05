@@ -663,15 +663,19 @@ def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
                                 edgecolors='black', linewidths=0.5)
                 scatter_ref = sc
 
+            # Polarity goes in the title (its own bold-ish line) so it's always
+            # legible; the y-axis label stays short.
+            lines = []
             if r == 0:
-                ax.set_title(f"{tt}\nn={len(x)} {point_noun}s", fontsize=11)
-            else:
-                ax.set_title(f"n={len(x)} {point_noun}s", fontsize=9)
+                lines.append(tt)
+            if pol is not None:
+                lines.append(_pol_short(pol).upper())
+            lines.append(f"n={len(x)} {point_noun}s")
+            ax.set_title("\n".join(lines), fontsize=10)
             if r == nrows - 1:
                 ax.set_xlabel(X_LABEL, fontsize=9)
             if c == 0:
-                prefix = f"[{_pol_short(pol)}]  " if pol is not None else ""
-                ax.set_ylabel(prefix + y_label, fontsize=10)
+                ax.set_ylabel(y_label, fontsize=10)
             ax.grid(True, alpha=0.3)
 
     if scatter_ref is not None:
@@ -724,7 +728,7 @@ def run_half_distance_vs_current(trial_types=None, *, start_session_id=None,
                 if save_dir else None)
     plot_metric_vs_current_by_trialtype(
         points, HALFDIST_COL,
-        y_label='correlation half-distance (µm)  — how far high corr reaches',
+        y_label='corr half-distance (µm)',
         title='How far high correlation spreads vs current spread',
         trial_types=trial_types, by_polarity=by_polarity,
         point_noun=aggregate_by, output_path=out_path)
