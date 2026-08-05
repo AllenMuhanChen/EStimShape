@@ -130,7 +130,8 @@ def _spec_tuning_at_scales(corr_metric, estim_channels, channels_with_data, coor
       mean_corr = mean rho,  max_corr = max rho,
       area_high_corr = fraction of neighbours with rho > threshold.
     The spec's value is the mean across its estim channels."""
-    n_values = sorted(set(int(n) for n in scales))
+    n_source = scales.values() if isinstance(scales, dict) else scales
+    n_values = sorted(set(int(n) for n in n_source))
     max_n = n_values[-1]
     estim_set = set(estim_channels)
     exclude = estim_set if exclude_other_estim else set()
