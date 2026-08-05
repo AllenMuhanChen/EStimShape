@@ -824,6 +824,333 @@ def main_half_distance():
     )
 
 
+# ---------------------------------------------------------------------------
+# Gaussian-smoothed effect heatmaps
+#
+# The scatter plots colour each point by its effect; here we convolve a Gaussian
+# with those points to get a smooth field of the LOCAL MEAN effect over the plane,
+# so the overall structure — where positive vs negative vs weak effects sit —
+# reads at a glance. At each grid cell the field is the effect-weighted average of
+# nearby points (Nadaraya–Watson kernel regression); cells with little data nearby
+# are masked (shown gray) so empty regions don't get coloured. The heatmaps mirror
+# the scatter facets (trial type × polarity), so each smoothed panel is the
+# companion of the corresponding scatter panel.
+# ---------------------------------------------------------------------------
+
+DEFAULT_HEATMAP_GRID = 90            # grid cells per axis
+DEFAULT_HEATMAP_BW = 0.3             # Gaussian bandwidth in per-axis-std units
+DEFAULT_HEATMAP_DENSITY_FLOOR = 0.03  # mask cells below this fraction of peak density
+DEFAULT_HEATMAP_MODE = 'mean'        # 'mean' = local weighted mean effect;
+                                     # 'sum'  = raw summed effect splat (density-like)
+
+
+def _gaussian_effect_field(x, y, eff, *, gridsize=DEFAULT_HEATMAP_GRID,
+                           bandwidth=DEFAULT_HEATMAP_BW, mode=DEFAULT_HEATMAP_MODE,
+                           density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR, pad_frac=0.05):
+    """Convolve a Gaussian with each (x, y) point carrying value `eff` and evaluate
+    on a grid. Axes are standardised (per-axis std) before weighting so the kernel
+    isn't dominated by whichever axis has the larger raw units.
+
+    mode='mean' -> field[cell] = sum_i w_i eff_i / sum_i w_i (local mean effect,
+    same units as effect); 'sum' -> field[cell] = sum_i w_i eff_i (unnormalised
+    splat). Cells whose summed weight is < density_floor of the peak are set NaN
+    (masked). Returns (gx, gy, field, density) or None if < 3 finite points."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    eff = np.asarray(eff, dtype=float)
+    m = np.isfinite(x) & np.isfinite(y) & np.isfinite(eff)
+    x, y, eff = x[m], y[m], eff[m]
+    if len(x) < 3:
+        return None
+    sx = float(np.std(x)) or 1.0
+    sy = float(np.std(y)) or 1.0
+    xmin, xmax = float(x.min()), float(x.max())
+    ymin, ymax = float(y.min()), float(y.max())
+    px = pad_frac * ((xmax - xmin) or 1.0)
+    py = pad_frac * ((ymax - ymin) or 1.0)
+    gx = np.linspace(xmin - px, xmax + px, gridsize)
+    gy = np.linspace(ymin - py, ymax + py, gridsize)
+    GX, GY = np.meshgrid(gx, gy)
+    dx = (GX[..., None] - x[None, None, :]) / sx
+    dy = (GY[..., None] - y[None, None, :]) / sy
+    W = np.exp(-0.5 * (dx * dx + dy * dy) / (bandwidth ** 2))
+    density = W.sum(axis=-1)
+    num = (W * eff[None, None, :]).sum(axis=-1)
+    if mode == 'sum':
+        field = num
+    else:
+        field = np.divide(num, density, out=np.full_like(num, np.nan),
+                          where=density > 0)
+    dmax = float(density.max()) or 1.0
+    field = np.where(density / dmax >= density_floor, field, np.nan)
+    return gx, gy, field, density
+
+
+def _draw_effect_heatmap(ax, sub, y_col, *, vmax, bandwidth=DEFAULT_HEATMAP_BW,
+                         gridsize=DEFAULT_HEATMAP_GRID, mode=DEFAULT_HEATMAP_MODE,
+                         density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR,
+                         show_points=True):
+    """Draw one smoothed effect heatmap panel. Returns the pcolormesh (for the
+    shared colorbar) or None if too few points."""
+    d = sub[[X_COLUMN, y_col, 'effect_size']].dropna()
+    ax.set_facecolor('#ededed')  # masked/no-data cells show through as gray
+    if len(d) < 3:
+        ax.text(0.5, 0.5, f"n={len(d)} (too few)", ha='center', va='center',
+                transform=ax.transAxes, fontsize=9, color='gray')
+        return None
+    res = _gaussian_effect_field(
+        d[X_COLUMN].to_numpy(), d[y_col].to_numpy(), d['effect_size'].to_numpy(),
+        gridsize=gridsize, bandwidth=bandwidth, mode=mode, density_floor=density_floor)
+    if res is None:
+        return None
+    gx, gy, field, _ = res
+    mesh = ax.pcolormesh(gx, gy, np.ma.masked_invalid(field), cmap='RdBu_r',
+                         vmin=-vmax, vmax=vmax, shading='auto')
+    if show_points:
+        ax.scatter(d[X_COLUMN], d[y_col], s=9, c='black', alpha=0.35, linewidths=0)
+    return mesh
+
+
+def _effect_vmax(points, *, floor=1e-6):
+    """Symmetric colour limit for the effect: max |effect_size| over the points."""
+    eff = pd.to_numeric(points.get('effect_size'), errors='coerce')
+    eff = eff[np.isfinite(eff)] if eff is not None else pd.Series([], dtype=float)
+    return max(float(np.abs(eff).max()), floor) if len(eff) else 1.0
+
+
+def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_types,
+                                     by_polarity=True, mode=DEFAULT_HEATMAP_MODE,
+                                     bandwidth=DEFAULT_HEATMAP_BW,
+                                     gridsize=DEFAULT_HEATMAP_GRID,
+                                     density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR,
+                                     show_points=True, point_noun='spec',
+                                     output_path=None):
+    """Smoothed-effect heatmap version of plot_metric_vs_current_by_trialtype:
+    columns = trial types, rows = polarity (when by_polarity). Each panel is the
+    Gaussian-smoothed local-mean effect over (current_per_second, y_col)."""
+    tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
+    if not tts:
+        print("No trial types with points to plot.")
+        return None
+    row_pols = (_present_polarities(points)
+                if (by_polarity and 'polarity' in points.columns
+                    and points['polarity'].notna().any()) else [None])
+    ncols, nrows = len(tts), len(row_pols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.4 * nrows),
+                             squeeze=False, constrained_layout=True)
+    vmax = _effect_vmax(points)
+
+    mesh_ref = None
+    for r, pol in enumerate(row_pols):
+        for c, tt in enumerate(tts):
+            ax = axes[r][c]
+            sub = points[points['trial_type'] == tt]
+            if pol is not None:
+                sub = sub[sub['polarity'] == pol]
+            mesh = _draw_effect_heatmap(
+                ax, sub, y_col, vmax=vmax, bandwidth=bandwidth, gridsize=gridsize,
+                mode=mode, density_floor=density_floor, show_points=show_points)
+            if mesh is not None:
+                mesh_ref = mesh
+            lines = []
+            if r == 0:
+                lines.append(tt)
+            if pol is not None:
+                lines.append(_pol_short(pol).upper())
+            n_here = int(sub[[X_COLUMN, y_col, 'effect_size']].dropna().shape[0])
+            lines.append(f"n={n_here} {point_noun}s")
+            ax.set_title("\n".join(lines), fontsize=10)
+            if r == nrows - 1:
+                ax.set_xlabel(X_LABEL, fontsize=9)
+            if c == 0:
+                ax.set_ylabel(y_label, fontsize=10)
+
+    if mesh_ref is not None:
+        cbar = fig.colorbar(mesh_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
+        lbl = ('local mean estim effect (ON − OFF %)' if mode == 'mean'
+               else 'summed effect (splat)')
+        cbar.set_label(f"{lbl}  — red = positive, blue = negative", fontsize=10)
+
+    fig.suptitle(f"{title} — Gaussian-smoothed effect field"
+                 f"{'; rows = anodic/cathodic' if len(row_pols) > 1 else ''}",
+                 fontsize=14, fontweight='bold')
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved effect heatmap to {output_path}")
+    plt.show()
+    return fig
+
+
+def plot_effect_heatmap_grid(pts, *, scales, threshold, trial_type='',
+                             point_noun='spec', mode=DEFAULT_HEATMAP_MODE,
+                             bandwidth=DEFAULT_HEATMAP_BW,
+                             gridsize=DEFAULT_HEATMAP_GRID,
+                             density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR,
+                             show_points=True, output_path=None):
+    """Smoothed-effect heatmap version of the tuning grid (rows = mean/max/area,
+    cols = probe scale) for one already-filtered subset (e.g. one trial_type ×
+    polarity). Each panel smooths the effect over (current_per_second, metric)."""
+    scale_items = sorted(scales.items(), key=lambda kv: kv[1])
+    nrows, ncols = len(FAMILIES), len(scale_items)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(4.6 * ncols, 4.0 * nrows),
+                             squeeze=False, constrained_layout=True)
+    vmax = _effect_vmax(pts)
+
+    mesh_ref = None
+    for r, family in enumerate(FAMILIES):
+        for c, (scale_label, n) in enumerate(scale_items):
+            ax = axes[r][c]
+            mesh = _draw_effect_heatmap(
+                ax, pts, _metric_col(family, n), vmax=vmax, bandwidth=bandwidth,
+                gridsize=gridsize, mode=mode, density_floor=density_floor,
+                show_points=show_points)
+            if mesh is not None:
+                mesh_ref = mesh
+            if r == 0:
+                ax.set_title(scale_label, fontsize=10)
+            if r == nrows - 1:
+                ax.set_xlabel(X_LABEL, fontsize=9)
+            if c == 0:
+                ylab = FAMILY_LABELS[family]
+                if family == FAMILY_AREA:
+                    ylab += f" (ρ>{threshold:g})"
+                ax.set_ylabel(ylab, fontsize=10)
+
+    if mesh_ref is not None:
+        cbar = fig.colorbar(mesh_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
+        lbl = ('local mean estim effect (ON − OFF %)' if mode == 'mean'
+               else 'summed effect (splat)')
+        cbar.set_label(f"{lbl}  — red = positive, blue = negative", fontsize=10)
+
+    fig.suptitle(f"Effect structure over current spread × tuning — smoothed field"
+                 f"{('  [' + str(trial_type) + ']') if trial_type else ''}",
+                 fontsize=13, fontweight='bold')
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved effect heatmap grid to {output_path}")
+    plt.show()
+    return fig
+
+
+def run_half_distance_effect_heatmap(trial_types=None, *, start_session_id=None,
+                                     exclude_session_ids=None,
+                                     effect_metric=COMPARISON_METRIC,
+                                     base_required_conditions=None,
+                                     exclude_other_estim=True,
+                                     min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                                     far_fraction=DEFAULT_FAR_FRACTION,
+                                     near_bins=DEFAULT_NEAR_BINS,
+                                     bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
+                                     aggregate_by='spec', by_polarity=True,
+                                     mode=DEFAULT_HEATMAP_MODE, bandwidth=DEFAULT_HEATMAP_BW,
+                                     save_dir=None):
+    """Gaussian-smoothed effect heatmap over (current spread, correlation
+    half-distance), faceted by trial type × polarity. Returns (df, points_df)."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    df = build_current_spread_halfdist_table(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+        base_required_conditions=base_required_conditions,
+        exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials,
+        far_fraction=far_fraction, near_bins=near_bins,
+        bin_agg=bin_agg, smoothing=smoothing)
+    if len(df) == 0:
+        print("Nothing to plot.")
+        return df, pd.DataFrame()
+    points = build_points(df, [HALFDIST_COL], aggregate_by)
+    out_path = (os.path.join(save_dir, "corr_half_distance_effect_heatmap.png")
+                if save_dir else None)
+    plot_effect_heatmap_by_trialtype(
+        points, HALFDIST_COL, y_label='corr half-distance (µm)',
+        title='Effect structure: current spread × correlation spread',
+        trial_types=trial_types, by_polarity=by_polarity, mode=mode,
+        bandwidth=bandwidth, point_noun=aggregate_by, output_path=out_path)
+    return df, points
+
+
+def run_tuning_effect_heatmap(trial_types=None, *, start_session_id=None,
+                              exclude_session_ids=None,
+                              effect_metric=COMPARISON_METRIC,
+                              base_required_conditions=None,
+                              scales=DEFAULT_SCALES, threshold=DEFAULT_HIGH_CORR_THRESHOLD,
+                              exclude_other_estim=True,
+                              min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                              aggregate_by='spec', by_polarity=True,
+                              mode=DEFAULT_HEATMAP_MODE, bandwidth=DEFAULT_HEATMAP_BW,
+                              save_dir=None):
+    """Gaussian-smoothed effect heatmap version of the tuning grid, one figure per
+    (trial_type, polarity). Returns (per_spec_df, points_df)."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    df, metric_cols = build_current_spread_tuning_table(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+        base_required_conditions=base_required_conditions, scales=scales,
+        threshold=threshold, exclude_other_estim=exclude_other_estim,
+        min_on_trials=min_on_trials)
+    if len(df) == 0:
+        print("Nothing to plot.")
+        return df, pd.DataFrame()
+    points = build_points(df, metric_cols, aggregate_by)
+    polarities = (_present_polarities(points)
+                  if (by_polarity and points['polarity'].notna().any()) else [None])
+    for tt in trial_types:
+        for pol in polarities:
+            pts_tt = points[points['trial_type'] == tt]
+            if pol is not None:
+                pts_tt = pts_tt[pts_tt['polarity'] == pol]
+            if len(pts_tt) == 0:
+                continue
+            tag = tt + (f"  [{_pol_short(pol)}]" if pol is not None else "")
+            fname = f"tuning_effect_heatmap_{_slug(tt)}" + \
+                    (f"_{_pol_short(pol)}" if pol is not None else "") + ".png"
+            out_path = os.path.join(save_dir, fname) if save_dir else None
+            plot_effect_heatmap_grid(
+                pts_tt, scales=scales, threshold=threshold, trial_type=tag,
+                point_noun=aggregate_by, mode=mode, bandwidth=bandwidth,
+                output_path=out_path)
+    return df, points
+
+
+def main_half_distance_heatmap():
+    """Gaussian-smoothed effect heatmap over current spread × correlation
+    half-distance (companion to main_half_distance). Uses the COMPARISON_* config."""
+    run_half_distance_effect_heatmap(
+        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        exclude_other_estim=True,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        aggregate_by='spec',
+        save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
+def main_tuning_heatmap():
+    """Gaussian-smoothed effect heatmap version of the tuning grid (companion to
+    main). Uses the COMPARISON_* config."""
+    run_tuning_effect_heatmap(
+        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        scales=DEFAULT_SCALES,
+        threshold=DEFAULT_HIGH_CORR_THRESHOLD,
+        exclude_other_estim=True,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        aggregate_by='spec',
+        save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
 def main():
     """Current-spread-vs-tuning grid, one figure per trial type, using the shared
     COMPARISON_* config."""
@@ -847,9 +1174,13 @@ def main():
 
 
 if __name__ == '__main__':
-    #   - main()               -> current-spread vs tuning grid (mean/max/area x
-    #                             local/half/whole probe), colour = effect
-    #   - main_half_distance() -> correlation half-distance (how far high corr
-    #                             reaches) vs current spread, colour = effect
-    main_half_distance()
+    #   - main()                      -> current-spread vs tuning grid (scatter)
+    #   - main_half_distance()        -> correlation half-distance vs current (scatter)
+    #   - main_half_distance_heatmap()-> Gaussian-smoothed effect field over
+    #                                    current spread × correlation half-distance
+    #   - main_tuning_heatmap()       -> smoothed effect field version of the
+    #                                    tuning grid
+    main_half_distance_heatmap()
+    # main_half_distance()
+    # main_tuning_heatmap()
     # main()
