@@ -404,6 +404,294 @@ def run_current_spread_vs_tuning(trial_types=None, *, start_session_id=None,
     return df, points
 
 
+# ---------------------------------------------------------------------------
+# "How far does high correlation spread": correlation half-distance
+#
+# For each spec we pool the (physical distance, rho) pairs from all its estim
+# channels to their probe neighbours, bin rho by distance, and read off the
+# distance at which rho decays to halfway between its near-field level and its
+# far-field baseline. Because it is measured RELATIVE to each spec's own near/far
+# levels, it captures how far similarity REACHES, not how strong it is locally
+# (which is always higher near the site) — the metric the argmax idea couldn't.
+# ---------------------------------------------------------------------------
+
+HALFDIST_COL = 'corr_half_distance_um'
+# Far-field baseline = mean rho over this fraction of the farthest distance bins.
+DEFAULT_FAR_FRACTION = 0.25
+# Near-field level = mean rho over this many nearest distance bins.
+DEFAULT_NEAR_BINS = 1
+
+
+def _probe_pitch(coords):
+    """Smallest nonzero inter-channel distance (probe electrode spacing, µm), used
+    as the distance-bin width. Falls back to 1.0 if undefined."""
+    chans = list(coords)
+    xy = np.asarray([coords[c] for c in chans], dtype=float)
+    best = np.inf
+    for i in range(len(chans)):
+        d = np.linalg.norm(xy - xy[i], axis=1)
+        d = d[d > 0]
+        if len(d):
+            best = min(best, float(d.min()))
+    return best if np.isfinite(best) else 1.0
+
+
+def _half_distance_for_spec(corr_metric, estim_channels, channels_with_data, coords,
+                            *, exclude_other_estim=True, pitch=1.0,
+                            far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS):
+    """Correlation half-distance (µm) for one spec, or None if undefined.
+
+    Pool (distance, rho) over the spec's estim channels -> other probe channels,
+    bin rho by distance (width = pitch), then:
+      near_level = mean rho over the nearest `near_bins` bins
+      baseline   = mean rho over the farthest `far_fraction` of bins
+      half_level = baseline + 0.5 * (near_level - baseline)
+    d_half = the (interpolated) distance where the binned profile first falls to
+    half_level. If it never falls that far within the probe, the probe's max
+    distance is returned (spread >= probe). None if near_level <= baseline (no
+    decay to measure) or too few points."""
+    estim_set = set(estim_channels)
+    exclude = estim_set if exclude_other_estim else set()
+
+    dists, rhos = [], []
+    for e in estim_channels:
+        if e not in channels_with_data:
+            continue
+        e_str = channel_to_str(e)
+        e_xy = coords[e]
+        for c in channels_with_data:
+            if c == e or c in exclude:
+                continue
+            rho = corr_metric.pair_similarity(e_str, channel_to_str(c))
+            if rho is None or not np.isfinite(rho):
+                continue
+            dists.append(float(np.linalg.norm(coords[c] - e_xy)))
+            rhos.append(float(rho))
+    if len(dists) < 3:
+        return None
+    dists = np.asarray(dists, dtype=float)
+    rhos = np.asarray(rhos, dtype=float)
+
+    if not pitch or pitch <= 0:
+        pitch = 1.0
+    edges = np.arange(0.0, dists.max() + pitch, pitch)
+    if len(edges) < 3:
+        return None
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    idx = np.clip(np.digitize(dists, edges) - 1, 0, len(centers) - 1)
+    prof = np.array([rhos[idx == k].mean() if np.any(idx == k) else np.nan
+                     for k in range(len(centers))])
+    valid = np.isfinite(prof)
+    centers_v, prof_v = centers[valid], prof[valid]
+    if len(prof_v) < 3:
+        return None
+
+    near_level = float(prof_v[:max(1, near_bins)].mean())
+    n_far = max(1, int(round(far_fraction * len(prof_v))))
+    baseline = float(prof_v[-n_far:].mean())
+    if not (np.isfinite(near_level) and np.isfinite(baseline)) or near_level <= baseline:
+        return None
+
+    half_level = baseline + 0.5 * (near_level - baseline)
+    below = np.where(prof_v <= half_level)[0]
+    if len(below) == 0:
+        return float(centers_v[-1])  # never crosses within the probe (censored)
+    j = int(below[0])
+    if j == 0:
+        return float(centers_v[0])
+    x0, x1 = centers_v[j - 1], centers_v[j]
+    y0, y1 = prof_v[j - 1], prof_v[j]
+    if y0 == y1:
+        return float(x1)
+    return float(x0 + (half_level - y0) * (x1 - x0) / (y1 - y0))
+
+
+def compute_session_half_distance(session_id, *, exclude_other_estim=True,
+                                  far_fraction=DEFAULT_FAR_FRACTION,
+                                  near_bins=DEFAULT_NEAR_BINS):
+    """{estim_spec_id: correlation half-distance (µm) or None} for one session."""
+    metrics, channels_with_data, coords = prepare_session_metrics(session_id)
+    if metrics is None:
+        return {}
+    corr_metric = next((m for m in metrics if m.name == CORR_METRIC_NAME), None)
+    if corr_metric is None:
+        print(f"  {session_id}: no '{CORR_METRIC_NAME}' metric available; skipping")
+        return {}
+    pitch = _probe_pitch(coords)
+    estim_by_spec = fetch_active_estim_channels_by_spec(session_id)
+    out = {}
+    for spec_id, estim_channels in estim_by_spec.items():
+        out[int(spec_id)] = _half_distance_for_spec(
+            corr_metric, estim_channels, channels_with_data, coords,
+            exclude_other_estim=exclude_other_estim, pitch=pitch,
+            far_fraction=far_fraction, near_bins=near_bins)
+    return out
+
+
+def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
+                                        exclude_session_ids=None,
+                                        effect_metric=COMPARISON_METRIC,
+                                        base_required_conditions=None,
+                                        exclude_other_estim=True,
+                                        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                                        far_fraction=DEFAULT_FAR_FRACTION,
+                                        near_bins=DEFAULT_NEAR_BINS):
+    """Per-(session, estim_spec, trial_type) table with current_per_second, estim
+    effect, and the correlation half-distance. Returns the DataFrame (empty if
+    nothing matched)."""
+    frames = []
+    for tt in trial_types:
+        rc = _rc_for_trial_type(base_required_conditions, tt)
+        print(f"\n--- current/spec membership for trial_type={tt!r} ---")
+        df_tt = _effect_and_current_table(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=effect_metric, required_conditions=rc)
+        if len(df_tt) == 0:
+            print(f"  (no specs for trial_type={tt!r})")
+            continue
+        df_tt = df_tt[df_tt['n_on'] >= min_on_trials].copy()
+        df_tt['trial_type'] = tt
+        frames.append(df_tt)
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+
+    hd_by_session = {}
+    for sid in sorted(df['session_id'].unique().tolist()):
+        print(f"\n=== correlation half-distance for session {sid} ===")
+        hd_by_session[sid] = compute_session_half_distance(
+            sid, exclude_other_estim=exclude_other_estim,
+            far_fraction=far_fraction, near_bins=near_bins)
+
+    df[HALFDIST_COL] = [
+        hd_by_session.get(s, {}).get(int(spec))
+        for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    n_scored = df[HALFDIST_COL].notna().sum()
+    print(f"\nBuilt half-distance table: {len(df)} specs across "
+          f"{df['session_id'].nunique()} sessions; {n_scored} have a half-distance")
+    return df
+
+
+def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
+                                        trial_types, point_noun='spec',
+                                        output_path=None):
+    """One subplot per trial type: X = current_per_second, Y = y_col, colour =
+    estim effect (RdBu_r, symmetric). Generic scatter used by the half-distance
+    (and any other single-Y) current-spread plot."""
+    tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
+    if not tts:
+        print("No trial types with points to plot.")
+        return None
+    n = len(tts)
+    ncols = min(3, n)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.4 * nrows),
+                             squeeze=False, constrained_layout=True)
+
+    eff_all = pd.to_numeric(points.get('effect_size'), errors='coerce')
+    finite_eff = eff_all[np.isfinite(eff_all)] if eff_all is not None else pd.Series([], dtype=float)
+    vmax = max(float(np.abs(finite_eff).max()), 1e-6) if len(finite_eff) else 1.0
+
+    scatter_ref = None
+    for i, tt in enumerate(tts):
+        ax = axes[i // ncols][i % ncols]
+        sub = points[points['trial_type'] == tt][[X_COLUMN, y_col, 'effect_size']] \
+            .dropna(subset=[X_COLUMN, y_col])
+        x = sub[X_COLUMN].to_numpy(dtype=float)
+        y = sub[y_col].to_numpy(dtype=float)
+        eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
+        has_eff = np.isfinite(eff)
+
+        if (~has_eff).any():
+            ax.scatter(x[~has_eff], y[~has_eff], s=45, alpha=0.6, color='lightgray',
+                       edgecolors='gray', linewidths=0.4)
+        if has_eff.any():
+            sc = ax.scatter(x[has_eff], y[has_eff], c=eff[has_eff], cmap='RdBu_r',
+                            vmin=-vmax, vmax=vmax, s=58, alpha=0.9,
+                            edgecolors='black', linewidths=0.5)
+            scatter_ref = sc
+
+        ax.set_title(f"{tt}\nn={len(x)} {point_noun}s", fontsize=11)
+        if i // ncols == nrows - 1:
+            ax.set_xlabel(X_LABEL, fontsize=9)
+        if i % ncols == 0:
+            ax.set_ylabel(y_label, fontsize=10)
+        ax.grid(True, alpha=0.3)
+
+    for j in range(n, nrows * ncols):
+        axes[j // ncols][j % ncols].axis('off')
+
+    if scatter_ref is not None:
+        cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
+        cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
+                       fontsize=10)
+
+    fig.suptitle(f"{title} — one point per {point_noun} (colour = estim effect)",
+                 fontsize=14, fontweight='bold')
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved plot to {output_path}")
+    plt.show()
+    return fig
+
+
+def run_half_distance_vs_current(trial_types=None, *, start_session_id=None,
+                                 exclude_session_ids=None,
+                                 effect_metric=COMPARISON_METRIC,
+                                 base_required_conditions=None,
+                                 exclude_other_estim=True,
+                                 min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                                 far_fraction=DEFAULT_FAR_FRACTION,
+                                 near_bins=DEFAULT_NEAR_BINS,
+                                 aggregate_by='spec', save_dir=None):
+    """Build the half-distance table and draw the all-trial-types-as-subplots
+    figure. Returns (df, points_df)."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"[config] CORR HALF-DISTANCE vs CURRENT  trial_types={trial_types}  "
+          f"effect_metric={effect_metric}  far_fraction={far_fraction}  "
+          f"near_bins={near_bins}  min_on={min_on_trials}  point={aggregate_by}")
+
+    df = build_current_spread_halfdist_table(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+        base_required_conditions=base_required_conditions,
+        exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials,
+        far_fraction=far_fraction, near_bins=near_bins)
+    if len(df) == 0:
+        print("Nothing to plot.")
+        return df, pd.DataFrame()
+
+    points = build_points(df, [HALFDIST_COL], aggregate_by)
+    out_path = (os.path.join(save_dir, "corr_half_distance_vs_current.png")
+                if save_dir else None)
+    plot_metric_vs_current_by_trialtype(
+        points, HALFDIST_COL,
+        y_label='correlation half-distance (µm)  — how far high corr reaches',
+        title='How far high correlation spreads vs current spread',
+        trial_types=trial_types, point_noun=aggregate_by, output_path=out_path)
+    return df, points
+
+
+def main_half_distance():
+    """Y = correlation half-distance (how far high correlation reaches, µm),
+    X = current spread, colour = effect; all trial types as subplots. Uses the
+    shared COMPARISON_* config."""
+    run_half_distance_vs_current(
+        trial_types=(COMPARISON_TRIAL_TYPES or None),  # None/[] -> auto-discover
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        exclude_other_estim=True,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        aggregate_by='spec',   # one point per estim spec/condition
+        save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
 def main():
     """Current-spread-vs-tuning grid, one figure per trial type, using the shared
     COMPARISON_* config."""
@@ -427,4 +715,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    #   - main()               -> current-spread vs tuning grid (mean/max/area x
+    #                             local/half/whole probe), colour = effect
+    #   - main_half_distance() -> correlation half-distance (how far high corr
+    #                             reaches) vs current spread, colour = effect
+    main_half_distance()
+    # main()
