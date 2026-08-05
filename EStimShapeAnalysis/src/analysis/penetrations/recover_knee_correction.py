@@ -45,7 +45,8 @@ from src.mri.correction import load_corrections
 # ═══════════════════════════════════════════════════════════════════════════
 #  CONFIG — edit these, then run the file
 # ═══════════════════════════════════════════════════════════════════════════
-SWEEP_CSV = "/home/connorlab/Documents/penetration_optimization_plots/_robustness/sweep.csv"
+# SWEEP_CSV = "/home/connorlab/Documents/penetration_optimization_plots/_robustness/sweep.csv"
+SWEEP_CSV = '/home/connorlab/Documents/penetration_optimization_plots/_robustness/20260724_143818/sweep.csv'
 
 # MRI pipeline (needed only for the chamber centre / 4x4 geometry — no DB).
 MRI_CONFIG_PATH = MRI_VIEWER_CONFIG_PATH
