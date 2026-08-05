@@ -1274,6 +1274,239 @@ def main_tuning_heatmap():
     )
 
 
+# ---------------------------------------------------------------------------
+# Tuning-region symmetry: is the estim locus CENTERED in a correlated region?
+#
+# On the linear probe each non-estim channel c sits at a signed distance d = y_c −
+# y0 from the estim locus (y0 = mean probe position of the spec's active channels)
+# and has a correlation rho to that locus. If the correlated tissue is centred on
+# the locus, the correlation "mass" is balanced above/below (offset ≈ 0); if the
+# locus sits at the edge of a patch, the mass is skewed to one side.
+#
+# Metric = correlation-weighted CENTROID OFFSET, soft-scaled by the spec's own
+# correlation half-distance and corrected for probe geometry:
+#     w_c = max(rho_c, 0) · exp(−½ (d / λ)²),   λ = corr half-distance
+#     offset_obs  = Σ w_c d_c / Σ w_c
+#     offset_geom = Σ g_c d_c / Σ g_c           (g_c = the Gaussian alone)
+#     offset      = offset_obs − offset_geom    (µm; 0 = centred)
+# Subtracting offset_geom removes the skew that comes purely from the probe edge
+# truncating one side (a channel near the tip has no neighbours above it), so what
+# remains is tuning-driven asymmetry. Positive = correlated mass skewed toward
+# increasing probe-y. Undefined (None) when half-distance is undefined or one side
+# has no correlated channels within the window.
+# ---------------------------------------------------------------------------
+
+SYM_COL = 'corr_sym_offset_um'
+DEFAULT_SYM_GEOMETRY_CORRECT = True   # subtract the probe-geometry baseline skew
+DEFAULT_SYM_MIN_SIDE = 1              # min contributing channels required per side
+
+
+def _symmetry_offset_for_spec(corr_metric, estim_channels, channels_with_data, coords,
+                              half_distance, *, exclude_other_estim=True,
+                              geometry_correct=DEFAULT_SYM_GEOMETRY_CORRECT,
+                              min_side_channels=DEFAULT_SYM_MIN_SIDE):
+    """Geometry-corrected, Gaussian-weighted correlation-centroid offset (µm) of the
+    correlated region about the estim locus, or None if undefined."""
+    if half_distance is None or half_distance <= 0:
+        return None
+    est_present = [e for e in estim_channels if e in channels_with_data]
+    if not est_present:
+        return None
+    y0 = float(np.mean([coords[e][1] for e in est_present]))
+    exclude = set(estim_channels) if exclude_other_estim else set()
+    est_set = set(est_present)
+    lam = float(half_distance)
+
+    ds, ws, gs = [], [], []
+    up = down = 0
+    for c in channels_with_data:
+        if c in exclude or c in est_set:
+            continue
+        rhos = [corr_metric.pair_similarity(channel_to_str(e), channel_to_str(c))
+                for e in est_present]
+        rhos = [r for r in rhos if r is not None and np.isfinite(r)]
+        if not rhos:
+            continue
+        rho = float(np.mean(rhos))
+        d = float(coords[c][1]) - y0
+        g = float(np.exp(-0.5 * (d / lam) ** 2))
+        ds.append(d)
+        gs.append(g)
+        ws.append(max(rho, 0.0) * g)
+        if d > 0:
+            up += 1
+        elif d < 0:
+            down += 1
+    if up < min_side_channels or down < min_side_channels:
+        return None
+    ds = np.asarray(ds)
+    ws = np.asarray(ws)
+    gs = np.asarray(gs)
+    if ws.sum() <= 0:
+        return None
+    offset = float((ws * ds).sum() / ws.sum())
+    if geometry_correct and gs.sum() > 0:
+        offset -= float((gs * ds).sum() / gs.sum())
+    return offset
+
+
+def compute_session_symmetry(session_id, *, exclude_other_estim=True,
+                             far_fraction=DEFAULT_FAR_FRACTION,
+                             near_bins=DEFAULT_NEAR_BINS, bin_agg=DEFAULT_BIN_AGG,
+                             smoothing=DEFAULT_SMOOTHING,
+                             geometry_correct=DEFAULT_SYM_GEOMETRY_CORRECT,
+                             min_side_channels=DEFAULT_SYM_MIN_SIDE):
+    """{estim_spec_id: {HALFDIST_COL, SYM_COL}} for one session. The half-distance
+    sets the Gaussian scale λ for the symmetry offset, so both are computed here."""
+    metrics, channels_with_data, coords = prepare_session_metrics(session_id)
+    if metrics is None:
+        return {}
+    corr_metric = next((m for m in metrics if m.name == CORR_METRIC_NAME), None)
+    if corr_metric is None:
+        print(f"  {session_id}: no '{CORR_METRIC_NAME}' metric available; skipping")
+        return {}
+    pitch = _probe_pitch(coords)
+    estim_by_spec = fetch_active_estim_channels_by_spec(session_id)
+    out = {}
+    for spec_id, estim_channels in estim_by_spec.items():
+        hd = _half_distance_for_spec(
+            corr_metric, estim_channels, channels_with_data, coords,
+            exclude_other_estim=exclude_other_estim, pitch=pitch,
+            far_fraction=far_fraction, near_bins=near_bins,
+            bin_agg=bin_agg, smoothing=smoothing)
+        sym = _symmetry_offset_for_spec(
+            corr_metric, estim_channels, channels_with_data, coords, hd,
+            exclude_other_estim=exclude_other_estim,
+            geometry_correct=geometry_correct, min_side_channels=min_side_channels)
+        out[int(spec_id)] = {HALFDIST_COL: hd, SYM_COL: sym}
+    return out
+
+
+def build_current_spread_symmetry_table(trial_types, *, start_session_id=None,
+                                        exclude_session_ids=None,
+                                        effect_metric=COMPARISON_METRIC,
+                                        base_required_conditions=None,
+                                        exclude_other_estim=True,
+                                        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                                        far_fraction=DEFAULT_FAR_FRACTION,
+                                        near_bins=DEFAULT_NEAR_BINS,
+                                        bin_agg=DEFAULT_BIN_AGG,
+                                        smoothing=DEFAULT_SMOOTHING,
+                                        geometry_correct=DEFAULT_SYM_GEOMETRY_CORRECT,
+                                        min_side_channels=DEFAULT_SYM_MIN_SIDE):
+    """Per-(session, estim_spec, trial_type) table with current, effect, the corr
+    half-distance, and the symmetry offset. Returns the DataFrame."""
+    frames = []
+    for tt in trial_types:
+        rc = _rc_for_trial_type(base_required_conditions, tt)
+        print(f"\n--- current/spec membership for trial_type={tt!r} ---")
+        df_tt = _effect_and_current_table(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=effect_metric, required_conditions=rc)
+        if len(df_tt) == 0:
+            print(f"  (no specs for trial_type={tt!r})")
+            continue
+        df_tt = df_tt[df_tt['n_on'] >= min_on_trials].copy()
+        df_tt['trial_type'] = tt
+        frames.append(df_tt)
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    _attach_estim_metrics(df)
+
+    by_session = {}
+    for sid in sorted(df['session_id'].unique().tolist()):
+        print(f"\n=== tuning-region symmetry for session {sid} ===")
+        by_session[sid] = compute_session_symmetry(
+            sid, exclude_other_estim=exclude_other_estim, far_fraction=far_fraction,
+            near_bins=near_bins, bin_agg=bin_agg, smoothing=smoothing,
+            geometry_correct=geometry_correct, min_side_channels=min_side_channels)
+
+    for col in (HALFDIST_COL, SYM_COL):
+        df[col] = [
+            (by_session.get(s, {}).get(int(spec), {}) or {}).get(col)
+            for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    n_scored = df[SYM_COL].notna().sum()
+    print(f"\nBuilt symmetry table: {len(df)} specs across "
+          f"{df['session_id'].nunique()} sessions; {n_scored} have a symmetry offset")
+    return df
+
+
+def run_symmetry_vs_current(trial_types=None, *, start_session_id=None,
+                            exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
+                            base_required_conditions=None, exclude_other_estim=True,
+                            min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                            aggregate_by='spec', by_polarity=True,
+                            heatmap=False, mode=DEFAULT_HEATMAP_MODE,
+                            bandwidth=DEFAULT_HEATMAP_BW, save_dir=None):
+    """Tuning-region symmetry offset vs current, faceted by trial type × polarity.
+    heatmap=False draws the effect-coloured scatter; True draws the Gaussian-smoothed
+    effect field. Returns (df, points_df)."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"[config] TUNING SYMMETRY vs CURRENT  trial_types={trial_types}  "
+          f"effect_metric={effect_metric}  min_on={min_on_trials}  point={aggregate_by}  "
+          f"by_polarity={by_polarity}  heatmap={heatmap}")
+    df = build_current_spread_symmetry_table(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+        base_required_conditions=base_required_conditions,
+        exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials)
+    if len(df) == 0:
+        print("Nothing to plot.")
+        return df, pd.DataFrame()
+    points = build_points(df, [SYM_COL, HALFDIST_COL], aggregate_by)
+    y_label = 'corr symmetry offset (µm)  — 0 = centred'
+    title = 'Tuning-region symmetry (centroid offset) vs current'
+    kind = 'heatmap' if heatmap else 'scatter'
+    out_path = (os.path.join(save_dir, f"tuning_symmetry_{kind}_vs_{_slug(X_COLUMN)}.png")
+                if save_dir else None)
+    if heatmap:
+        plot_effect_heatmap_by_trialtype(
+            points, SYM_COL, y_label=y_label, title=title, trial_types=trial_types,
+            by_polarity=by_polarity, mode=mode, bandwidth=bandwidth,
+            point_noun=aggregate_by, output_path=out_path)
+    else:
+        plot_metric_vs_current_by_trialtype(
+            points, SYM_COL, y_label=y_label, title=title, trial_types=trial_types,
+            by_polarity=by_polarity, point_noun=aggregate_by, output_path=out_path)
+    return df, points
+
+
+def main_symmetry():
+    """Tuning-region symmetry offset vs current (effect-coloured scatter), faceted
+    by trial type × polarity. Uses the shared COMPARISON_* config."""
+    run_symmetry_vs_current(
+        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        exclude_other_estim=True,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        aggregate_by='spec',
+        heatmap=False,
+        save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
+def main_symmetry_heatmap():
+    """Gaussian-smoothed effect field over current × tuning-region symmetry offset.
+    Uses the shared COMPARISON_* config."""
+    run_symmetry_vs_current(
+        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        exclude_other_estim=True,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        aggregate_by='spec',
+        heatmap=True,
+        save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
 def main():
     """Current-spread-vs-tuning grid, one figure per trial type, using the shared
     COMPARISON_* config."""
@@ -1297,13 +1530,18 @@ def main():
 
 
 if __name__ == '__main__':
-    #   - main()                      -> current-spread vs tuning grid (scatter)
+    #   - main()                      -> current vs tuning grid (scatter)
     #   - main_half_distance()        -> correlation half-distance vs current (scatter)
-    #   - main_half_distance_heatmap()-> Gaussian-smoothed effect field over
-    #                                    current spread × correlation half-distance
-    #   - main_tuning_heatmap()       -> smoothed effect field version of the
-    #                                    tuning grid
-    main_half_distance_heatmap()
+    #   - main_half_distance_heatmap()-> smoothed effect field over current ×
+    #                                    correlation half-distance
+    #   - main_tuning_heatmap()       -> smoothed effect field of the tuning grid
+    #   - main_symmetry()             -> tuning-region symmetry offset vs current
+    #                                    (scatter, effect-coloured)
+    #   - main_symmetry_heatmap()     -> smoothed effect field over current ×
+    #                                    symmetry offset
+    main_symmetry()
+    # main_symmetry_heatmap()
+    # main_half_distance_heatmap()
     # main_half_distance()
     # main_tuning_heatmap()
     # main()
