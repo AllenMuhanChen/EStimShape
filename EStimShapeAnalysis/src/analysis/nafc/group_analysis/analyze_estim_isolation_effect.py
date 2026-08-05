@@ -2709,6 +2709,9 @@ if __name__ == '__main__':
     #   - main_channel_search()     -> for one session, the channel group that best
     #                                  optimises each metric per trial type
     #   - main()                    -> legacy single-isolation-metric plots
+    # For an interactive version of these plots (flip through metric / aggregation /
+    # trial_type one at a time, and split into subplots by polarity/shape/etc.), run
+    # explore_estim_isolation_gui.py instead.
     # main_metric_comparison()
     main_current_nb_heatmap()
     # main_neighbor_sweep()
