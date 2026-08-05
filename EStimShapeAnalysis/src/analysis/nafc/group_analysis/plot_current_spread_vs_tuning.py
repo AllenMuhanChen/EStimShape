@@ -32,8 +32,10 @@ how the picture changes from a local patch to the whole probe:
       - whole-probe n=32   effectively the whole probe (<=32 channels)
 
 Each panel is one point per experiment (specs averaged within the experiment,
-filtered to a trial type), a least-squares trend line, and the across-experiment
-Pearson/Spearman correlation.
+filtered to a trial type), coloured by the estim effect on behaviour (ON − OFF %):
+red = positive, blue = negative, on a symmetric scale shared across panels. So a
+panel reads as "where in current-spread × tuning space do the effects land, and
+which way do they point" — no line is fit.
 
 The tuning metric is trial-type-independent (it comes from GA responses, not
 behaviour); filtering by trial type only selects WHICH specs (those actually
@@ -58,7 +60,6 @@ sys.path.insert(0, str(Path(__file__).parents[3]))
 
 from src.analysis.nafc.group_analysis import analyze_estim_isolation_effect as iso
 from src.analysis.nafc.group_analysis.analyze_estim_isolation_effect import (
-    _correlation,
     _discover_trial_types,
     _effect_and_current_table,
     _rc_for_trial_type,
@@ -241,10 +242,12 @@ def build_current_spread_tuning_table(trial_types, *, start_session_id=None,
 
 def aggregate_per_experiment(df, metric_cols):
     """Collapse the per-spec table to one row per (trial_type, session): mean
-    current_per_second and mean of each tuning metric across the experiment's specs."""
+    current_per_second, mean estim effect, and mean of each tuning metric across
+    the experiment's specs."""
     if len(df) == 0:
         return df
-    agg_map = {X_COLUMN: (X_COLUMN, 'mean')}
+    agg_map = {X_COLUMN: (X_COLUMN, 'mean'),
+               'effect_size': ('effect_size', 'mean')}
     agg_map.update({c: (c, 'mean') for c in metric_cols})
     agg_map['n_specs'] = ('estim_spec_id', 'size')
     return (df.groupby(['trial_type', 'session_id'], as_index=False)
@@ -265,35 +268,37 @@ def plot_current_spread_vs_tuning_for_trial_type(agg_tt, *, scales=DEFAULT_SCALE
     fig, axes = plt.subplots(nrows, ncols, figsize=(4.6 * ncols, 4.0 * nrows),
                              squeeze=False, constrained_layout=True)
 
+    # Symmetric diverging colour scale for the estim effect (red = positive,
+    # blue = negative), shared across every panel.
+    eff_all = pd.to_numeric(agg_tt.get('effect_size'), errors='coerce')
+    finite_eff = eff_all[np.isfinite(eff_all)] if eff_all is not None else pd.Series([], dtype=float)
+    vmax = max(float(np.abs(finite_eff).max()), 1e-6) if len(finite_eff) else 1.0
+
+    scatter_ref = None
     for r, family in enumerate(FAMILIES):
         for c, (scale_label, n) in enumerate(scale_items):
             ax = axes[r][c]
             col = _metric_col(family, n)
-            sub = agg_tt[[X_COLUMN, col]].dropna()
+            sub = agg_tt[[X_COLUMN, col, 'effect_size']].dropna(subset=[X_COLUMN, col])
             x = sub[X_COLUMN].to_numpy(dtype=float)
             y = sub[col].to_numpy(dtype=float)
+            eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
+            has_eff = np.isfinite(eff)
 
-            ax.scatter(x, y, s=60, alpha=0.85, color='#3670B0',
-                       edgecolors='black', linewidths=0.5)
-            if len(x) >= 2:
-                slope, intercept = np.polyfit(x, y, 1)
-                xl = np.array([x.min(), x.max()])
-                ax.plot(xl, slope * xl + intercept, color='red', linewidth=2,
-                        alpha=0.85)
+            # Experiments with no computable effect can't be coloured — show gray.
+            if (~has_eff).any():
+                ax.scatter(x[~has_eff], y[~has_eff], s=55, alpha=0.6,
+                           color='lightgray', edgecolors='gray', linewidths=0.4)
+            if has_eff.any():
+                sc = ax.scatter(x[has_eff], y[has_eff], c=eff[has_eff], cmap='RdBu_r',
+                                vmin=-vmax, vmax=vmax, s=60, alpha=0.9,
+                                edgecolors='black', linewidths=0.5)
+                scatter_ref = sc
 
-            corr = _correlation(x, y) if len(x) >= 3 else None
             title_bits = []
             if r == 0:
                 title_bits.append(scale_label)
-            if corr:
-                cell = f"n={corr['n']}  r={corr['pearson_r']:.2f}"
-                if corr['pearson_p'] is not None:
-                    cell += f" (p={corr['pearson_p']:.2g})"
-                if corr['spearman_r'] is not None:
-                    cell += f"\nρ={corr['spearman_r']:.2f}"
-                title_bits.append(cell)
-            else:
-                title_bits.append(f"n={len(x)}")
+            title_bits.append(f"n={len(x)}")
             ax.set_title("\n".join(title_bits), fontsize=10)
 
             if r == nrows - 1:
@@ -305,7 +310,14 @@ def plot_current_spread_vs_tuning_for_trial_type(agg_tt, *, scales=DEFAULT_SCALE
                 ax.set_ylabel(ylab, fontsize=10)
             ax.grid(True, alpha=0.3)
 
-    fig.suptitle(f"Current spread vs tuning geometry — one point per experiment"
+    if scatter_ref is not None:
+        cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6,
+                            pad=0.02)
+        cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
+                       fontsize=10)
+
+    fig.suptitle(f"Current spread vs tuning geometry — one point per experiment "
+                 f"(colour = estim effect)"
                  f"{('  [' + str(trial_type) + ']') if trial_type else ''}",
                  fontsize=14, fontweight='bold')
     if output_path:
