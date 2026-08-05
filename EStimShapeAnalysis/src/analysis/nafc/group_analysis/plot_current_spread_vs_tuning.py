@@ -465,6 +465,43 @@ HALFDIST_COL = 'corr_half_distance_um'
 DEFAULT_FAR_FRACTION = 0.25
 # Near-field level = mean rho over this many nearest distance bins.
 DEFAULT_NEAR_BINS = 1
+# Per-distance-bin summary: 'median' is robust to one anomalously low/high channel
+# in a bin; 'mean' is the plain average.
+DEFAULT_BIN_AGG = 'median'
+# How the half-crossing is read off the ρ-vs-distance profile — the noise-robustness
+# method:
+#   'sustained' (default) — the profile must stay below half_level for
+#       DEFAULT_PERSIST_BINS consecutive bins to count as the crossing, so a single
+#       nearby channel that dips and recovers (tuning actually wide) is ignored.
+#   'isotonic'  — fit a monotone non-increasing curve first, then first crossing.
+#       Clean, but a low NEAR channel forces later bins down and can under-estimate.
+#   'none'      — raw bins, first crossing (original, most noise-sensitive).
+DEFAULT_SMOOTHING = 'sustained'
+# Consecutive below-half bins required for a 'sustained' crossing.
+DEFAULT_PERSIST_BINS = 2
+
+
+def _isotonic_nonincreasing(values, weights):
+    """Weighted isotonic regression enforcing a NON-INCREASING fit via
+    pool-adjacent-violators. Correlation is expected to fall with distance, so this
+    encodes that prior and pools any local increase (e.g. one low nearby channel
+    surrounded by high ones) into its neighbours — smoothing out noise without a
+    window size. Returns a non-increasing array the same length as `values`."""
+    sums, wts, lens = [], [], []   # per block: sum(w*y), sum(w), #bins
+    for y, w in zip(values, weights):
+        w = float(w) if (w and w > 0) else 1e-9
+        sums.append(float(y) * w)
+        wts.append(w)
+        lens.append(1)
+        while len(sums) >= 2 and (sums[-2] / wts[-2]) < (sums[-1] / wts[-1]):
+            s, w2, length = sums.pop(), wts.pop(), lens.pop()
+            sums[-1] += s
+            wts[-1] += w2
+            lens[-1] += length
+    out = []
+    for s, w, length in zip(sums, wts, lens):
+        out.extend([s / w] * length)
+    return np.asarray(out, dtype=float)
 
 
 def _probe_pitch(coords):
@@ -483,18 +520,25 @@ def _probe_pitch(coords):
 
 def _half_distance_for_spec(corr_metric, estim_channels, channels_with_data, coords,
                             *, exclude_other_estim=True, pitch=1.0,
-                            far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS):
+                            far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
+                            bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING):
     """Correlation half-distance (µm) for one spec, or None if undefined.
 
-    Pool (distance, rho) over the spec's estim channels -> other probe channels,
-    bin rho by distance (width = pitch), then:
-      near_level = mean rho over the nearest `near_bins` bins
-      baseline   = mean rho over the farthest `far_fraction` of bins
+    Pool (distance, rho) over the spec's estim channels -> other probe channels and
+    bin rho by distance (width = pitch). Each bin is summarised by `bin_agg`
+    ('median' = robust to one bad channel, 'mean' = plain). Then:
+      near_level = mean over the nearest `near_bins` (profile) bins
+      baseline   = mean over the farthest `far_fraction` of bins
       half_level = baseline + 0.5 * (near_level - baseline)
-    d_half = the (interpolated) distance where the binned profile first falls to
-    half_level. If it never falls that far within the probe, the probe's max
-    distance is returned (spread >= probe). None if near_level <= baseline (no
-    decay to measure) or too few points."""
+    d_half = the (interpolated) distance where the profile falls to half_level. The
+    crossing rule is set by `smoothing`:
+      'sustained' (default) — must stay below half for DEFAULT_PERSIST_BINS
+          consecutive bins, so a single dip that recovers (noisy channel, wide
+          tuning) is ignored;
+      'isotonic' — fit a monotone non-increasing profile first, then first crossing;
+      'none' — raw first crossing.
+    If it never crosses within the probe, the probe's max distance is returned
+    (spread >= probe). None if near_level <= baseline (no decay) or too few points."""
     estim_set = set(estim_channels)
     exclude = estim_set if exclude_other_estim else set()
 
@@ -524,12 +568,18 @@ def _half_distance_for_spec(corr_metric, estim_channels, channels_with_data, coo
         return None
     centers = 0.5 * (edges[:-1] + edges[1:])
     idx = np.clip(np.digitize(dists, edges) - 1, 0, len(centers) - 1)
-    prof = np.array([rhos[idx == k].mean() if np.any(idx == k) else np.nan
+    summarise = np.median if bin_agg == 'median' else np.mean
+    prof = np.array([summarise(rhos[idx == k]) if np.any(idx == k) else np.nan
                      for k in range(len(centers))])
+    counts = np.array([int(np.sum(idx == k)) for k in range(len(centers))])
     valid = np.isfinite(prof)
-    centers_v, prof_v = centers[valid], prof[valid]
+    centers_v, prof_v, counts_v = centers[valid], prof[valid], counts[valid]
     if len(prof_v) < 3:
         return None
+
+    # Optional monotone fit (weighted by bin counts, so sparse far bins count less).
+    if smoothing == 'isotonic':
+        prof_v = _isotonic_nonincreasing(prof_v, counts_v)
 
     near_level = float(prof_v[:max(1, near_bins)].mean())
     n_far = max(1, int(round(far_fraction * len(prof_v))))
@@ -538,14 +588,27 @@ def _half_distance_for_spec(corr_metric, estim_channels, channels_with_data, coo
         return None
 
     half_level = baseline + 0.5 * (near_level - baseline)
-    below = np.where(prof_v <= half_level)[0]
-    if len(below) == 0:
-        return float(centers_v[-1])  # never crosses within the probe (censored)
-    j = int(below[0])
-    if j == 0:
-        return float(centers_v[0])
-    x0, x1 = centers_v[j - 1], centers_v[j]
-    y0, y1 = prof_v[j - 1], prof_v[j]
+    below = prof_v <= half_level
+    n = len(prof_v)
+
+    if smoothing == 'sustained':
+        # The crossing must persist for several bins, so one bin that dips below
+        # half and recovers (a lone noisy channel, tuning actually wide) is ignored.
+        persist = min(max(1, DEFAULT_PERSIST_BINS), n)
+        cross = next((i for i in range(n) if below[i:i + persist].all()), None)
+    else:  # 'isotonic' (monotone -> unique) or 'none': first bin below half
+        nz = np.where(below)[0]
+        cross = int(nz[0]) if nz.size else None
+
+    if cross is None:
+        return float(centers_v[-1])  # never sustained-crosses within the probe
+    # Interpolate between the last bin above half and the crossing bin.
+    above = np.where(prof_v[:cross] > half_level)[0]
+    if above.size == 0:
+        return float(centers_v[cross])
+    a = int(above[-1])
+    x0, x1 = centers_v[a], centers_v[cross]
+    y0, y1 = prof_v[a], prof_v[cross]
     if y0 == y1:
         return float(x1)
     return float(x0 + (half_level - y0) * (x1 - x0) / (y1 - y0))
@@ -553,7 +616,8 @@ def _half_distance_for_spec(corr_metric, estim_channels, channels_with_data, coo
 
 def compute_session_half_distance(session_id, *, exclude_other_estim=True,
                                   far_fraction=DEFAULT_FAR_FRACTION,
-                                  near_bins=DEFAULT_NEAR_BINS):
+                                  near_bins=DEFAULT_NEAR_BINS,
+                                  bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING):
     """{estim_spec_id: correlation half-distance (µm) or None} for one session."""
     metrics, channels_with_data, coords = prepare_session_metrics(session_id)
     if metrics is None:
@@ -569,7 +633,8 @@ def compute_session_half_distance(session_id, *, exclude_other_estim=True,
         out[int(spec_id)] = _half_distance_for_spec(
             corr_metric, estim_channels, channels_with_data, coords,
             exclude_other_estim=exclude_other_estim, pitch=pitch,
-            far_fraction=far_fraction, near_bins=near_bins)
+            far_fraction=far_fraction, near_bins=near_bins,
+            bin_agg=bin_agg, smoothing=smoothing)
     return out
 
 
@@ -580,7 +645,9 @@ def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
                                         exclude_other_estim=True,
                                         min_on_trials=COMPARISON_MIN_ON_TRIALS,
                                         far_fraction=DEFAULT_FAR_FRACTION,
-                                        near_bins=DEFAULT_NEAR_BINS):
+                                        near_bins=DEFAULT_NEAR_BINS,
+                                        bin_agg=DEFAULT_BIN_AGG,
+                                        smoothing=DEFAULT_SMOOTHING):
     """Per-(session, estim_spec, trial_type) table with current_per_second, estim
     effect, and the correlation half-distance. Returns the DataFrame (empty if
     nothing matched)."""
@@ -607,7 +674,8 @@ def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
         print(f"\n=== correlation half-distance for session {sid} ===")
         hd_by_session[sid] = compute_session_half_distance(
             sid, exclude_other_estim=exclude_other_estim,
-            far_fraction=far_fraction, near_bins=near_bins)
+            far_fraction=far_fraction, near_bins=near_bins,
+            bin_agg=bin_agg, smoothing=smoothing)
 
     df[HALFDIST_COL] = [
         hd_by_session.get(s, {}).get(int(spec))
@@ -703,22 +771,26 @@ def run_half_distance_vs_current(trial_types=None, *, start_session_id=None,
                                  min_on_trials=COMPARISON_MIN_ON_TRIALS,
                                  far_fraction=DEFAULT_FAR_FRACTION,
                                  near_bins=DEFAULT_NEAR_BINS,
+                                 bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
                                  aggregate_by='spec', by_polarity=True, save_dir=None):
     """Build the half-distance table and draw the grid (cols = trial types; rows =
-    anodic/cathodic when by_polarity). Returns (df, points_df)."""
+    anodic/cathodic when by_polarity). bin_agg ('median'/'mean') and smoothing
+    ('isotonic'/'none') control the noise-robustness of the half-distance estimate.
+    Returns (df, points_df)."""
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
     print(f"[config] CORR HALF-DISTANCE vs CURRENT  trial_types={trial_types}  "
           f"effect_metric={effect_metric}  far_fraction={far_fraction}  "
-          f"near_bins={near_bins}  min_on={min_on_trials}  point={aggregate_by}  "
-          f"by_polarity={by_polarity}")
+          f"near_bins={near_bins}  bin_agg={bin_agg}  smoothing={smoothing}  "
+          f"min_on={min_on_trials}  point={aggregate_by}  by_polarity={by_polarity}")
 
     df = build_current_spread_halfdist_table(
         trial_types, start_session_id=start_session_id,
         exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
         base_required_conditions=base_required_conditions,
         exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials,
-        far_fraction=far_fraction, near_bins=near_bins)
+        far_fraction=far_fraction, near_bins=near_bins,
+        bin_agg=bin_agg, smoothing=smoothing)
     if len(df) == 0:
         print("Nothing to plot.")
         return df, pd.DataFrame()
