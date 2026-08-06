@@ -1,18 +1,20 @@
 """
 Sliding-window EStim effect over time, tiled as a grid of small multiples in a PDF.
 
-This is the per-condition "effect size across trials" graph (the top panel of
-``analyze_estim_by_condition.sliding_window_analysis``) drawn once per session and
-tiled COLS-per-row, SESSIONS_PER_PAGE-per-page, into a single multi-page PDF.
+For each session, every condition (behavioral x estim_spec) gets a colored line
+showing its estim effect over the course of the session. Crucially, there is one
+dot per actual estim trial: each estim-on presentation of a condition is placed at
+the x-position where it occurred (trials sorted by trial_start), and its y is the
+LOCAL WINDOWED effect around that trial:
 
-For each sliding window of trials (sorted by trial_start) and each condition
-(behavioral x estim_spec), the line value is:
+    effect = estim_on %<METRIC> - estim_off %<METRIC>
 
-    effect_size = estim_on %<METRIC> - estim_off %<METRIC>
+computed within a WINDOW_SIZE-trial window centered on that presentation. So a
+condition with 5 estim trials shows 5 dots. Dotted vertical lines mark generation
+boundaries.
 
-so every condition gets its own colored line showing how stimulation's push
-toward the hypothesized choice evolves over the session. Dotted vertical lines
-mark generation boundaries.
+Sessions with too little data are skipped. Sessions are tiled COLS-per-row,
+ROWS_PER_PAGE-per-page, into one multi-page PDF at a standard paper size.
 
 Configure everything in the CONFIG block. ALGORITHM_LABEL and METRIC default to
 'None' and 'pct_hyp_vs_delta'. START_SESSION_ID and EXCLUDE_SESSION_IDS choose
@@ -33,7 +35,6 @@ from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
     _NumpyEncoder,
     calculate_estim_effects,
     compute_gen_boundaries,
-    format_condition_label,
     read_trial_data_from_repository,
     split_data_by_conditions,
 )
@@ -48,8 +49,8 @@ METRIC = METRIC_PCT_HYP_VS_DELTA    # effect = estim_on %metric - estim_off %met
 START_SESSION_ID = None             # e.g. "260402_0"
 EXCLUDE_SESSION_IDS = []            # e.g. ["260421_0", "260410_0"]
 
-WINDOW_SIZE = 100                   # trials per sliding window
-STEP_SIZE = 10                      # window step (trials)
+WINDOW_SIZE = 100                   # trials in the window centered on each estim trial
+MIN_SESSION_TRIALS = WINDOW_SIZE    # skip sessions with fewer trials than this
 
 COLS = 1                            # plots per row
 ROWS_PER_PAGE = 5                   # -> 5 sessions stacked per page
@@ -60,7 +61,6 @@ ROWS_PER_PAGE = 5                   # -> 5 sessions stacked per page
 PAGE_SIZE_INCHES = (8.5, 11.0)
 
 SHOW_GEN_BOUNDARIES = True
-SHOW_LEGEND = True                  # per-subplot condition legend (tiny font)
 Y_LIM = None                        # e.g. (-75, 75) for a shared y-axis; None = autoscale
 
 OUTPUT_PDF = '/home/connorlab/Documents/plots/across_experiments/estim_effect_over_time_grid.pdf'
@@ -82,85 +82,76 @@ def _get_session_ids():
     return session_ids
 
 
-def _condition_window_series(data, behavioral_conditions, estim_conditions):
-    """Return {condition_key: {'label', 'behavioral', 'estim', 'windows':[...]}}.
+def _windowed_effect_at(data_sorted, behavioral, key, trial_idx):
+    """Local windowed effect for condition ``key`` in a WINDOW_SIZE window centered
+    on the trial at global index ``trial_idx`` (clamped to the session bounds).
 
-    Mirrors analyze_estim_by_condition.sliding_window_analysis, but computes the
-    effect with the configured METRIC instead of the raw pct_hypothesized.
+    Reuses split_data_by_conditions + calculate_estim_effects on the window slice so
+    the value matches the offline pipeline's effect exactly (same gen-id-restricted
+    baseline and same metric filtering). Returns the effect or None.
     """
-    data_sorted = data.sort_values('trial_start').reset_index(drop=True)
-
-    condition_groups = {}
-    for group in split_data_by_conditions(data, behavioral_conditions, estim_conditions):
-        key = json.dumps({**group['behavioral_conditions'], **group['estim_conditions']},
-                         sort_keys=True, cls=_NumpyEncoder)
-        condition_groups[key] = {
-            'label': format_condition_label(group['behavioral_conditions'],
-                                            group['estim_conditions']),
-            'behavioral': group['behavioral_conditions'],
-            'estim': group['estim_conditions'],
-            'windows': [],
-        }
-
-    for window_start in range(0, len(data_sorted) - WINDOW_SIZE + 1, STEP_SIZE):
-        window_data = data_sorted.iloc[window_start:window_start + WINDOW_SIZE]
-        window_groups = split_data_by_conditions(window_data, behavioral_conditions, estim_conditions)
-        for result in calculate_estim_effects(window_groups, metrics=(METRIC,)):
-            key = json.dumps(result['conditions'], sort_keys=True, cls=_NumpyEncoder)
-            if key in condition_groups:
-                condition_groups[key]['windows'].append({
-                    'trial_number': window_start + WINDOW_SIZE // 2,
-                    'effect_size': result['effect_size'],
-                })
-
-    return condition_groups, data_sorted
+    n = len(data_sorted)
+    half = WINDOW_SIZE // 2
+    lo = max(0, min(trial_idx - half, n - WINDOW_SIZE))
+    window = data_sorted.iloc[lo:lo + WINDOW_SIZE]
+    for res in calculate_estim_effects(
+            split_data_by_conditions(window, behavioral, _DEFAULT_ESTIM_CONDITIONS),
+            metrics=(METRIC,)):
+        if json.dumps(res['conditions'], sort_keys=True, cls=_NumpyEncoder) == key:
+            return res['effect_size']
+    return None
 
 
 def build_session_result(session_id):
-    """Compute the per-condition effect-over-time series for one session.
+    """Compute the per-condition, per-estim-trial effect series for one session.
 
-    Returns a plotting-ready dict (decoupled from the DB) or None if the session
-    has no usable conditions:
-        {'session_id', 'n_trials', 'conditions':[{'label','x','y'}], 'gen_boundaries'}
+    Returns a plotting-ready dict (decoupled from the DB), or None if the session
+    has too few trials or no usable conditions:
+        {'session_id', 'n_trials', 'conditions':[{'x','y'}], 'gen_boundaries'}
+    where each condition's x are the estim trials' positions (session order) and y
+    the local windowed effect at each.
     """
     data = read_trial_data_from_repository(session_id)
-    if data.empty:
+    if data.empty or len(data) < MIN_SESSION_TRIALS:
         return None
 
     behavioral = [c for c in _DEFAULT_BEHAVIORAL_CONDITIONS if c in data.columns]
-    condition_groups, data_sorted = _condition_window_series(
-        data, behavioral, _DEFAULT_ESTIM_CONDITIONS)
-
-    # Keep only conditions that actually produced a line (>=1 non-None window).
-    active = [cg for cg in condition_groups.values()
-              if cg['windows'] and not all(w['effect_size'] is None for w in cg['windows'])]
-
-    # Label only the condition dimensions that vary within this session, so the
-    # legend stays short (same approach as plot_sliding_window_results).
-    values_by_key = {}
-    for cg in active:
-        for k, v in {**cg['behavioral'], **cg['estim']}.items():
-            values_by_key.setdefault(k, set()).add(str(v))
-    varying_keys = [k for k, vs in values_by_key.items() if len(vs) > 1]
+    data_sorted = data.sort_values('trial_start').reset_index(drop=True)
+    n = len(data_sorted)
 
     conditions = []
-    for cg in active:
-        conditions.append({
-            'label': format_condition_label(cg['behavioral'], cg['estim'], varying_keys),
-            'x': [w['trial_number'] for w in cg['windows']],
-            'y': [np.nan if w['effect_size'] is None else w['effect_size'] for w in cg['windows']],
-        })
+    for group in split_data_by_conditions(data_sorted, behavioral, _DEFAULT_ESTIM_CONDITIONS):
+        cond = {**group['behavioral_conditions'], **group['estim_conditions']}
+        key = json.dumps(cond, sort_keys=True, cls=_NumpyEncoder)
+
+        # One dot per estim-on presentation of this condition, at its session position.
+        estim_trial_idxs = sorted(int(i) for i in group['estim_on_data'].index)
+        if not estim_trial_idxs:
+            continue
+
+        xs, ys = [], []
+        for i in estim_trial_idxs:
+            eff = _windowed_effect_at(data_sorted, behavioral, key, i)
+            xs.append(i)
+            ys.append(np.nan if eff is None else eff)
+
+        if all(np.isnan(y) for y in ys):
+            continue
+        conditions.append({'x': xs, 'y': ys})
+
+    if not conditions:
+        return None
 
     return {
         'session_id': session_id,
-        'n_trials': len(data_sorted),
+        'n_trials': n,
         'conditions': conditions,
         'gen_boundaries': compute_gen_boundaries(data_sorted) if SHOW_GEN_BOUNDARIES else [],
     }
 
 
 def _palette(n):
-    """n visually distinct colors (matches plot_sliding_window_results)."""
+    """n visually distinct colors."""
     import matplotlib.pyplot as plt
     if n <= 10:
         return [plt.cm.tab10(i / 10) for i in range(n)]
@@ -170,41 +161,27 @@ def _palette(n):
 
 
 def _plot_session_into_ax(ax, result):
-    """Draw one session's effect-over-time small multiple into ``ax``."""
+    """Draw one session's effect-over-time small multiple into ``ax``.
+
+    Each condition is a differently colored line; each dot is one estim trial at
+    the position it occurred. No legend (colors just distinguish conditions).
+    """
     conditions = result['conditions']
-
-    if not conditions:
-        msg = ("too few trials\n(< window)" if result['n_trials'] < WINDOW_SIZE
-               else "no conditions")
-        ax.text(0.5, 0.5, msg, transform=ax.transAxes, ha='center', va='center',
-                fontsize=7, color='gray')
-        ax.set_title(f"{result['session_id']}  (n={result['n_trials']})", fontsize=8)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        return
-
     for cond, color in zip(conditions, _palette(len(conditions))):
-        ax.plot(cond['x'], cond['y'], color=color, marker='o', markersize=2,
-                linewidth=1.0, label=cond['label'])
+        ax.plot(cond['x'], cond['y'], color=color, marker='o', markersize=3,
+                linewidth=1.0, alpha=0.9)
 
     ax.axhline(0, color='black', linestyle='--', linewidth=0.8, alpha=0.5)
-
-    for trial_num, gen_id in result['gen_boundaries']:
+    for trial_num, _gen_id in result['gen_boundaries']:
         ax.axvline(trial_num, color='gray', linestyle=':', linewidth=0.7, alpha=0.5)
 
-    ax.set_title(f"{result['session_id']}  (n={result['n_trials']})", fontsize=8)
-    ax.set_xlabel('Trial (window center)', fontsize=6)
-    ax.set_ylabel('Effect (pp)', fontsize=6)
-    ax.tick_params(labelsize=5)
+    ax.set_title(f"{result['session_id']}  (n={result['n_trials']})", fontsize=9)
+    ax.set_xlabel('Trial (session order)', fontsize=7)
+    ax.set_ylabel('Effect (pp)', fontsize=7)
+    ax.tick_params(labelsize=6)
     ax.grid(True, alpha=0.25)
     if Y_LIM is not None:
         ax.set_ylim(*Y_LIM)
-
-    if SHOW_LEGEND:
-        ncol = 1 if len(conditions) <= 6 else 2
-        ax.legend(fontsize=5, loc='center left', bbox_to_anchor=(1.005, 0.5),
-                  framealpha=0.7, handlelength=1.4, borderpad=0.3,
-                  labelspacing=0.3, ncol=ncol)
 
 
 def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAGE):
@@ -225,7 +202,7 @@ def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAG
     per_page = cols * rows_per_page
     pages = [session_results[i:i + per_page] for i in range(0, len(session_results), per_page)]
     subtitle = (f"algorithm_label={ALGORITHM_LABEL}  |  metric={METRIC}  |  "
-                f"window={WINDOW_SIZE}, step={STEP_SIZE}  |  {len(session_results)} sessions")
+                f"window={WINDOW_SIZE}  |  {len(session_results)} sessions")
 
     with PdfPages(path) as pdf:
         for pi, page in enumerate(pages):
@@ -241,8 +218,7 @@ def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAG
 
             fig.suptitle(f"EStim Effect Over Time — {subtitle}\n(page {pi + 1}/{len(pages)})",
                          fontsize=9, fontweight='bold')
-            # Leave room on the right for the per-panel legends.
-            fig.tight_layout(rect=[0, 0, 0.80, 0.94])
+            fig.tight_layout(rect=[0, 0, 1, 0.94])
             pdf.savefig(fig)
             plt.close(fig)
 
@@ -251,14 +227,14 @@ def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAG
 
 def main():
     session_ids = _get_session_ids()
-    print(f"Sessions to plot: {session_ids}")
+    print(f"Sessions to consider: {session_ids}")
 
     results = []
     for sid in session_ids:
         print(f"  computing {sid} ...")
         result = build_session_result(sid)
         if result is None:
-            print(f"    [{sid}] no data, skipping")
+            print(f"    [{sid}] skipped (fewer than {MIN_SESSION_TRIALS} trials or no conditions)")
             continue
         results.append(result)
 
