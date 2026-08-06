@@ -52,6 +52,8 @@ EXCLUDE_SESSION_IDS = []            # e.g. ["260421_0", "260410_0"]
 
 WINDOW_SIZE = 100                   # trials in the window centered on each estim trial
 MIN_SESSION_TRIALS = WINDOW_SIZE    # skip sessions with fewer trials than this
+MIN_ESTIM_TRIALS_FOR_EXTREME = 5    # a condition needs >= this many estim-on trials
+                                    # to be eligible as the most positive / negative
 
 COLS = 1                            # plots per row
 ROWS_PER_PAGE = 5                   # -> 5 sessions stacked per page
@@ -152,6 +154,7 @@ def build_session_result(session_id):
             'behavioral': group['behavioral_conditions'],
             'estim': group['estim_conditions'],
             'spec': group['estim_conditions'].get('estim_spec_id'),
+            'n_estim_trials': len(estim_trial_idxs),
             'full_effect': full_effect_by_key.get(key),
         })
 
@@ -167,8 +170,11 @@ def build_session_result(session_id):
     for c in conditions:
         c['label'] = format_condition_label(c['behavioral'], c['estim'], varying)
 
-    # Tag the most positive / most negative condition by full-session effect.
-    ranked = [(i, c['full_effect']) for i, c in enumerate(conditions) if c['full_effect'] is not None]
+    # Tag the most positive / most negative condition by full-session effect, among
+    # conditions with enough estim-on trials to be trustworthy.
+    ranked = [(i, c['full_effect']) for i, c in enumerate(conditions)
+              if c['full_effect'] is not None
+              and c['n_estim_trials'] >= MIN_ESTIM_TRIALS_FOR_EXTREME]
     if ranked:
         i_pos = max(ranked, key=lambda t: t[1])[0]
         i_neg = min(ranked, key=lambda t: t[1])[0]
