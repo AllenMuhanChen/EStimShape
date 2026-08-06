@@ -31,6 +31,8 @@ lexicographic ``>=`` comparison acts as a start date).
 """
 
 import json
+import math
+import os
 
 import pandas as pd
 from clat.util.connection import Connection
@@ -68,6 +70,11 @@ EXPAND_CONDITIONS = True
 
 # Optional path to also write the table as CSV. None = print only.
 OUTPUT_CSV = None
+
+# Optional path to write the table as a print-ready (landscape, multi-page) PDF.
+# None = don't make a PDF. Rendered with matplotlib, so no extra dependencies.
+OUTPUT_PDF = None
+PDF_SESSIONS_PER_PAGE = 18
 
 
 # ===========================================================================
@@ -189,6 +196,117 @@ def build_table():
     return pd.DataFrame(rows, columns=columns)
 
 
+def _fmt_cell(v, dec=None):
+    """Format a DataFrame value for a table cell; blank for missing."""
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return ''
+    if dec is not None:
+        try:
+            return f"{float(v):.{dec}f}"
+        except (TypeError, ValueError):
+            return str(v)
+    try:
+        f = float(v)
+        return str(int(f)) if f == int(f) else str(f)
+    except (TypeError, ValueError):
+        return str(v)
+
+
+def export_table_pdf(df, path, sessions_per_page=PDF_SESSIONS_PER_PAGE):
+    """Render the extremes table to a plain, print-ready landscape PDF.
+
+    One row per extreme, sessions kept together (session_id shown once per pair,
+    faint alternating shading to separate sessions), split across as many
+    landscape Letter pages as needed. Uses matplotlib only.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_pdf import PdfPages
+
+    header = ['Session', 'Extreme', 'Condition', 'Effect (pp)',
+              'ON #Hyp', 'ON #Delta', 'OFF #Hyp', 'OFF #Delta',
+              '%Hyp ON', '%Hyp OFF', 'n ON', 'n OFF']
+    col_widths = [0.055, 0.07, 0.38, 0.05,
+                  0.048, 0.052, 0.048, 0.052,
+                  0.048, 0.052, 0.035, 0.035]
+    left_align_cols = {1, 2}  # Extreme, Condition read better left-aligned
+
+    # Group rows into (most_positive, most_negative) pairs, preserving order.
+    order, groups = [], {}
+    for _, r in df.iterrows():
+        sid = r['session_id']
+        if sid not in groups:
+            groups[sid] = {}
+            order.append(sid)
+        groups[sid][r['extreme']] = r
+
+    pages = [order[i:i + sessions_per_page] for i in range(0, len(order), sessions_per_page)]
+
+    out_dir = os.path.dirname(path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+
+    subtitle = (f"algorithm_label={ALGORITHM_LABEL}  ·  metric={METRIC}  ·  "
+                f"min_trials={MIN_TRIALS}  ·  {len(order)} sessions")
+
+    with PdfPages(path) as pdf:
+        for pi, page_sids in enumerate(pages):
+            fig = plt.figure(figsize=(11, 8.5))  # Letter, landscape
+            ax = fig.add_axes([0.02, 0.03, 0.96, 0.88])
+            ax.axis('off')
+
+            fig.text(0.02, 0.965, 'EStim Effects — Per-Session Extremes',
+                     fontsize=13, fontweight='bold')
+            fig.text(0.02, 0.945, subtitle, fontsize=8, color='#555')
+            fig.text(0.98, 0.965, f'Page {pi + 1}/{len(pages)}',
+                     ha='right', fontsize=8, color='#555')
+
+            cell_text, row_shade = [], []
+            for si, sid in enumerate(page_sids):
+                for ki, kind in enumerate(('most_positive', 'most_negative')):
+                    r = groups[sid].get(kind)
+                    if r is None:
+                        continue
+                    cell_text.append([
+                        sid if ki == 0 else '',
+                        'most positive' if kind == 'most_positive' else 'most negative',
+                        _fmt_cell(r['condition']),
+                        f"{float(r['effect_size']):+.1f}",
+                        _fmt_cell(r['estim_on_hyp']), _fmt_cell(r['estim_on_delta']),
+                        _fmt_cell(r['estim_off_hyp']), _fmt_cell(r['estim_off_delta']),
+                        _fmt_cell(r['estim_on_pct'], 1), _fmt_cell(r['estim_off_pct'], 1),
+                        _fmt_cell(r['estim_on_n']), _fmt_cell(r['estim_off_n']),
+                    ])
+                    row_shade.append(si % 2 == 1)
+
+            table = ax.table(cellText=cell_text, colLabels=header,
+                             colWidths=col_widths, cellLoc='center', loc='upper center')
+            table.auto_set_font_size(False)
+            table.set_fontsize(6.5)
+            table.scale(1, 1.3)
+
+            for (row, col), cell in table.get_celld().items():
+                cell.set_edgecolor('#cccccc')
+                cell.set_linewidth(0.4)
+                if row == 0:  # header
+                    cell.set_facecolor('#33475b')
+                    cell.set_text_props(color='white', fontweight='bold')
+                    continue
+                if row_shade[row - 1]:
+                    cell.set_facecolor('#f2f2f2')
+                if col in left_align_cols:
+                    cell._loc = 'left'
+                    cell.get_text().set_ha('left')
+                    cell.PAD = 0.03
+                if col == 2:  # condition: smaller monospace so long labels fit
+                    cell.get_text().set_fontsize(5.0)
+                    cell.get_text().set_fontfamily('monospace')
+
+            pdf.savefig(fig)
+            plt.close(fig)
+
+    print(f"Saved PDF to {path}")
+
+
 def main():
     df = build_table()
 
@@ -209,6 +327,9 @@ def main():
     if OUTPUT_CSV:
         df.to_csv(OUTPUT_CSV, index=False)
         print(f"\nSaved table to {OUTPUT_CSV}")
+
+    if OUTPUT_PDF:
+        export_table_pdf(df, OUTPUT_PDF)
 
 
 if __name__ == '__main__':
