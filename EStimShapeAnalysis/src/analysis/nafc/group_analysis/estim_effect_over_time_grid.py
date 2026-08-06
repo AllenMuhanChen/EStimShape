@@ -61,7 +61,7 @@ ROWS_PER_PAGE = 5                   # -> 5 sessions stacked per page
 PAGE_SIZE_INCHES = (8.5, 11.0)
 
 SHOW_GEN_BOUNDARIES = True
-Y_LIM = None                        # e.g. (-75, 75) for a shared y-axis; None = autoscale
+Y_LIM = (-100, 100)                 # shared y-axis on every panel; set None to autoscale
 
 OUTPUT_PDF = '/home/connorlab/Documents/plots/across_experiments/estim_effect_over_time_grid.pdf'
 
