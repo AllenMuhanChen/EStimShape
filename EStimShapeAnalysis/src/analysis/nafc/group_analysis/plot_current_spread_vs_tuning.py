@@ -1696,6 +1696,173 @@ def main_corr_in_half_distance_heatmap():
     )
 
 
+# ===========================================================================
+# Unified single-Y spec metrics — ONE place to choose the Y-axis metric(s).
+#
+# To plot a different Y metric: edit Y_METRIC_SELECTION below (or pass y_metrics=
+# to run_spec_metrics). Every selected metric is built from one shared table and
+# saved to its OWN file ("<key>_<scatter|heatmap>_vs_<xmetric>.png"), so listing
+# several generates several figures in one run without overwriting.
+# ===========================================================================
+
+# key -> (dataframe column, y-axis label). Add a row to expose a new single-Y metric.
+Y_METRICS = {
+    'half_distance': (HALFDIST_COL, 'corr half-distance (µm)'),
+    'corr_in_half': (CORRINHALF_COL, 'mean corr within half-distance'),
+    'symmetry': (SYM_COL, 'corr symmetry offset (µm)  — 0 = centred'),
+}
+_Y_METRIC_TITLES = {
+    'half_distance': 'How far high correlation spreads vs current',
+    'corr_in_half': 'Correlation strength within its half-distance vs current',
+    'symmetry': 'Tuning-region symmetry (centroid offset) vs current',
+}
+# Which Y metric(s) to plot. Each is saved to its own file.
+Y_METRIC_SELECTION = ('half_distance', 'corr_in_half', 'symmetry')
+
+
+def compute_session_spec_metrics(session_id, *, exclude_other_estim=True,
+                                 far_fraction=DEFAULT_FAR_FRACTION,
+                                 near_bins=DEFAULT_NEAR_BINS, bin_agg=DEFAULT_BIN_AGG,
+                                 smoothing=DEFAULT_SMOOTHING,
+                                 geometry_correct=DEFAULT_SYM_GEOMETRY_CORRECT,
+                                 min_side_channels=DEFAULT_SYM_MIN_SIDE):
+    """{estim_spec_id: {HALFDIST_COL, SYM_COL, CORRINHALF_COL}} for one session —
+    every single-Y spec metric in one pass (they share the correlation matrix and
+    the half-distance, so computing them together is far cheaper than separately)."""
+    metrics, channels_with_data, coords = prepare_session_metrics(session_id)
+    if metrics is None:
+        return {}
+    corr_metric = next((m for m in metrics if m.name == CORR_METRIC_NAME), None)
+    if corr_metric is None:
+        print(f"  {session_id}: no '{CORR_METRIC_NAME}' metric available; skipping")
+        return {}
+    pitch = _probe_pitch(coords)
+    estim_by_spec = fetch_active_estim_channels_by_spec(session_id)
+    out = {}
+    for spec_id, estim_channels in estim_by_spec.items():
+        hd = _half_distance_for_spec(
+            corr_metric, estim_channels, channels_with_data, coords,
+            exclude_other_estim=exclude_other_estim, pitch=pitch,
+            far_fraction=far_fraction, near_bins=near_bins,
+            bin_agg=bin_agg, smoothing=smoothing)
+        sym = _symmetry_offset_for_spec(
+            corr_metric, estim_channels, channels_with_data, coords, hd,
+            exclude_other_estim=exclude_other_estim,
+            geometry_correct=geometry_correct, min_side_channels=min_side_channels)
+        cih = _mean_corr_within_for_spec(
+            corr_metric, estim_channels, channels_with_data, coords, hd,
+            exclude_other_estim=exclude_other_estim, agg=bin_agg)
+        out[int(spec_id)] = {HALFDIST_COL: hd, SYM_COL: sym, CORRINHALF_COL: cih}
+    return out
+
+
+def build_spec_metric_table(trial_types, *, start_session_id=None,
+                            exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
+                            base_required_conditions=None, exclude_other_estim=True,
+                            min_on_trials=COMPARISON_MIN_ON_TRIALS):
+    """Per-(session, estim_spec, trial_type) table with current, effect, and every
+    single-Y spec metric (half-distance, symmetry, corr-in-half)."""
+    frames = []
+    for tt in trial_types:
+        rc = _rc_for_trial_type(base_required_conditions, tt)
+        print(f"\n--- current/spec membership for trial_type={tt!r} ---")
+        df_tt = _effect_and_current_table(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=effect_metric, required_conditions=rc)
+        if len(df_tt) == 0:
+            print(f"  (no specs for trial_type={tt!r})")
+            continue
+        df_tt = df_tt[df_tt['n_on'] >= min_on_trials].copy()
+        df_tt['trial_type'] = tt
+        frames.append(df_tt)
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    _attach_estim_metrics(df)
+
+    by_session = {}
+    for sid in sorted(df['session_id'].unique().tolist()):
+        print(f"\n=== spec metrics for session {sid} ===")
+        by_session[sid] = compute_session_spec_metrics(
+            sid, exclude_other_estim=exclude_other_estim)
+    for col in (HALFDIST_COL, SYM_COL, CORRINHALF_COL):
+        df[col] = [
+            (by_session.get(s, {}).get(int(spec), {}) or {}).get(col)
+            for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    return df
+
+
+def run_spec_metrics(trial_types=None, *, y_metrics=Y_METRIC_SELECTION, heatmap=False,
+                     start_session_id=None, exclude_session_ids=None,
+                     effect_metric=COMPARISON_METRIC, base_required_conditions=None,
+                     exclude_other_estim=True, min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                     aggregate_by='spec', by_polarity=True, mode=DEFAULT_HEATMAP_MODE,
+                     bandwidth=DEFAULT_HEATMAP_BW, save_dir=None):
+    """Build the spec-metric table ONCE, then plot each Y metric in `y_metrics` to
+    its own file — scatter, or smoothed effect heatmap when heatmap=True."""
+    if isinstance(y_metrics, str):
+        y_metrics = (y_metrics,)
+    unknown = [k for k in y_metrics if k not in Y_METRICS]
+    if unknown:
+        raise ValueError(f"unknown y_metrics {unknown}; choose from {list(Y_METRICS)}")
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"[config] SPEC METRICS vs CURRENT  y_metrics={list(y_metrics)}  "
+          f"heatmap={heatmap}  trial_types={trial_types}  point={aggregate_by}  "
+          f"by_polarity={by_polarity}")
+
+    df = build_spec_metric_table(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+        base_required_conditions=base_required_conditions,
+        exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials)
+    if len(df) == 0:
+        print("Nothing to plot.")
+        return df, pd.DataFrame()
+
+    cols = [Y_METRICS[k][0] for k in y_metrics]
+    points = build_points(df, list(dict.fromkeys(cols + [HALFDIST_COL])), aggregate_by)
+    kind = 'heatmap' if heatmap else 'scatter'
+    for key in y_metrics:
+        col, label = Y_METRICS[key]
+        title = _Y_METRIC_TITLES.get(key, label)
+        out_path = (os.path.join(save_dir, f"{key}_{kind}_vs_{_slug(X_COLUMN)}.png")
+                    if save_dir else None)
+        print(f"\n### y-metric '{key}' ({kind}) ###")
+        if heatmap:
+            plot_effect_heatmap_by_trialtype(
+                points, col, y_label=label, title=title, trial_types=trial_types,
+                by_polarity=by_polarity, mode=mode, bandwidth=bandwidth,
+                point_noun=aggregate_by, output_path=out_path)
+        else:
+            plot_metric_vs_current_by_trialtype(
+                points, col, y_label=label, title=title, trial_types=trial_types,
+                by_polarity=by_polarity, point_noun=aggregate_by, output_path=out_path)
+    return df, points
+
+
+def main_spec_metrics():
+    """Scatter (effect-coloured) of each Y metric in Y_METRIC_SELECTION vs current."""
+    run_spec_metrics(
+        trial_types=(COMPARISON_TRIAL_TYPES or None), y_metrics=Y_METRIC_SELECTION,
+        heatmap=False, start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS, effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS, aggregate_by='spec',
+        save_dir=COMPARISON_SAVE_DIR)
+
+
+def main_spec_metrics_heatmap():
+    """Gaussian-smoothed effect field for each Y metric in Y_METRIC_SELECTION."""
+    run_spec_metrics(
+        trial_types=(COMPARISON_TRIAL_TYPES or None), y_metrics=Y_METRIC_SELECTION,
+        heatmap=True, start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS, effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS, aggregate_by='spec',
+        save_dir=COMPARISON_SAVE_DIR)
+
+
 def main():
     """Current-spread-vs-tuning grid, one figure per trial type, using the shared
     COMPARISON_* config."""
@@ -1730,9 +1897,14 @@ if __name__ == '__main__':
     #                                    symmetry offset
     #   - main_corr_in_half_distance() / _heatmap() -> correlation strength within
     #                                    the half-distance vs current
-    main_corr_in_half_distance_heatmap()
-    # main_corr_in_half_distance()
-    # main_symmetry()
+    #
+    # PREFERRED entry — one table, one file per Y metric in Y_METRIC_SELECTION
+    # (edit that tuple / the Y_METRICS registry to choose the y-axis metric):
+    #   - main_spec_metrics_heatmap() -> smoothed effect field per selected metric
+    #   - main_spec_metrics()         -> effect-coloured scatter per selected metric
+    main_spec_metrics_heatmap()
+    # main_spec_metrics()
+    # main_corr_in_half_distance_heatmap()
     # main_symmetry_heatmap()
     # main_half_distance_heatmap()
     # main_half_distance()
