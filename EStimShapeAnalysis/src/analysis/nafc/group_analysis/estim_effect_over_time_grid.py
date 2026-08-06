@@ -151,6 +151,7 @@ def build_session_result(session_id):
             'x': xs, 'y': ys,
             'behavioral': group['behavioral_conditions'],
             'estim': group['estim_conditions'],
+            'spec': group['estim_conditions'].get('estim_spec_id'),
             'full_effect': full_effect_by_key.get(key),
         })
 
@@ -177,37 +178,59 @@ def build_session_result(session_id):
             conditions[i_pos]['extreme'] = 'pos'
             conditions[i_neg]['extreme'] = 'neg'
 
+    n_estim = int((data_sorted['is_estim_on'] == 1).sum())
+    n_off = int((data_sorted['is_estim_on'] == 0).sum())
+
     return {
         'session_id': session_id,
         'n_trials': n,
+        'n_estim': n_estim,
+        'n_off': n_off,
         'conditions': conditions,
         'gen_boundaries': compute_gen_boundaries(data_sorted) if SHOW_GEN_BOUNDARIES else [],
     }
 
 
-def _palette(n):
-    """n visually distinct colors."""
+def _build_spec_colors(session_results):
+    """Stable color per estim_spec_id across ALL sessions, so a given spec is the
+    same color in every panel (and the palette never switches with condition count).
+    Assigned in sorted spec order from a fixed 20-color qualitative set, cycling if
+    there are more than 20 specs."""
     import matplotlib.pyplot as plt
-    if n <= 10:
-        return [plt.cm.tab10(i / 10) for i in range(n)]
-    if n <= 20:
-        return [plt.cm.tab20(i / 20) for i in range(n)]
-    return [plt.cm.hsv(i / n) for i in range(n)]
+    specs = sorted({c['spec'] for r in session_results for c in r['conditions']
+                    if c.get('spec') is not None})
+    base = [plt.cm.tab20(i / 20) for i in range(20)]
+    return {s: base[i % len(base)] for i, s in enumerate(specs)}
 
 
-def _plot_session_into_ax(ax, result):
+def _plot_session_into_ax(ax, result, spec_colors):
     """Draw one session's effect-over-time small multiple into ``ax``.
 
-    Each condition is a differently colored line; each dot is one estim trial at
-    the position it occurred. No legend (colors just distinguish conditions).
+    Color encodes estim_spec_id (stable across panels); line style disambiguates
+    conditions that share a spec but differ in behavioral condition. Each dot is one
+    estim trial at the position it occurred. The most-positive and most-negative
+    conditions are emphasized and named in a small legend.
     """
     conditions = result['conditions']
+
+    # Within-session line style per behavioral combo, so two conditions with the
+    # same spec (hence same color) are still distinguishable.
+    _styles = ['-', '--', ':', '-.']
+    _combo_style = {}
+
+    def style_for(cond):
+        combo = json.dumps(cond.get('behavioral', {}), sort_keys=True, cls=_NumpyEncoder)
+        if combo not in _combo_style:
+            _combo_style[combo] = _styles[len(_combo_style) % len(_styles)]
+        return _combo_style[combo]
+
     pos_handle = neg_handle = None
-    for cond, color in zip(conditions, _palette(len(conditions))):
+    for cond in conditions:
+        color = spec_colors.get(cond.get('spec'), 'gray')
         ex = cond.get('extreme')
         emphasized = ex in ('pos', 'neg', 'only')
-        line, = ax.plot(cond['x'], cond['y'], color=color, marker='o',
-                        markersize=4 if emphasized else 2.5,
+        line, = ax.plot(cond['x'], cond['y'], color=color, linestyle=style_for(cond),
+                        marker='o', markersize=4 if emphasized else 2.5,
                         linewidth=2.0 if emphasized else 0.9,
                         alpha=0.95 if emphasized else 0.55,
                         zorder=4 if emphasized else 2)
@@ -226,7 +249,9 @@ def _plot_session_into_ax(ax, result):
     for trial_num, _gen_id in result['gen_boundaries']:
         ax.axvline(trial_num, color='gray', linestyle=':', linewidth=0.7, alpha=0.5)
 
-    ax.set_title(f"{result['session_id']}  (n={result['n_trials']})", fontsize=9)
+    ax.set_title(f"{result['session_id']}  "
+                 f"(n={result['n_trials']}: {result['n_estim']} estim / {result['n_off']} off)",
+                 fontsize=9)
     ax.set_xlabel('Trial (session order)', fontsize=7)
     ax.set_ylabel('Effect (pp)', fontsize=7)
     ax.tick_params(labelsize=6)
@@ -258,6 +283,7 @@ def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAG
 
     per_page = cols * rows_per_page
     pages = [session_results[i:i + per_page] for i in range(0, len(session_results), per_page)]
+    spec_colors = _build_spec_colors(session_results)
     subtitle = (f"algorithm_label={ALGORITHM_LABEL}  |  metric={METRIC}  |  "
                 f"window={WINDOW_SIZE}  |  {len(session_results)} sessions")
 
@@ -269,7 +295,7 @@ def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAG
             for slot in range(per_page):
                 ax = axes[slot // cols][slot % cols]
                 if slot < len(page):
-                    _plot_session_into_ax(ax, page[slot])
+                    _plot_session_into_ax(ax, page[slot], spec_colors)
                 else:
                     ax.axis('off')
 
