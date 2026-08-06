@@ -51,13 +51,13 @@ EXCLUDE_SESSION_IDS = []            # e.g. ["260421_0", "260410_0"]
 WINDOW_SIZE = 100                   # trials per sliding window
 STEP_SIZE = 10                      # window step (trials)
 
-COLS = 5                            # sessions per row
-ROWS_PER_PAGE = 1                   # -> 5 sessions per page
+COLS = 1                            # plots per row
+ROWS_PER_PAGE = 5                   # -> 5 sessions stacked per page
 
-# Physical page size in inches. Default is US Letter, landscape. Each page is a
-# real sheet of this size (subplots are laid out to fill it), so it prints 1:1.
-# For A4 landscape use (11.69, 8.27); for portrait, swap the two numbers.
-PAGE_SIZE_INCHES = (11.0, 8.5)
+# Physical page size in inches. Default is US Letter, portrait, so five full-width
+# time-series panels stack cleanly down the page and it prints 1:1. For A4 use
+# (8.27, 11.69); for landscape, swap the two numbers.
+PAGE_SIZE_INCHES = (8.5, 11.0)
 
 SHOW_GEN_BOUNDARIES = True
 SHOW_LEGEND = True                  # per-subplot condition legend (tiny font)
@@ -201,8 +201,10 @@ def _plot_session_into_ax(ax, result):
         ax.set_ylim(*Y_LIM)
 
     if SHOW_LEGEND:
-        ax.legend(fontsize=3.5, loc='best', framealpha=0.7,
-                  handlelength=1.2, borderpad=0.3, labelspacing=0.25)
+        ncol = 1 if len(conditions) <= 6 else 2
+        ax.legend(fontsize=5, loc='center left', bbox_to_anchor=(1.005, 0.5),
+                  framealpha=0.7, handlelength=1.4, borderpad=0.3,
+                  labelspacing=0.3, ncol=ncol)
 
 
 def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAGE):
@@ -237,9 +239,10 @@ def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAG
                 else:
                     ax.axis('off')
 
-            fig.suptitle(f"EStim Effect Over Time — {subtitle}      (page {pi + 1}/{len(pages)})",
-                         fontsize=10, fontweight='bold')
-            fig.tight_layout(rect=[0, 0, 1, 0.93])
+            fig.suptitle(f"EStim Effect Over Time — {subtitle}\n(page {pi + 1}/{len(pages)})",
+                         fontsize=9, fontweight='bold')
+            # Leave room on the right for the per-panel legends.
+            fig.tight_layout(rect=[0, 0, 0.80, 0.94])
             pdf.savefig(fig)
             plt.close(fig)
 
