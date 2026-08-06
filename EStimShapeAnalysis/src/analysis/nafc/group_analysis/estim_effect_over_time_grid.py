@@ -191,58 +191,50 @@ def build_session_result(session_id):
     }
 
 
-def _build_spec_colors(session_results):
-    """Stable color per estim_spec_id across ALL sessions, so a given spec is the
-    same color in every panel (and the palette never switches with condition count).
-    Assigned in sorted spec order from a fixed 20-color qualitative set, cycling if
-    there are more than 20 specs."""
-    import matplotlib.pyplot as plt
-    specs = sorted({c['spec'] for r in session_results for c in r['conditions']
-                    if c.get('spec') is not None})
-    base = [plt.cm.tab20(i / 20) for i in range(20)]
-    return {s: base[i % len(base)] for i, s in enumerate(specs)}
+# Fixed-meaning colors: the most-positive condition is green, the most-negative is
+# red, and every other condition is a muted low-alpha gray so the two extremes read
+# instantly. A few gray shades keep overlapping background lines distinguishable.
+_POS_COLOR = '#2ca02c'   # green
+_NEG_COLOR = '#d62728'   # red
+_GRAYS = ['0.45', '0.55', '0.65', '0.72']
 
 
-def _plot_session_into_ax(ax, result, spec_colors):
+def _plot_session_into_ax(ax, result):
     """Draw one session's effect-over-time small multiple into ``ax``.
 
-    Color encodes estim_spec_id (stable across panels); line style disambiguates
-    conditions that share a spec but differ in behavioral condition. Each dot is one
-    estim trial at the position it occurred. The most-positive and most-negative
-    conditions are emphasized and named in a small legend.
+    Most-positive condition = green, most-negative = red, all others = muted gray.
+    Each dot is one estim trial at the position it occurred; a small legend names the
+    two extremes with their full-session effect.
     """
     conditions = result['conditions']
 
-    # Within-session line style per behavioral combo, so two conditions with the
-    # same spec (hence same color) are still distinguishable.
-    _styles = ['-', '--', ':', '-.']
-    _combo_style = {}
-
-    def style_for(cond):
-        combo = json.dumps(cond.get('behavioral', {}), sort_keys=True, cls=_NumpyEncoder)
-        if combo not in _combo_style:
-            _combo_style[combo] = _styles[len(_combo_style) % len(_styles)]
-        return _combo_style[combo]
+    # Draw the muted background conditions first so green/red sit on top.
+    gray_i = 0
+    for cond in conditions:
+        if cond.get('extreme') in ('pos', 'neg', 'only'):
+            continue
+        gray = _GRAYS[gray_i % len(_GRAYS)]
+        gray_i += 1
+        ax.plot(cond['x'], cond['y'], color=gray, marker='o', markersize=2,
+                linewidth=0.8, alpha=0.35, zorder=2)
 
     pos_handle = neg_handle = None
     for cond in conditions:
-        color = spec_colors.get(cond.get('spec'), 'gray')
         ex = cond.get('extreme')
-        emphasized = ex in ('pos', 'neg', 'only')
-        line, = ax.plot(cond['x'], cond['y'], color=color, linestyle=style_for(cond),
-                        marker='o', markersize=4 if emphasized else 2.5,
-                        linewidth=2.0 if emphasized else 0.9,
-                        alpha=0.95 if emphasized else 0.55,
-                        zorder=4 if emphasized else 2)
+        if ex not in ('pos', 'neg', 'only'):
+            continue
         eff = cond.get('full_effect')
-        if ex == 'pos':
-            line.set_label(f"▲ most + ({eff:+.0f} pp): {cond['label']}")
-            pos_handle = line
-        elif ex == 'neg':
-            line.set_label(f"▼ most − ({eff:+.0f} pp): {cond['label']}")
-            neg_handle = line
+        if ex == 'neg':
+            color, label = _NEG_COLOR, f"▼ most − ({eff:+.0f} pp): {cond['label']}"
         elif ex == 'only':
-            line.set_label(f"only cond ({eff:+.0f} pp): {cond['label']}")
+            color, label = _POS_COLOR, f"only cond ({eff:+.0f} pp): {cond['label']}"
+        else:
+            color, label = _POS_COLOR, f"▲ most + ({eff:+.0f} pp): {cond['label']}"
+        line, = ax.plot(cond['x'], cond['y'], color=color, marker='o', markersize=4,
+                        linewidth=2.2, alpha=0.95, zorder=5, label=label)
+        if ex == 'neg':
+            neg_handle = line
+        else:
             pos_handle = line
 
     ax.axhline(0, color='black', linestyle='--', linewidth=0.8, alpha=0.5)
@@ -283,7 +275,6 @@ def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAG
 
     per_page = cols * rows_per_page
     pages = [session_results[i:i + per_page] for i in range(0, len(session_results), per_page)]
-    spec_colors = _build_spec_colors(session_results)
     subtitle = (f"algorithm_label={ALGORITHM_LABEL}  |  metric={METRIC}  |  "
                 f"window={WINDOW_SIZE}  |  {len(session_results)} sessions")
 
@@ -295,7 +286,7 @@ def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAG
             for slot in range(per_page):
                 ax = axes[slot // cols][slot % cols]
                 if slot < len(page):
-                    _plot_session_into_ax(ax, page[slot], spec_colors)
+                    _plot_session_into_ax(ax, page[slot])
                 else:
                     ax.axis('off')
 
