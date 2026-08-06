@@ -1507,6 +1507,195 @@ def main_symmetry_heatmap():
     )
 
 
+# ---------------------------------------------------------------------------
+# Correlation strength WITHIN the half-distance: how high is the correlation in
+# the region we call "correlated"?
+#
+# Half-distance says how FAR correlation reaches; this says how STRONG it is
+# inside that reach. For each spec we take the (median) rho over channels within
+# its own corr half-distance radius of the estim site. A region can be
+# wide-but-weak or narrow-but-strong, so this disentangles the two.
+# ---------------------------------------------------------------------------
+
+CORRINHALF_COL = 'corr_in_half_distance'
+
+
+def _mean_corr_within_for_spec(corr_metric, estim_channels, channels_with_data,
+                               coords, radius, *, exclude_other_estim=True,
+                               agg=DEFAULT_BIN_AGG):
+    """(median/mean) rho over channels within `radius` µm of the spec's estim
+    channels, or None. `radius` is the spec's corr half-distance."""
+    if radius is None or radius <= 0:
+        return None
+    est_present = [e for e in estim_channels if e in channels_with_data]
+    if not est_present:
+        return None
+    exclude = set(estim_channels) if exclude_other_estim else set()
+    est_set = set(est_present)
+    vals = []
+    for e in est_present:
+        e_str = channel_to_str(e)
+        e_xy = coords[e]
+        for c in channels_with_data:
+            if c in exclude or c in est_set:
+                continue
+            if float(np.linalg.norm(coords[c] - e_xy)) > radius:
+                continue
+            r = corr_metric.pair_similarity(e_str, channel_to_str(c))
+            if r is not None and np.isfinite(r):
+                vals.append(float(r))
+    if not vals:
+        return None
+    return float(np.median(vals) if agg == 'median' else np.mean(vals))
+
+
+def compute_session_corr_in_half_distance(session_id, *, exclude_other_estim=True,
+                                          far_fraction=DEFAULT_FAR_FRACTION,
+                                          near_bins=DEFAULT_NEAR_BINS,
+                                          bin_agg=DEFAULT_BIN_AGG,
+                                          smoothing=DEFAULT_SMOOTHING):
+    """{estim_spec_id: {HALFDIST_COL, CORRINHALF_COL}} for one session. The
+    half-distance sets the radius, so both are computed in one pass."""
+    metrics, channels_with_data, coords = prepare_session_metrics(session_id)
+    if metrics is None:
+        return {}
+    corr_metric = next((m for m in metrics if m.name == CORR_METRIC_NAME), None)
+    if corr_metric is None:
+        print(f"  {session_id}: no '{CORR_METRIC_NAME}' metric available; skipping")
+        return {}
+    pitch = _probe_pitch(coords)
+    estim_by_spec = fetch_active_estim_channels_by_spec(session_id)
+    out = {}
+    for spec_id, estim_channels in estim_by_spec.items():
+        hd = _half_distance_for_spec(
+            corr_metric, estim_channels, channels_with_data, coords,
+            exclude_other_estim=exclude_other_estim, pitch=pitch,
+            far_fraction=far_fraction, near_bins=near_bins,
+            bin_agg=bin_agg, smoothing=smoothing)
+        ch = _mean_corr_within_for_spec(
+            corr_metric, estim_channels, channels_with_data, coords, hd,
+            exclude_other_estim=exclude_other_estim, agg=bin_agg)
+        out[int(spec_id)] = {HALFDIST_COL: hd, CORRINHALF_COL: ch}
+    return out
+
+
+def build_current_spread_corrinhalf_table(trial_types, *, start_session_id=None,
+                                          exclude_session_ids=None,
+                                          effect_metric=COMPARISON_METRIC,
+                                          base_required_conditions=None,
+                                          exclude_other_estim=True,
+                                          min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                                          far_fraction=DEFAULT_FAR_FRACTION,
+                                          near_bins=DEFAULT_NEAR_BINS,
+                                          bin_agg=DEFAULT_BIN_AGG,
+                                          smoothing=DEFAULT_SMOOTHING):
+    """Per-(session, estim_spec, trial_type) table with current, effect, the corr
+    half-distance, and the correlation strength within it. Returns the DataFrame."""
+    frames = []
+    for tt in trial_types:
+        rc = _rc_for_trial_type(base_required_conditions, tt)
+        print(f"\n--- current/spec membership for trial_type={tt!r} ---")
+        df_tt = _effect_and_current_table(
+            start_session_id=start_session_id, exclude_session_ids=exclude_session_ids,
+            metric=effect_metric, required_conditions=rc)
+        if len(df_tt) == 0:
+            print(f"  (no specs for trial_type={tt!r})")
+            continue
+        df_tt = df_tt[df_tt['n_on'] >= min_on_trials].copy()
+        df_tt['trial_type'] = tt
+        frames.append(df_tt)
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    _attach_estim_metrics(df)
+
+    by_session = {}
+    for sid in sorted(df['session_id'].unique().tolist()):
+        print(f"\n=== corr-within-half-distance for session {sid} ===")
+        by_session[sid] = compute_session_corr_in_half_distance(
+            sid, exclude_other_estim=exclude_other_estim, far_fraction=far_fraction,
+            near_bins=near_bins, bin_agg=bin_agg, smoothing=smoothing)
+
+    for col in (HALFDIST_COL, CORRINHALF_COL):
+        df[col] = [
+            (by_session.get(s, {}).get(int(spec), {}) or {}).get(col)
+            for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    n_scored = df[CORRINHALF_COL].notna().sum()
+    print(f"\nBuilt corr-in-half-distance table: {len(df)} specs across "
+          f"{df['session_id'].nunique()} sessions; {n_scored} scored")
+    return df
+
+
+def run_corr_in_half_distance(trial_types=None, *, start_session_id=None,
+                              exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
+                              base_required_conditions=None, exclude_other_estim=True,
+                              min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                              aggregate_by='spec', by_polarity=True,
+                              heatmap=False, mode=DEFAULT_HEATMAP_MODE,
+                              bandwidth=DEFAULT_HEATMAP_BW, save_dir=None):
+    """Correlation strength within the half-distance vs current, faceted by trial
+    type × polarity. heatmap=False -> effect-coloured scatter; True -> smoothed
+    effect field. Returns (df, points_df)."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"[config] CORR-IN-HALF-DISTANCE vs CURRENT  trial_types={trial_types}  "
+          f"effect_metric={effect_metric}  min_on={min_on_trials}  point={aggregate_by}  "
+          f"by_polarity={by_polarity}  heatmap={heatmap}")
+    df = build_current_spread_corrinhalf_table(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+        base_required_conditions=base_required_conditions,
+        exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials)
+    if len(df) == 0:
+        print("Nothing to plot.")
+        return df, pd.DataFrame()
+    points = build_points(df, [CORRINHALF_COL, HALFDIST_COL], aggregate_by)
+    y_label = 'mean corr within half-distance'
+    title = 'Correlation strength within its half-distance vs current'
+    kind = 'heatmap' if heatmap else 'scatter'
+    out_path = (os.path.join(save_dir, f"corr_in_halfdist_{kind}_vs_{_slug(X_COLUMN)}.png")
+                if save_dir else None)
+    if heatmap:
+        plot_effect_heatmap_by_trialtype(
+            points, CORRINHALF_COL, y_label=y_label, title=title,
+            trial_types=trial_types, by_polarity=by_polarity, mode=mode,
+            bandwidth=bandwidth, point_noun=aggregate_by, output_path=out_path)
+    else:
+        plot_metric_vs_current_by_trialtype(
+            points, CORRINHALF_COL, y_label=y_label, title=title,
+            trial_types=trial_types, by_polarity=by_polarity,
+            point_noun=aggregate_by, output_path=out_path)
+    return df, points
+
+
+def main_corr_in_half_distance():
+    """Correlation strength within its half-distance vs current (effect-coloured
+    scatter). Uses the shared COMPARISON_* config."""
+    run_corr_in_half_distance(
+        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        exclude_other_estim=True, min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        aggregate_by='spec', heatmap=False, save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
+def main_corr_in_half_distance_heatmap():
+    """Gaussian-smoothed effect field over current × correlation-within-half-distance.
+    Uses the shared COMPARISON_* config."""
+    run_corr_in_half_distance(
+        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        exclude_other_estim=True, min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        aggregate_by='spec', heatmap=True, save_dir=COMPARISON_SAVE_DIR,
+    )
+
+
 def main():
     """Current-spread-vs-tuning grid, one figure per trial type, using the shared
     COMPARISON_* config."""
@@ -1539,7 +1728,11 @@ if __name__ == '__main__':
     #                                    (scatter, effect-coloured)
     #   - main_symmetry_heatmap()     -> smoothed effect field over current ×
     #                                    symmetry offset
-    main_symmetry()
+    #   - main_corr_in_half_distance() / _heatmap() -> correlation strength within
+    #                                    the half-distance vs current
+    main_corr_in_half_distance_heatmap()
+    # main_corr_in_half_distance()
+    # main_symmetry()
     # main_symmetry_heatmap()
     # main_half_distance_heatmap()
     # main_half_distance()
