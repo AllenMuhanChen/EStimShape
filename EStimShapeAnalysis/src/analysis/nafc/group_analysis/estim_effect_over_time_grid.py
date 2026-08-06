@@ -54,6 +54,11 @@ STEP_SIZE = 10                      # window step (trials)
 COLS = 5                            # sessions per row
 ROWS_PER_PAGE = 1                   # -> 5 sessions per page
 
+# Physical page size in inches. Default is US Letter, landscape. Each page is a
+# real sheet of this size (subplots are laid out to fill it), so it prints 1:1.
+# For A4 landscape use (11.69, 8.27); for portrait, swap the two numbers.
+PAGE_SIZE_INCHES = (11.0, 8.5)
+
 SHOW_GEN_BOUNDARIES = True
 SHOW_LEGEND = True                  # per-subplot condition legend (tiny font)
 Y_LIM = None                        # e.g. (-75, 75) for a shared y-axis; None = autoscale
@@ -223,7 +228,7 @@ def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAG
     with PdfPages(path) as pdf:
         for pi, page in enumerate(pages):
             fig, axes = plt.subplots(rows_per_page, cols,
-                                     figsize=(cols * 3.6, rows_per_page * 3.4),
+                                     figsize=PAGE_SIZE_INCHES,
                                      squeeze=False)
             for slot in range(per_page):
                 ax = axes[slot // cols][slot % cols]
