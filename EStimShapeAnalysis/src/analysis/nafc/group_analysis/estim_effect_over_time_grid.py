@@ -35,6 +35,7 @@ from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
     _NumpyEncoder,
     calculate_estim_effects,
     compute_gen_boundaries,
+    format_condition_label,
     read_trial_data_from_repository,
     split_data_by_conditions,
 )
@@ -119,8 +120,17 @@ def build_session_result(session_id):
     data_sorted = data.sort_values('trial_start').reset_index(drop=True)
     n = len(data_sorted)
 
+    full_groups = split_data_by_conditions(data_sorted, behavioral, _DEFAULT_ESTIM_CONDITIONS)
+
+    # Full-session effect per condition — used to pick the most positive / most
+    # negative (same definition as the extremes table).
+    full_effect_by_key = {
+        json.dumps(res['conditions'], sort_keys=True, cls=_NumpyEncoder): res['effect_size']
+        for res in calculate_estim_effects(full_groups, metrics=(METRIC,))
+    }
+
     conditions = []
-    for group in split_data_by_conditions(data_sorted, behavioral, _DEFAULT_ESTIM_CONDITIONS):
+    for group in full_groups:
         cond = {**group['behavioral_conditions'], **group['estim_conditions']}
         key = json.dumps(cond, sort_keys=True, cls=_NumpyEncoder)
 
@@ -137,10 +147,35 @@ def build_session_result(session_id):
 
         if all(np.isnan(y) for y in ys):
             continue
-        conditions.append({'x': xs, 'y': ys})
+        conditions.append({
+            'x': xs, 'y': ys,
+            'behavioral': group['behavioral_conditions'],
+            'estim': group['estim_conditions'],
+            'full_effect': full_effect_by_key.get(key),
+        })
 
     if not conditions:
         return None
+
+    # Short label per condition: only the dimensions that vary across this session.
+    values_by_key = {}
+    for c in conditions:
+        for k, v in {**c['behavioral'], **c['estim']}.items():
+            values_by_key.setdefault(k, set()).add(str(v))
+    varying = [k for k, vs in values_by_key.items() if len(vs) > 1] or None
+    for c in conditions:
+        c['label'] = format_condition_label(c['behavioral'], c['estim'], varying)
+
+    # Tag the most positive / most negative condition by full-session effect.
+    ranked = [(i, c['full_effect']) for i, c in enumerate(conditions) if c['full_effect'] is not None]
+    if ranked:
+        i_pos = max(ranked, key=lambda t: t[1])[0]
+        i_neg = min(ranked, key=lambda t: t[1])[0]
+        if i_pos == i_neg:
+            conditions[i_pos]['extreme'] = 'only'
+        else:
+            conditions[i_pos]['extreme'] = 'pos'
+            conditions[i_neg]['extreme'] = 'neg'
 
     return {
         'session_id': session_id,
@@ -167,9 +202,25 @@ def _plot_session_into_ax(ax, result):
     the position it occurred. No legend (colors just distinguish conditions).
     """
     conditions = result['conditions']
+    pos_handle = neg_handle = None
     for cond, color in zip(conditions, _palette(len(conditions))):
-        ax.plot(cond['x'], cond['y'], color=color, marker='o', markersize=3,
-                linewidth=1.0, alpha=0.9)
+        ex = cond.get('extreme')
+        emphasized = ex in ('pos', 'neg', 'only')
+        line, = ax.plot(cond['x'], cond['y'], color=color, marker='o',
+                        markersize=4 if emphasized else 2.5,
+                        linewidth=2.0 if emphasized else 0.9,
+                        alpha=0.95 if emphasized else 0.55,
+                        zorder=4 if emphasized else 2)
+        eff = cond.get('full_effect')
+        if ex == 'pos':
+            line.set_label(f"▲ most + ({eff:+.0f} pp): {cond['label']}")
+            pos_handle = line
+        elif ex == 'neg':
+            line.set_label(f"▼ most − ({eff:+.0f} pp): {cond['label']}")
+            neg_handle = line
+        elif ex == 'only':
+            line.set_label(f"only cond ({eff:+.0f} pp): {cond['label']}")
+            pos_handle = line
 
     ax.axhline(0, color='black', linestyle='--', linewidth=0.8, alpha=0.5)
     for trial_num, _gen_id in result['gen_boundaries']:
@@ -182,6 +233,12 @@ def _plot_session_into_ax(ax, result):
     ax.grid(True, alpha=0.25)
     if Y_LIM is not None:
         ax.set_ylim(*Y_LIM)
+
+    # Tiny legend naming just the most-positive and most-negative conditions.
+    handles = [h for h in (pos_handle, neg_handle) if h is not None]
+    if handles:
+        ax.legend(handles=handles, loc='upper left', fontsize=5, framealpha=0.85,
+                  handlelength=1.4, borderpad=0.3, labelspacing=0.25)
 
 
 def render_grid_pdf(session_results, path, cols=COLS, rows_per_page=ROWS_PER_PAGE):
