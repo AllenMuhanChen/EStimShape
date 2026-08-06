@@ -192,11 +192,26 @@ def build_session_result(session_id):
 
 
 # Fixed-meaning colors: the most-positive condition is green, the most-negative is
-# red, and every other condition is a muted low-alpha gray so the two extremes read
-# instantly. A few gray shades keep overlapping background lines distinguishable.
+# red. Every other condition keeps its own hue but muted (desaturated toward gray)
+# and drawn at low alpha, so they stay distinguishable yet recede behind the two
+# extremes.
 _POS_COLOR = '#2ca02c'   # green
 _NEG_COLOR = '#d62728'   # red
-_GRAYS = ['0.45', '0.55', '0.65', '0.72']
+# tab10 hues minus green (2) and red (3), which are reserved for the extremes.
+_BG_BASE_IDX = [0, 1, 4, 5, 6, 7, 8, 9]
+
+
+def _bg_palette():
+    """Distinct-but-muted colors for the non-extreme conditions: each tab10 hue
+    blended halfway toward mid-gray so lines read as grayish yet still tell apart."""
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as mcolors
+
+    def muted(c, gray=0.6, mix=0.5):
+        r, g, b = mcolors.to_rgb(c)
+        return (r + (gray - r) * mix, g + (gray - g) * mix, b + (gray - b) * mix)
+
+    return [muted(plt.cm.tab10(i / 10)) for i in _BG_BASE_IDX]
 
 
 def _plot_session_into_ax(ax, result):
@@ -209,14 +224,15 @@ def _plot_session_into_ax(ax, result):
     conditions = result['conditions']
 
     # Draw the muted background conditions first so green/red sit on top.
-    gray_i = 0
+    bg = _bg_palette()
+    bg_i = 0
     for cond in conditions:
         if cond.get('extreme') in ('pos', 'neg', 'only'):
             continue
-        gray = _GRAYS[gray_i % len(_GRAYS)]
-        gray_i += 1
-        ax.plot(cond['x'], cond['y'], color=gray, marker='o', markersize=2,
-                linewidth=0.8, alpha=0.35, zorder=2)
+        color = bg[bg_i % len(bg)]
+        bg_i += 1
+        ax.plot(cond['x'], cond['y'], color=color, marker='o', markersize=2.5,
+                linewidth=1.0, alpha=0.55, zorder=2)
 
     pos_handle = neg_handle = None
     for cond in conditions:
