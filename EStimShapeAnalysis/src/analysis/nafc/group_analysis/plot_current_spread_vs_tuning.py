@@ -90,40 +90,108 @@ from src.analysis.nafc.group_analysis.compute_estim_neighbor_scores import (
     _physical_neighbors,
 )
 from src.cluster.cluster_isolation_score import fetch_active_estim_channels_by_spec
+from clat.util.connection import Connection
 
 # The stored channel-correlation metric (Spearman rho of ga_mean_response vectors)
 # whose per-pair values we re-aggregate three ways.
 CORR_METRIC_NAME = 'channel_corr'
 
-# Polarity split (anodic = PositiveFirst / leading anodic phase; cathodic =
-# NegativeFirst). Order fixes the panel/figure order.
+# Row-split categories. Polarity (anodic = PositiveFirst leading anodic phase /
+# cathodic = NegativeFirst) and waveform 'shape' (Biphasic vs
+# BiphasicWithInterphaseDelay). Orders fix the panel order; SHORT maps give the
+# panel labels.
 POLARITY_ORDER = ('PositiveFirst', 'NegativeFirst')
 POLARITY_SHORT = {'PositiveFirst': 'anodic', 'NegativeFirst': 'cathodic'}
+WAVEFORM_ORDER = ('Biphasic', 'BiphasicWithInterphaseDelay')
+WAVEFORM_SHORT = {'Biphasic': 'biphasic',
+                  'BiphasicWithInterphaseDelay': 'biphasic+delay',
+                  'Triphasic': 'triphasic'}
+# Categorical row-split columns: column -> (value order, short-label map).
+ROW_SPLIT_ORDERS = {'polarity': POLARITY_ORDER, 'waveform': WAVEFORM_ORDER}
+ROW_SPLIT_SHORT = {'polarity': POLARITY_SHORT, 'waveform': WAVEFORM_SHORT}
 
 
 def _pol_short(polarity):
     return POLARITY_SHORT.get(polarity, str(polarity))
 
 
+def _value_short(col, value):
+    return ROW_SPLIT_SHORT.get(col, {}).get(value, str(value))
+
+
 def _present_polarities(df):
     """Polarity values present in df, anodic then cathodic, then any others; None
     excluded."""
-    present = [p for p in POLARITY_ORDER if (df['polarity'] == p).any()]
-    others = [p for p in df['polarity'].dropna().unique().tolist()
-              if p not in POLARITY_ORDER]
+    return _present_values(df, 'polarity')
+
+
+def _present_values(df, col):
+    """Distinct values of `col` present in df, in the column's defined order first,
+    then any others; None excluded."""
+    order = ROW_SPLIT_ORDERS.get(col, ())
+    present = [v for v in order if (df[col] == v).any()]
+    others = [v for v in df[col].dropna().unique().tolist() if v not in order]
     return present + others
 
 
+def _row_groups(points, row_cols):
+    """Ordered list of {col: value} dicts, one per present combination of the
+    row-split columns (e.g. polarity × waveform). Empty [] of cols -> [{}]."""
+    row_cols = [c for c in row_cols if c in points.columns and points[c].notna().any()]
+    if not row_cols:
+        return [{}], row_cols
+    groups = [{}]
+    for col in row_cols:
+        vals = _present_values(points, col)
+        groups = [dict(g, **{col: v}) for g in groups for v in vals]
+    # keep only combinations that actually have rows
+    groups = [g for g in groups
+              if len(_filter_rows(points, g)) > 0]
+    return (groups or [{}]), row_cols
+
+
+def _filter_rows(points, group):
+    sub = points
+    for col, val in group.items():
+        sub = sub[sub[col] == val]
+    return sub
+
+
+def _row_label(group, row_cols):
+    """' · '-joined short labels for a row combination, e.g. 'ANODIC · BIPHASIC'."""
+    return " · ".join(_value_short(c, group[c]).upper() for c in row_cols if c in group)
+
+
+def _fetch_estim_shape(session_ids):
+    """{(session_id, estim_spec_id): shape} from EStimParameters (active channels).
+    shape is the waveform ENUM: Biphasic / BiphasicWithInterphaseDelay / Triphasic."""
+    conn = Connection("allen_data_repository")
+    base = ("SELECT session_id, estim_spec_id, MIN(shape) AS shape "
+            "FROM EStimParameters WHERE a1 > 0")
+    if session_ids:
+        placeholders = ', '.join(['%s'] * len(session_ids))
+        conn.execute(f"{base} AND session_id IN ({placeholders}) "
+                     "GROUP BY session_id, estim_spec_id", tuple(session_ids))
+    else:
+        conn.execute(f"{base} GROUP BY session_id, estim_spec_id")
+    return {(s, int(spec)): shape for s, spec, shape in conn.fetch_all()}
+
+
 def _attach_estim_metrics(df):
-    """Add per-spec 'polarity' and 'total_current_uA' (= Σ a1 over active channels
-    = a1 × num_channels) columns from EStimParameters, in place; returns df."""
-    power = _fetch_estim_power_and_polarity(sorted(df['session_id'].unique().tolist()))
+    """Add per-spec 'polarity', 'total_current_uA' (= Σ a1 over active channels =
+    a1 × num_channels), and 'waveform' (shape) columns from EStimParameters, in
+    place; returns df."""
+    session_ids = sorted(df['session_id'].unique().tolist())
+    power = _fetch_estim_power_and_polarity(session_ids)
     df['polarity'] = [
         (power.get((s, int(spec)), {}) or {}).get('polarity')
         for s, spec in zip(df['session_id'], df['estim_spec_id'])]
     df['total_current_uA'] = [
         (power.get((s, int(spec)), {}) or {}).get('total_current_uA')
         for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    shapes = _fetch_estim_shape(session_ids)
+    df['waveform'] = [
+        shapes.get((s, int(spec))) for s, spec in zip(df['session_id'], df['estim_spec_id'])]
     return df
 
 # Tuning families (rows). Each is a different aggregation of the same per-neighbour
@@ -353,9 +421,9 @@ def aggregate_per_experiment(df, metric_cols):
     agg_map.update({c: (c, 'mean') for c in CURRENT_COLUMNS if c in df.columns})
     agg_map.update({c: (c, 'mean') for c in metric_cols})
     agg_map['n_specs'] = ('estim_spec_id', 'size')
-    # Keep polarity as a grouping key so a per-experiment point never mixes anodic
-    # and cathodic specs.
-    group_keys = [k for k in ('trial_type', 'polarity', 'session_id')
+    # Keep the categorical splits as grouping keys so a per-experiment point never
+    # mixes anodic/cathodic or biphasic/delay specs.
+    group_keys = [k for k in ('trial_type', 'polarity', 'waveform', 'session_id')
                   if k in df.columns]
     return df.groupby(group_keys, as_index=False).agg(**agg_map)
 
@@ -370,8 +438,8 @@ def build_points(df, metric_cols, aggregate_by='spec'):
         return aggregate_per_experiment(df, metric_cols)
     if aggregate_by != 'spec':
         raise ValueError(f"aggregate_by must be 'spec' or 'experiment'; got {aggregate_by!r}")
-    keep = (['trial_type', 'polarity', 'session_id', 'estim_spec_id', 'effect_size']
-            + list(CURRENT_COLUMNS) + list(metric_cols))
+    keep = (['trial_type', 'polarity', 'waveform', 'session_id', 'estim_spec_id',
+             'effect_size'] + list(CURRENT_COLUMNS) + list(metric_cols))
     keep = [c for c in dict.fromkeys(keep) if c in df.columns]  # de-dup, keep order
     return df[keep].copy()
 
@@ -761,40 +829,46 @@ def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
     return df
 
 
+def _resolve_row_cols(points, by_polarity, by_waveform):
+    """Row-split columns from the by_* flags, keeping only those present with data."""
+    wanted = []
+    if by_polarity:
+        wanted.append('polarity')
+    if by_waveform:
+        wanted.append('waveform')
+    return [c for c in wanted
+            if c in points.columns and points[c].notna().any()]
+
+
 def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
                                         trial_types, by_polarity=True,
-                                        point_noun='spec', output_path=None):
+                                        by_waveform=False, point_noun='spec',
+                                        output_path=None):
     """Grid of X = current_per_second vs Y = y_col, colour = estim effect (RdBu_r,
-    symmetric). Columns = trial types; rows = polarity (anodic/cathodic) when
-    by_polarity and polarity is present, else a single row. Generic scatter used by
-    the half-distance (and any other single-Y) current-spread plot."""
+    symmetric). Columns = trial types; rows = every present combination of the
+    categorical splits — polarity (by_polarity) × waveform (by_waveform). Generic
+    scatter used by the half-distance (and any other single-Y) current-spread plot."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
         return None
-    row_pols = (_present_polarities(points)
-                if (by_polarity and 'polarity' in points.columns
-                    and points['polarity'].notna().any()) else [None])
+    row_cols = _resolve_row_cols(points, by_polarity, by_waveform)
+    groups, row_cols = _row_groups(points, row_cols)
 
-    ncols, nrows = len(tts), len(row_pols)
+    ncols, nrows = len(tts), len(groups)
     fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.4 * nrows),
                              squeeze=False, constrained_layout=True)
 
-    eff_all = pd.to_numeric(points.get('effect_size'), errors='coerce')
-    finite_eff = eff_all[np.isfinite(eff_all)] if eff_all is not None else pd.Series([], dtype=float)
-    vmax = max(float(np.abs(finite_eff).max()), 1e-6) if len(finite_eff) else 1.0
-
-    # Shared limits across every panel (all trial types / polarities).
+    vmax = _effect_vmax(points)
+    # Shared limits across every panel (all trial types / row splits).
     xlim = _axis_limits(points[X_COLUMN])
     ylim = _axis_limits(points[y_col])
 
     scatter_ref = None
-    for r, pol in enumerate(row_pols):
+    for r, group in enumerate(groups):
         for c, tt in enumerate(tts):
             ax = axes[r][c]
-            sub = points[points['trial_type'] == tt]
-            if pol is not None:
-                sub = sub[sub['polarity'] == pol]
+            sub = _filter_rows(points[points['trial_type'] == tt], group)
             sub = sub[[X_COLUMN, y_col, 'effect_size']].dropna(subset=[X_COLUMN, y_col])
             x = sub[X_COLUMN].to_numpy(dtype=float)
             y = sub[y_col].to_numpy(dtype=float)
@@ -810,13 +884,13 @@ def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
                                 edgecolors='black', linewidths=0.5)
                 scatter_ref = sc
 
-            # Polarity goes in the title (its own bold-ish line) so it's always
-            # legible; the y-axis label stays short.
+            # Row combination (e.g. ANODIC · BIPHASIC) goes in the title so every
+            # panel is self-labelled; the y-axis label stays short.
             lines = []
             if r == 0:
                 lines.append(tt)
-            if pol is not None:
-                lines.append(_pol_short(pol).upper())
+            if row_cols:
+                lines.append(_row_label(group, row_cols))
             lines.append(f"n={len(x)} {point_noun}s")
             ax.set_title("\n".join(lines), fontsize=10)
             if xlim:
@@ -835,7 +909,7 @@ def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
                        fontsize=10)
 
     fig.suptitle(f"{title} — one point per {point_noun} (colour = estim effect"
-                 f"{'; rows = anodic/cathodic' if len(row_pols) > 1 else ''})",
+                 f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
                  fontsize=14, fontweight='bold')
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -1024,23 +1098,24 @@ def _effect_vmax(points, *, floor=1e-6):
 
 
 def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_types,
-                                     by_polarity=True, mode=DEFAULT_HEATMAP_MODE,
+                                     by_polarity=True, by_waveform=False,
+                                     mode=DEFAULT_HEATMAP_MODE,
                                      bandwidth=DEFAULT_HEATMAP_BW,
                                      gridsize=DEFAULT_HEATMAP_GRID,
                                      density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR,
                                      show_points=True, point_noun='spec',
                                      output_path=None):
     """Smoothed-effect heatmap version of plot_metric_vs_current_by_trialtype:
-    columns = trial types, rows = polarity (when by_polarity). Each panel is the
-    Gaussian-smoothed local-mean effect over (current_per_second, y_col)."""
+    columns = trial types, rows = every present combination of polarity (by_polarity)
+    × waveform (by_waveform). Each panel is the Gaussian-smoothed local-mean effect
+    over (current_per_second, y_col)."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
         return None
-    row_pols = (_present_polarities(points)
-                if (by_polarity and 'polarity' in points.columns
-                    and points['polarity'].notna().any()) else [None])
-    ncols, nrows = len(tts), len(row_pols)
+    row_cols = _resolve_row_cols(points, by_polarity, by_waveform)
+    groups, row_cols = _row_groups(points, row_cols)
+    ncols, nrows = len(tts), len(groups)
     fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.4 * nrows),
                              squeeze=False, constrained_layout=True)
     vmax = _effect_vmax(points)
@@ -1049,12 +1124,10 @@ def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_typ
     yrange = _axis_limits(points[y_col])
 
     mesh_ref = None
-    for r, pol in enumerate(row_pols):
+    for r, group in enumerate(groups):
         for c, tt in enumerate(tts):
             ax = axes[r][c]
-            sub = points[points['trial_type'] == tt]
-            if pol is not None:
-                sub = sub[sub['polarity'] == pol]
+            sub = _filter_rows(points[points['trial_type'] == tt], group)
             mesh = _draw_effect_heatmap(
                 ax, sub, y_col, vmax=vmax, bandwidth=bandwidth, gridsize=gridsize,
                 mode=mode, density_floor=density_floor, show_points=show_points,
@@ -1064,8 +1137,8 @@ def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_typ
             lines = []
             if r == 0:
                 lines.append(tt)
-            if pol is not None:
-                lines.append(_pol_short(pol).upper())
+            if row_cols:
+                lines.append(_row_label(group, row_cols))
             n_here = int(sub[[X_COLUMN, y_col, 'effect_size']].dropna().shape[0])
             lines.append(f"n={n_here} {point_noun}s")
             ax.set_title("\n".join(lines), fontsize=10)
@@ -1081,7 +1154,7 @@ def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_typ
         cbar.set_label(f"{lbl}  — red = positive, blue = negative", fontsize=10)
 
     fig.suptitle(f"{title} — Gaussian-smoothed effect field"
-                 f"{'; rows = anodic/cathodic' if len(row_pols) > 1 else ''}",
+                 f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''}",
                  fontsize=14, fontweight='bold')
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -1796,10 +1869,12 @@ def run_spec_metrics(trial_types=None, *, y_metrics=Y_METRIC_SELECTION, heatmap=
                      start_session_id=None, exclude_session_ids=None,
                      effect_metric=COMPARISON_METRIC, base_required_conditions=None,
                      exclude_other_estim=True, min_on_trials=COMPARISON_MIN_ON_TRIALS,
-                     aggregate_by='spec', by_polarity=True, mode=DEFAULT_HEATMAP_MODE,
-                     bandwidth=DEFAULT_HEATMAP_BW, save_dir=None):
+                     aggregate_by='spec', by_polarity=True, by_waveform=True,
+                     mode=DEFAULT_HEATMAP_MODE, bandwidth=DEFAULT_HEATMAP_BW,
+                     save_dir=None):
     """Build the spec-metric table ONCE, then plot each Y metric in `y_metrics` to
-    its own file — scatter, or smoothed effect heatmap when heatmap=True."""
+    its own file — scatter, or smoothed effect heatmap when heatmap=True. Rows are
+    every present combination of polarity (by_polarity) × waveform (by_waveform)."""
     if isinstance(y_metrics, str):
         y_metrics = (y_metrics,)
     unknown = [k for k in y_metrics if k not in Y_METRICS]
@@ -1809,7 +1884,7 @@ def run_spec_metrics(trial_types=None, *, y_metrics=Y_METRIC_SELECTION, heatmap=
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
     print(f"[config] SPEC METRICS vs CURRENT  y_metrics={list(y_metrics)}  "
           f"heatmap={heatmap}  trial_types={trial_types}  point={aggregate_by}  "
-          f"by_polarity={by_polarity}")
+          f"by_polarity={by_polarity}  by_waveform={by_waveform}")
 
     df = build_spec_metric_table(
         trial_types, start_session_id=start_session_id,
@@ -1832,35 +1907,38 @@ def run_spec_metrics(trial_types=None, *, y_metrics=Y_METRIC_SELECTION, heatmap=
         if heatmap:
             plot_effect_heatmap_by_trialtype(
                 points, col, y_label=label, title=title, trial_types=trial_types,
-                by_polarity=by_polarity, mode=mode, bandwidth=bandwidth,
-                point_noun=aggregate_by, output_path=out_path)
+                by_polarity=by_polarity, by_waveform=by_waveform, mode=mode,
+                bandwidth=bandwidth, point_noun=aggregate_by, output_path=out_path)
         else:
             plot_metric_vs_current_by_trialtype(
                 points, col, y_label=label, title=title, trial_types=trial_types,
-                by_polarity=by_polarity, point_noun=aggregate_by, output_path=out_path)
+                by_polarity=by_polarity, by_waveform=by_waveform,
+                point_noun=aggregate_by, output_path=out_path)
     return df, points
 
 
 def main_spec_metrics():
-    """Scatter (effect-coloured) of each Y metric in Y_METRIC_SELECTION vs current."""
+    """Scatter (effect-coloured) of each Y metric in Y_METRIC_SELECTION vs current,
+    split by trial type × polarity × waveform."""
     run_spec_metrics(
         trial_types=(COMPARISON_TRIAL_TYPES or None), y_metrics=Y_METRIC_SELECTION,
         heatmap=False, start_session_id=COMPARISON_START_SESSION_ID,
         exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS, effect_metric=COMPARISON_METRIC,
         base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
         min_on_trials=COMPARISON_MIN_ON_TRIALS, aggregate_by='spec',
-        save_dir=COMPARISON_SAVE_DIR)
+        by_polarity=True, by_waveform=True, save_dir=COMPARISON_SAVE_DIR)
 
 
 def main_spec_metrics_heatmap():
-    """Gaussian-smoothed effect field for each Y metric in Y_METRIC_SELECTION."""
+    """Gaussian-smoothed effect field for each Y metric in Y_METRIC_SELECTION,
+    split by trial type × polarity × waveform."""
     run_spec_metrics(
         trial_types=(COMPARISON_TRIAL_TYPES or None), y_metrics=Y_METRIC_SELECTION,
         heatmap=True, start_session_id=COMPARISON_START_SESSION_ID,
         exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS, effect_metric=COMPARISON_METRIC,
         base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
         min_on_trials=COMPARISON_MIN_ON_TRIALS, aggregate_by='spec',
-        save_dir=COMPARISON_SAVE_DIR)
+        by_polarity=True, by_waveform=True, save_dir=COMPARISON_SAVE_DIR)
 
 
 def main():
