@@ -77,6 +77,14 @@ CONDITION_FACTORS = ('polarity', 'waveform', 'trial_type')
 # coupled, so ('trial_type','polarity') asks whether the structure differs across
 # the actual combinations, not each factor marginally.
 MODERATORS = ('polarity', 'trial_type', ('trial_type', 'polarity'))
+# Trial types dropped from this structure test only (too few specs to fit) — the
+# global COMPARISON_TRIAL_TYPES that drives the other plots is left untouched.
+EXCLUDE_TRIAL_TYPES = ('Removed Trial', 'Coherence')
+
+
+def _analysis_trial_types():
+    base = COMPARISON_TRIAL_TYPES or ['Hypothesized Shape', 'Delta Shape']
+    return [t for t in base if t not in EXCLUDE_TRIAL_TYPES]
 
 
 # ---------------------------------------------------------------------------
@@ -469,7 +477,7 @@ def main():
     (current_per_second × corr half-distance) space, and whether it differs by
     polarity / trial_type / their combination. Uses the shared COMPARISON_* config."""
     run_mixed_structure_test(
-        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        trial_types=_analysis_trial_types(),   # drops Removed Trial / Coherence
         x_col='current_per_second', y_col=HALFDIST_COL,
         condition_factors=CONDITION_FACTORS, moderators=MODERATORS,
         start_session_id=COMPARISON_START_SESSION_ID,
