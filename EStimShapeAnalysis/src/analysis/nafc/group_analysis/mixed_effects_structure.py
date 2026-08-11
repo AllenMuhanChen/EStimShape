@@ -321,11 +321,21 @@ def run_mixed_structure_test(trial_types=None, *, x_col='current_per_second',
             continue
         other_mains = " + ".join(f"C({f})" for f in others)
 
+        # Per-level fit + a SEPARATE structure test *within each level* — this is the
+        # "does THIS trial_type × polarity combo have spatial structure?" question,
+        # one independent Wald test per panel (session-controlled on that combo's
+        # own specs), which is what the maps actually show.
         coef_by_level = {}
+        struct_by_level = {}
         for lv in levels:
-            c = _pooled_spatial_coef(d[d[fcol] == lv], spatial_cols, other_mains)
+            sub = d[d[fcol] == lv]
+            c = _pooled_spatial_coef(sub, spatial_cols, other_mains)
             if c is not None:
                 coef_by_level[lv] = c
+            rhs = " + ".join(t for t in (other_mains, spatial_terms) if t)
+            struct_by_level[lv] = _within_wald(
+                sub, f"{VALUE_COL} ~ {rhs}",
+                block_is=lambda c: c in spatial_set, group_col='session_id')
 
         inter = " + ".join(f"{s}:C({fcol})" for s in spatial_cols)
         reduced_mains = " + ".join(t for t in (other_mains, f"C({fcol})") if t)
@@ -333,7 +343,18 @@ def run_mixed_structure_test(trial_types=None, *, x_col='current_per_second',
             d, f"{VALUE_COL} ~ {reduced_mains} + {spatial_terms} + {inter}",
             block_is=lambda c: ':' in c, group_col='session_id')
         results['interactions'][key] = {'lrt': wald, 'factor_col': fcol,
-                                        'levels': levels, 'coef_by_level': coef_by_level}
+                                        'levels': levels, 'coef_by_level': coef_by_level,
+                                        'struct_by_level': struct_by_level}
+        print(f"\n=== structure WITHIN each {key} combo (independent test per panel) ===")
+        for lv in levels:
+            r = struct_by_level.get(lv)
+            lbl = _level_label(fcol, lv)
+            if r is not None:
+                s0, df0, p0 = r
+                print(f"    {lbl:<32} Wald chi2({df0}) = {s0:6.2f}   p = {p0:.4g}   "
+                      f"{'-> structured' if p0 < 0.05 else '-> no evidence'}")
+            else:
+                print(f"    {lbl:<32} not identifiable within session")
         print(f"\n=== Q2: does the structure differ by {key}? ===")
         if wald is not None:
             s2, df2, p2 = wald
@@ -410,13 +431,25 @@ def plot_model_surfaces(results, key, *, x_label, y_label, output_path=None):
             return np.full(shape, np.nan)
         return np.where(keep, (Bg @ coef).reshape(shape), np.nan)
 
-    panels = [('pooled — all specs', _surf(results['pooled_coef']), d)]
+    def _struct_tag(r):
+        if r is None:
+            return "structure: n/a"
+        p = r[2]
+        return f"structure p = {p:.2g} {'✓ structured' if p < 0.05 else '(ns)'}"
+
+    struct = results['lrt_structure']
+    pooled_title = 'pooled — single shared surface'
+    if struct is not None:
+        pooled_title += f"\nshared-surface {_struct_tag(struct)}"
+    panels = [(pooled_title, _surf(results['pooled_coef']), d)]
     info = results['interactions'].get(key) if key else None
     if info is not None:
         fcol, cbl = info['factor_col'], info['coef_by_level']
+        sbl = info.get('struct_by_level', {})
         levels = [lv for lv in info['levels'] if lv in cbl]
         for lv in levels:
-            panels.append((_level_label(fcol, lv), _surf(cbl[lv]), d[d[fcol] == lv]))
+            title = f"{_level_label(fcol, lv)}\n{_struct_tag(sbl.get(lv))}"
+            panels.append((title, _surf(cbl[lv]), d[d[fcol] == lv]))
         if len(levels) == 2:
             panels.append((f"difference:\n{_level_label(fcol, levels[0])} − "
                            f"{_level_label(fcol, levels[1])}",
@@ -457,13 +490,12 @@ def plot_model_surfaces(results, key, *, x_label, y_label, output_path=None):
         cbar.set_label('fitted estim effect (ON − OFF %)\nred = positive, blue = negative',
                        fontsize=9)
 
-    struct = results['lrt_structure']
     if struct is not None:
         p_s = struct[2]
-        sub = (f"Is there structure?  p = {p_s:.3g}  →  "
-               f"{'YES, structured' if p_s < 0.05 else 'no significant structure'}")
+        sub = (f"One shared surface across all conditions?  p = {p_s:.3g}  →  "
+               f"{'YES' if p_s < 0.05 else 'no — structure is condition-specific (see per-panel tests)'}")
     else:
-        sub = "Is there structure?  not identifiable within session"
+        sub = "One shared surface across all conditions?  not identifiable within session"
     if info is not None:
         lrt = info.get('lrt')
         if lrt is not None:
