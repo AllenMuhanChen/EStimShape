@@ -78,6 +78,22 @@ MORAN_SEED = 0
 
 VALUE_COL = 'effect_size'
 
+# LISA cluster categories (from signs of a spec's own deviation and its neighbours'
+# mean deviation, kept only where the local Moran's I is significant).
+LISA_ALPHA = 0.05
+CLUSTER_ORDER = ('HH', 'LL', 'HL', 'LH', 'ns')
+CLUSTER_LABELS = {
+    'HH': 'high–high (positive pocket)',
+    'LL': 'low–low (negative pocket)',
+    'HL': 'high–low (positive outlier)',
+    'LH': 'low–high (negative outlier)',
+    'ns': 'not significant',
+}
+CLUSTER_COLORS = {
+    'HH': '#D7191C', 'LL': '#2C7BB6', 'HL': '#FDAE61', 'LH': '#ABD9E9',
+    'ns': '#dddddd',
+}
+
 
 # ---------------------------------------------------------------------------
 # Moran's I + within-session permutation
@@ -118,22 +134,49 @@ def _morans_i(values, W):
     return (n / s0) * num / den
 
 
-def _within_session_null(values, session_ids, W, n_perm, seed):
-    """Null distribution of Moran's I under within-session permutation: effect
-    values are shuffled only among specs sharing a session (positions fixed)."""
+def _local_morans(values, W, *, mean=None, m2=None):
+    """Local Moran's I vector (Anselin 1995) plus the value deviations z and the
+    spatial lag. I_i = (z_i / m2) · Σ_j w_ij z_j. mean/m2 may be passed in (they are
+    invariant under permutation of `values`, so precomputing saves work)."""
+    z = values - (values.mean() if mean is None else mean)
+    if m2 is None:
+        m2 = float((z * z).mean())
+    lag = W @ z
+    local = (z / m2) * lag if m2 > 0 else np.full_like(z, np.nan)
+    return local, z, lag
+
+
+def _within_session_null_full(values, session_ids, W, n_perm, seed):
+    """Within-session permutation null for BOTH the global Moran's I (per perm) and
+    the local Moran's I of every spec (per perm), from one shared permutation loop.
+    Effects are shuffled only among specs sharing a session; positions/weights fixed.
+
+    The value set is unchanged by permutation, so the mean, Σz², m² and S0 are all
+    invariant — only the arrangement (z @ W z, and the per-i lag) changes.
+    Returns (global_null[n_perm], local_null[n_perm, N])."""
     rng = np.random.default_rng(seed)
     by_session = {}
     for i, s in enumerate(session_ids):
         by_session.setdefault(s, []).append(i)
-    # Only sessions with >1 spec contribute permutation freedom.
     idx_groups = [np.asarray(v) for v in by_session.values() if len(v) > 1]
-    null = np.empty(n_perm, dtype=float)
+
+    n = len(values)
+    mean = float(values.mean())
+    zc = values - mean
+    den = float((zc * zc).sum())          # Σ z²  (invariant)
+    m2 = den / n                           # variance (invariant)
+    s0 = float(W.sum())                    # Σ w    (invariant)
+    g_null = np.empty(n_perm, dtype=float)
+    l_null = np.empty((n_perm, n), dtype=float)
     for p in range(n_perm):
         perm = values.copy()
         for g in idx_groups:
             perm[g] = values[g][rng.permutation(len(g))]
-        null[p] = _morans_i(perm, W)
-    return null
+        z = perm - mean
+        lag = W @ z
+        g_null[p] = (n / s0) * float(z @ lag) / den if (den > 0 and s0 > 0) else np.nan
+        l_null[p] = (z / m2) * lag if m2 > 0 else np.nan
+    return g_null, l_null
 
 
 def morans_test_for_group(sub, *, x_col, y_col=HALFDIST_COL, value_col=VALUE_COL,
@@ -155,10 +198,31 @@ def morans_test_for_group(sub, *, x_col, y_col=HALFDIST_COL, value_col=VALUE_COL
     i_obs = _morans_i(vals, W)
     if not np.isfinite(i_obs):
         return None
-    null = _within_session_null(vals, d['session_id'].to_numpy(), W, n_perm, seed)
-    p_one = (1.0 + float(np.sum(null >= i_obs))) / (n_perm + 1)
-    null_sd = float(np.std(null))
-    z = (i_obs - float(np.mean(null))) / (null_sd if null_sd > 1e-12 else 1.0)
+
+    # One permutation loop yields both the global null and every spec's local null.
+    g_null, l_null = _within_session_null_full(
+        vals, d['session_id'].to_numpy(), W, n_perm, seed)
+    p_one = (1.0 + float(np.sum(g_null >= i_obs))) / (n_perm + 1)
+    null_sd = float(np.std(g_null))
+    z = (i_obs - float(np.mean(g_null))) / (null_sd if null_sd > 1e-12 else 1.0)
+
+    # --- LISA: local Moran's I + significance + quadrant clusters ---
+    local_obs, z_dev, lag = _local_morans(vals, W)
+    # Pseudo p per spec, one-sided in the observed direction (HH/LL -> upper tail,
+    # HL/LH -> lower tail), from that spec's own permutation null.
+    ge = (l_null >= local_obs[None, :]).sum(axis=0)
+    le = (l_null <= local_obs[None, :]).sum(axis=0)
+    tail = np.where(local_obs >= 0, ge, le)
+    p_local = (1.0 + tail) / (n_perm + 1)
+    clusters = np.array(['ns'] * n, dtype=object)
+    sig = p_local < LISA_ALPHA
+    pos_z, pos_lag = z_dev > 0, lag > 0
+    clusters[sig & pos_z & pos_lag] = 'HH'
+    clusters[sig & ~pos_z & ~pos_lag] = 'LL'
+    clusters[sig & pos_z & ~pos_lag] = 'HL'
+    clusters[sig & ~pos_z & pos_lag] = 'LH'
+    cluster_counts = {c: int((clusters == c).sum()) for c in CLUSTER_ORDER}
+
     counts = d['session_id'].value_counts()
     return {
         'n': int(n),
@@ -166,13 +230,17 @@ def morans_test_for_group(sub, *, x_col, y_col=HALFDIST_COL, value_col=VALUE_COL
         'n_shuffleable': int((counts > 1).sum()),         # sessions with >1 spec
         'frac_in_multi': float((counts[counts > 1].sum()) / n),  # specs in shuffleable sessions
         'I': float(i_obs),
-        'E_null': float(np.mean(null)),
+        'E_null': float(np.mean(g_null)),
         'z': float(z),
         'p': float(p_one),
-        'null': null,
+        'null': g_null,
         'x': d[x_col].to_numpy(dtype=float),
         'y': d[y_col].to_numpy(dtype=float),
         'eff': vals,
+        'local_I': local_obs,
+        'p_local': p_local,
+        'clusters': clusters,
+        'cluster_counts': cluster_counts,
     }
 
 
@@ -273,6 +341,66 @@ def plot_moran_results(results, *, x_label, y_label, bandwidth, output_path=None
     return fig
 
 
+def plot_lisa_maps(results, *, x_label, y_label, bandwidth, alpha=LISA_ALPHA,
+                   output_path=None):
+    """LISA cluster map per group: specs in (current × half-distance) space coloured
+    by local-Moran cluster — HH (positive pocket), LL (negative pocket), HL/LH
+    (outliers), or not-significant. Reveals disconnected consistent pockets that a
+    single global I can dilute. `results` is a list of (label, result-dict)."""
+    from matplotlib.lines import Line2D
+    results = [(lab, r) for lab, r in results if r is not None]
+    if not results:
+        print("No groups with a LISA result to plot.")
+        return None
+    n = len(results)
+    ncols = min(3, n)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.0 * ncols, 4.3 * nrows),
+                             squeeze=False, constrained_layout=True)
+
+    for i, (label, res) in enumerate(results):
+        ax = axes[i // ncols][i % ncols]
+        clusters = res['clusters']
+        for cat in CLUSTER_ORDER:
+            m = clusters == cat
+            if not m.any():
+                continue
+            ax.scatter(res['x'][m], res['y'][m], s=(38 if cat == 'ns' else 70),
+                       color=CLUSTER_COLORS[cat], alpha=(0.5 if cat == 'ns' else 0.95),
+                       edgecolors='black', linewidths=0.4, zorder=(1 if cat == 'ns' else 3))
+        cc = res['cluster_counts']
+        counts_txt = "  ".join(f"{c}:{cc[c]}" for c in ('HH', 'LL', 'HL', 'LH') if cc[c])
+        ax.set_title(f"{label}\nn={res['n']}, I={res['I']:+.3f} p={res['p']:.3f}"
+                     f"{('   ' + counts_txt) if counts_txt else '   (no sig. pockets)'}",
+                     fontsize=9)
+        if i // ncols == nrows - 1:
+            ax.set_xlabel(x_label, fontsize=9)
+        if i % ncols == 0:
+            ax.set_ylabel(y_label, fontsize=9)
+        ax.grid(True, alpha=0.3)
+
+    for j in range(n, nrows * ncols):
+        axes[j // ncols][j % ncols].axis('off')
+
+    legend_handles = [
+        Line2D([0], [0], marker='o', linestyle='None', markersize=9,
+               markerfacecolor=CLUSTER_COLORS[c], markeredgecolor='black',
+               label=CLUSTER_LABELS[c])
+        for c in CLUSTER_ORDER]
+    fig.legend(handles=legend_handles, loc='lower center', ncol=len(CLUSTER_ORDER),
+               fontsize=9, framealpha=0.9, bbox_to_anchor=(0.5, -0.02))
+    fig.suptitle("Local Moran's I (LISA) cluster map — significant consistent pockets "
+                 f"(within-session null, α={alpha}, bw={bandwidth})",
+                 fontsize=13, fontweight='bold')
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved LISA map to {output_path}")
+    plt.show()
+    return fig
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -317,11 +445,13 @@ def run_moran_test(trial_types=None, *, x_col='current_per_second', y_col=HALFDI
                                        n_perm=n_perm, seed=seed + gi)
             if rb is not None:
                 sweep[bw] = (rb['I'], rb['p'])
+        cc = res['cluster_counts']
         rows.append({
             'group': label, 'n': res['n'], 'n_sessions': res['n_sessions'],
             'n_shuffleable': res['n_shuffleable'],
             'frac_in_multi': round(res['frac_in_multi'], 2),
             'I': round(res['I'], 4), 'z': round(res['z'], 2), 'p': round(res['p'], 4),
+            'HH': cc['HH'], 'LL': cc['LL'], 'HL': cc['HL'], 'LH': cc['LH'],
             **{f"I@bw{bw}": round(v[0], 3) for bw, v in sweep.items()},
             **{f"p@bw{bw}": round(v[1], 4) for bw, v in sweep.items()},
         })
@@ -344,11 +474,16 @@ def run_moran_test(trial_types=None, *, x_col='current_per_second', y_col=HALFDI
         with pd.option_context('display.width', 200, 'display.max_columns', None):
             print(board.to_string(index=False))
 
+    x_label = X_LABELS.get(x_col, x_col)
     out_path = (os.path.join(save_dir, f"morans_i_effect_structure_vs_{_slug(x_col)}.png")
                 if save_dir else None)
-    plot_moran_results(results, x_label=X_LABELS.get(x_col, x_col),
+    plot_moran_results(results, x_label=x_label,
                        y_label='corr half-distance (µm)', bandwidth=bandwidth,
                        output_path=out_path)
+    lisa_path = (os.path.join(save_dir, f"lisa_effect_clusters_vs_{_slug(x_col)}.png")
+                 if save_dir else None)
+    plot_lisa_maps(results, x_label=x_label, y_label='corr half-distance (µm)',
+                   bandwidth=bandwidth, output_path=lisa_path)
     return board, results
 
 
