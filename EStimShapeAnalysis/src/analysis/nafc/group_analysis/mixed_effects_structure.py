@@ -275,6 +275,12 @@ def run_mixed_structure_test(trial_types=None, *, x_col='current_per_second',
     coords = np.column_stack([scx.transform(d[x_col]), scy.transform(d[y_col])])
     rbf = SpatialRBF(n_per_axis=n_per_axis).fit(coords)
     B = rbf.transform(coords)
+    # Centre the basis columns so the surface captures ONLY spatial variation, not
+    # the overall level. Uncentred RBFs are collinear with the intercept and would
+    # absorb each condition's MEAN effect into the "spatial" coefficients — making a
+    # pure mean difference look like a spatial-structure difference.
+    b_mean = B.mean(axis=0)
+    B = B - b_mean
     k = rbf.k
     spatial_cols = [f"S{j}" for j in range(k)]
     for j in range(k):
@@ -295,8 +301,8 @@ def run_mixed_structure_test(trial_types=None, *, x_col='current_per_second',
         block_is=lambda c: c in spatial_set, group_col='session_id')
     pooled_coef = _pooled_spatial_coef(d, spatial_cols, base_terms)
     results = {'lrt_structure': struct, 'pooled_coef': pooled_coef, 'rbf': rbf,
-               'scx': scx, 'scy': scy, 'k': k, 'data': d, 'x_col': x_col,
-               'y_col': y_col, 'interactions': {}}
+               'scx': scx, 'scy': scy, 'k': k, 'b_mean': b_mean, 'data': d,
+               'x_col': x_col, 'y_col': y_col, 'interactions': {}}
     print("\n=== Q1: is there spatial structure beyond condition + session? ===")
     if struct is not None:
         s, dfree, p = struct
@@ -384,10 +390,15 @@ def plot_model_surfaces(results, key, *, x_label, y_label, output_path=None):
     no data. Titles carry the plain-language verdict from the Wald tests."""
     rbf, scx, scy = results['rbf'], results['scx'], results['scy']
     d, k = results['data'], results['k']
+    b_mean = results['b_mean']
     x_col, y_col = results['x_col'], results['y_col']
     xr = (float(d[x_col].min()), float(d[x_col].max()))
     yr = (float(d[y_col].min()), float(d[y_col].max()))
     gx, gy, shape, Bg, gcoords = _surface_grid(rbf, scx, scy, xr, yr)
+    # Coefficients were fitted on CENTRED basis columns (B - b_mean), so the drawn
+    # surface must subtract the same b_mean. It then represents spatial DEVIATION
+    # from the mean level — the mean itself is shown separately per panel.
+    Bg = Bg - b_mean
 
     def _std(sub):
         return np.column_stack([scx.transform(sub[x_col]), scy.transform(sub[y_col])])
@@ -428,6 +439,11 @@ def plot_model_surfaces(results, key, *, x_label, y_label, output_path=None):
                              vmin=-vmax, vmax=vmax, shading='auto')
         if pts is not None:
             ax.scatter(pts[x_col], pts[y_col], s=10, c='black', alpha=0.4, linewidths=0)
+            # Show the MEAN effect as text — the surface is the spatial DEVIATION
+            # only, so the overall red/blue level of a condition lives here, not in
+            # the map. This is what keeps "Hyp positive / Delta negative" from
+            # masquerading as a difference in spatial pattern.
+            title = f"{title}\nmean effect {pts[VALUE_COL].mean():+.0f}% (n={len(pts)})"
         ax.set_title(title, fontsize=9)
         if i // ncols == nrows - 1:
             ax.set_xlabel(x_label, fontsize=9)
