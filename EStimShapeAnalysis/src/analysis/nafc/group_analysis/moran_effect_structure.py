@@ -75,6 +75,14 @@ MORAN_BANDWIDTH_SWEEP = (0.3, 0.5, 0.8)   # printed sensitivity check
 MORAN_N_PERM = 5000
 MORAN_MIN_N = 8                           # skip groups smaller than this
 MORAN_SEED = 0
+# Trial types dropped from this structure test only (too few specs) — the global
+# COMPARISON_TRIAL_TYPES that drives the other plots is left untouched.
+EXCLUDE_TRIAL_TYPES = ('Removed Trial', 'Coherence')
+
+
+def _analysis_trial_types():
+    base = COMPARISON_TRIAL_TYPES or ['Hypothesized Shape', 'Delta Shape']
+    return [t for t in base if t not in EXCLUDE_TRIAL_TYPES]
 
 VALUE_COL = 'effect_size'
 
@@ -492,7 +500,7 @@ def main():
     (current_per_second × corr half-distance) space, per trial type. Uses the
     shared COMPARISON_* config."""
     run_moran_test(
-        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        trial_types=_analysis_trial_types(),   # drops Removed Trial / Coherence
         x_col='current_per_second', y_col=HALFDIST_COL,
         # Independent test per trial_type × polarity × waveform. Trim this tuple
         # (e.g. ('trial_type',)) if the 3-way split leaves groups too small.
