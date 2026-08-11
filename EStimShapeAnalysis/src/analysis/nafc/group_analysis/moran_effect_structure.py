@@ -28,8 +28,11 @@ own set of effect values, and cross-session clustering is preserved — so the t
 only detects structure BEYOND session identity. (This needs multiple specs per
 session to have power; the printout reports how shuffleable each group is.)
 
-The test is run per group (default: per trial_type), since the effect's meaning
-differs across trial types. p is one-sided (positive autocorrelation):
+The test is run as an INDEPENDENT test per group — by default every present
+combination of trial_type × polarity × waveform — since the effect's meaning and
+the biophysics differ across those conditions. (Many 3-way cells will be small;
+groups below MORAN_MIN_N specs are skipped, and with many cells keep the
+multiplicity in mind.) p is one-sided (positive autocorrelation):
     p = (1 + #{I_perm >= I_obs}) / (n_perm + 1).
 
 The plot pairs, for each group, the raw data (current vs half-distance coloured
@@ -177,9 +180,22 @@ def morans_test_for_group(sub, *, x_col, y_col=HALFDIST_COL, value_col=VALUE_COL
 # Grouping helper
 # ---------------------------------------------------------------------------
 
+# Short labels for the categorical split columns (trial_type kept verbatim).
+_SHORT = {
+    'polarity': {'PositiveFirst': 'anodic', 'NegativeFirst': 'cathodic'},
+    'waveform': {'Biphasic': 'biphasic',
+                 'BiphasicWithInterphaseDelay': 'biphasic+delay',
+                 'Triphasic': 'triphasic'},
+}
+
+
+def _val_label(col, val):
+    return _SHORT.get(col, {}).get(val, str(val))
+
+
 def _iter_groups(points, group_by):
     """Yield (label, subframe) for each present combination of the group_by columns
-    (empty group_by -> one 'all' group)."""
+    (empty group_by -> one 'all' group). Each combination is an INDEPENDENT test."""
     group_by = [c for c in group_by if c in points.columns]
     if not group_by:
         yield 'all', points
@@ -189,7 +205,7 @@ def _iter_groups(points, group_by):
         mask = np.ones(len(points), dtype=bool)
         for c in group_by:
             mask &= (points[c] == row[c]).to_numpy()
-        label = " · ".join(str(row[c]) for c in group_by)
+        label = " · ".join(_val_label(c, row[c]) for c in group_by)
         yield label, points[mask]
 
 
@@ -262,7 +278,8 @@ def plot_moran_results(results, *, x_label, y_label, bandwidth, output_path=None
 # ---------------------------------------------------------------------------
 
 def run_moran_test(trial_types=None, *, x_col='current_per_second', y_col=HALFDIST_COL,
-                   group_by=('trial_type',), bandwidth=MORAN_BANDWIDTH,
+                   group_by=('trial_type', 'polarity', 'waveform'),
+                   bandwidth=MORAN_BANDWIDTH,
                    bandwidth_sweep=MORAN_BANDWIDTH_SWEEP, n_perm=MORAN_N_PERM,
                    seed=MORAN_SEED, start_session_id=None, exclude_session_ids=None,
                    effect_metric=COMPARISON_METRIC, base_required_conditions=None,
@@ -342,7 +359,9 @@ def main():
     run_moran_test(
         trial_types=(COMPARISON_TRIAL_TYPES or None),
         x_col='current_per_second', y_col=HALFDIST_COL,
-        group_by=('trial_type',),          # or ('trial_type', 'polarity') etc.
+        # Independent test per trial_type × polarity × waveform. Trim this tuple
+        # (e.g. ('trial_type',)) if the 3-way split leaves groups too small.
+        group_by=('trial_type', 'polarity', 'waveform'),
         bandwidth=MORAN_BANDWIDTH, n_perm=MORAN_N_PERM,
         start_session_id=COMPARISON_START_SESSION_ID,
         exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
