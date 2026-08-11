@@ -9,9 +9,16 @@ Instead of shuffling, we MODEL the nuisance and test nested models:
           + a flexible 2-D spatial surface s(current, half_distance),
             built as a low-rank radial-basis expansion (columns S0..S{K-1})
     random: (1 | session)                        — session baseline offset
-          + (1 | spec) nested in session         — handles the trial_type repeats
-                                                    (same spec appears once per trial
-                                                    type at the same position)
+
+IMPORTANT — no per-spec random intercept. The spatial predictors (current,
+half_distance) are CONSTANT within a spec, and so is a per-spec random intercept,
+so the two are confounded: a spec random effect would absorb exactly the
+between-spec variation the surface is trying to explain, forcing the structure
+LRT to p≈1 regardless of the truth. We therefore use a session random intercept
+only. The trial_type repeats (same spec, one row per trial type, same position)
+are then repeated measures handled via the trial_type fixed effect; residual
+within-spec correlation makes the pooled spatial test mildly anti-conservative
+(noted below) — the spatial × trial_type INTERACTION is within-spec and unaffected.
 
 Two questions, each a likelihood-ratio test between nested models (fit by ML):
 
@@ -177,7 +184,18 @@ def _surface_grid(rbf, scx, scy, xr, yr, gridsize=60):
     GX, GY = np.meshgrid(gx, gy)
     coords = np.column_stack([scx.transform(GX.ravel()), scy.transform(GY.ravel())])
     B = rbf.transform(coords)                       # (gridsize², K)
-    return gx, gy, GX.shape, B
+    return gx, gy, GX.shape, B, coords
+
+
+def _mask_far_from_data(surf, grid_coords, data_coords, radius=0.6):
+    """NaN-out grid cells whose nearest data point (in standardised space) is
+    farther than `radius` — so we only show the surface where there's data and don't
+    display meaningless extrapolation into empty corners."""
+    if len(data_coords) == 0:
+        return np.full_like(surf, np.nan)
+    d2 = ((grid_coords[:, None, :] - data_coords[None, :, :]) ** 2).sum(-1)
+    nearest = np.sqrt(d2.min(axis=1)).reshape(surf.shape)
+    return np.where(nearest <= radius, surf, np.nan)
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +239,7 @@ def run_mixed_structure_test(trial_types=None, *, x_col='current_per_second',
         return {}
     d['spec_uid'] = (d['session_id'].astype(str) + '_' +
                      d['estim_spec_id'].astype(int).astype(str))
-    has_repeats = bool(d['spec_uid'].duplicated().any())
+    n_repeats = int(d['spec_uid'].duplicated().sum())
 
     # Standardised coords + spatial basis.
     scx, scy = _Scaler().fit(d[x_col]), _Scaler().fit(d[y_col])
@@ -236,11 +254,13 @@ def run_mixed_structure_test(trial_types=None, *, x_col='current_per_second',
     factors = _present_factors(d, condition_factors)
     base_terms = " + ".join(f"C({f})" for f in factors) or "1"
     spatial_terms = " + ".join(s_cols)
-    # (1|spec) nested in session handles the same-spec-across-trial_types repeats.
-    vc = {'spec': '0 + C(spec_uid)'} if has_repeats else None
-    print(f"[config] MIXED-EFFECTS  n={len(d)} specs, {d['session_id'].nunique()} "
-          f"sessions, {d['spec_uid'].nunique()} unique specs; factors={factors}; "
-          f"K={k} spatial basis fns; spec-RE={'yes' if vc else 'no'}")
+    # Session random intercept ONLY. A per-spec random effect would be confounded
+    # with the (per-spec) spatial predictors and kill the structure test.
+    vc = None
+    print(f"[config] MIXED-EFFECTS  n={len(d)} rows, {d['session_id'].nunique()} "
+          f"sessions, {d['spec_uid'].nunique()} unique specs "
+          f"({n_repeats} trial-type repeat rows); factors={factors}; "
+          f"K={k} spatial basis fns; random = (1|session)")
 
     print("\nFitting M0 (condition only) ...")
     m0 = _fit_mixed(f"{VALUE_COL} ~ {base_terms}", d, vc=vc)
@@ -270,11 +290,15 @@ def run_mixed_structure_test(trial_types=None, *, x_col='current_per_second',
               f"   {'-> structure differs by ' + mod if p2 < 0.05 else '-> no evidence it differs'}")
 
     _print_summary(results, moderators)
-    out_path = (os.path.join(save_dir, f"mixed_effects_surface_vs_{_slug(x_col)}.png")
-                if save_dir else None)
-    plot_model_surfaces(results, x_label=X_LABELS.get(x_col, x_col),
-                        y_label='corr half-distance (µm)', primary_moderator='polarity',
-                        output_path=out_path)
+    x_label = X_LABELS.get(x_col, x_col)
+    plotted = [m for m in moderators if m in results['interactions']]
+    for mod in (plotted or [None]):
+        out_path = None
+        if save_dir:
+            tag = mod if mod else 'pooled'
+            out_path = os.path.join(save_dir, f"mixed_effects_surface_{tag}_vs_{_slug(x_col)}.png")
+        plot_model_surfaces(results, mod, x_label=x_label,
+                            y_label='corr half-distance (µm)', output_path=out_path)
     return results
 
 
@@ -298,59 +322,97 @@ def _print_summary(results, moderators):
 # Plot: the model's fitted spatial surface(s)
 # ---------------------------------------------------------------------------
 
-def plot_model_surfaces(results, *, x_label, y_label, primary_moderator='polarity',
-                        output_path=None):
-    """Left: the pooled fitted spatial surface (M1). Right: per-level surfaces of the
-    primary moderator (M2), so you SEE whether the structure differs by condition.
-    Surfaces are the spatial component of the fitted effect (ON − OFF %)."""
+def _mod_label(mod, level):
+    short = {'polarity': {'PositiveFirst': 'anodic', 'NegativeFirst': 'cathodic'},
+             'waveform': {'Biphasic': 'biphasic',
+                          'BiphasicWithInterphaseDelay': 'biphasic+delay'}}
+    return short.get(mod, {}).get(level, str(level))
+
+
+def plot_model_surfaces(results, moderator, *, x_label, y_label, output_path=None):
+    """One figure for `moderator`: the pooled fitted effect map, one map per level of
+    the moderator, and (for a 2-level moderator) their difference. Each map = the
+    model's estimated estim effect (red = positive, blue = negative) across the
+    current × half-distance space, shown ONLY where there's data. The p-values say
+    whether the map is really structured, and whether the maps really differ."""
     rbf, scx, scy = results['rbf'], results['scx'], results['scy']
     d, k = results['data'], results['k']
     x_col, y_col = results['x_col'], results['y_col']
     xr = (float(d[x_col].min()), float(d[x_col].max()))
     yr = (float(d[y_col].min()), float(d[y_col].max()))
-    gx, gy, shape, Bg = _surface_grid(rbf, scx, scy, xr, yr)
+    gx, gy, shape, Bg, gcoords = _surface_grid(rbf, scx, scy, xr, yr)
+
+    def _std_coords(sub):
+        return np.column_stack([scx.transform(sub[x_col]), scy.transform(sub[y_col])])
 
     m1 = results['m1']
-    surf_shared = (Bg @ _spatial_coef(m1, k)).reshape(shape)
+    pooled = _mask_far_from_data((Bg @ _spatial_coef(m1, k)).reshape(shape),
+                                 gcoords, _std_coords(d))
+    panels = [('pooled — all specs', pooled, d)]     # (title, surface, points-or-None)
 
-    panels = [('pooled (M1)', surf_shared, d)]
-    mod_info = results['interactions'].get(primary_moderator)
+    mod_info = results['interactions'].get(moderator)
+    level_surfs = {}
     if mod_info is not None:
         m2 = mod_info['model']
         base = _spatial_coef(m2, k)
-        levels = [lv for lv in d[primary_moderator].dropna().unique()]
+        levels = list(d[moderator].dropna().unique())
         for lv in levels:
-            coef = base + _interaction_coef(m2, k, primary_moderator, lv)
-            panels.append((f"{primary_moderator}={lv} (M2)",
-                           (Bg @ coef).reshape(shape),
-                           d[d[primary_moderator] == lv]))
+            coef = base + _interaction_coef(m2, k, moderator, lv)
+            sub = d[d[moderator] == lv]
+            surf = _mask_far_from_data((Bg @ coef).reshape(shape), gcoords,
+                                       _std_coords(sub))
+            level_surfs[lv] = ((Bg @ coef).reshape(shape), _std_coords(sub))
+            panels.append((f"{moderator} = {_mod_label(moderator, lv)}", surf, sub))
+        if len(levels) == 2:
+            (sa, ca), (sb, cb) = level_surfs[levels[0]], level_surfs[levels[1]]
+            # Difference only where BOTH levels have nearby data (the overlap region).
+            diff = _mask_far_from_data(sa - sb, gcoords, ca)
+            diff = _mask_far_from_data(diff, gcoords, cb)
+            panels.append((f"difference:\n{_mod_label(moderator, levels[0])} − "
+                           f"{_mod_label(moderator, levels[1])}", diff, None))
 
-    vmax = max(float(np.abs(np.concatenate([p[1].ravel() for p in panels])).max()), 1e-6)
+    finite = np.concatenate([p[1][np.isfinite(p[1])].ravel() for p in panels
+                             if np.isfinite(p[1]).any()]) if panels else np.array([0.0])
+    vmax = max(float(np.abs(finite).max()) if finite.size else 1.0, 1e-6)
+
     n = len(panels)
-    fig, axes = plt.subplots(1, n, figsize=(4.8 * n, 4.4), squeeze=False,
+    fig, axes = plt.subplots(1, n, figsize=(4.6 * n, 4.6), squeeze=False,
                              constrained_layout=True)
     mesh = None
     for i, (title, surf, pts) in enumerate(panels):
         ax = axes[0][i]
-        mesh = ax.pcolormesh(gx, gy, surf, cmap='RdBu_r', vmin=-vmax, vmax=vmax,
-                             shading='auto')
-        ax.scatter(pts[x_col], pts[y_col], s=10, c='black', alpha=0.35, linewidths=0)
-        ax.set_title(title, fontsize=11)
+        ax.set_facecolor('#eeeeee')      # no-data cells show through as gray
+        mesh = ax.pcolormesh(gx, gy, np.ma.masked_invalid(surf), cmap='RdBu_r',
+                             vmin=-vmax, vmax=vmax, shading='auto')
+        if pts is not None:
+            ax.scatter(pts[x_col], pts[y_col], s=10, c='black', alpha=0.4, linewidths=0)
+        ax.set_title(title, fontsize=10)
         ax.set_xlabel(x_label, fontsize=9)
         if i == 0:
             ax.set_ylabel(y_label, fontsize=9)
 
     if mesh is not None:
         cbar = fig.colorbar(mesh, ax=axes.ravel().tolist(), shrink=0.7, pad=0.02)
-        cbar.set_label('fitted spatial effect (ON − OFF %)', fontsize=9)
+        cbar.set_label('fitted estim effect (ON − OFF %)\nred = positive, blue = negative',
+                       fontsize=9)
 
-    s, dfree, p = results['lrt_structure']
-    sub = f"structure LRT p={p:.3g}"
+    _, _, p_struct = results['lrt_structure']
+    struct_msg = ("effect IS spatially structured" if p_struct < 0.05
+                  else "no significant spatial structure")
     if mod_info is not None:
-        s2, df2, p2 = mod_info['lrt']
-        sub += f"   |   structure×{primary_moderator} LRT p={p2:.3g}"
-    fig.suptitle(f"Mixed-effects fitted spatial surface — effect over "
-                 f"(current × half-distance)\n{sub}", fontsize=12, fontweight='bold')
+        _, _, p_int = mod_info['lrt']
+        int_msg = (f"structure DIFFERS by {moderator}" if p_int < 0.05
+                   else f"no significant difference by {moderator}")
+        sub = (f"Is there structure?  p = {p_struct:.3g}  →  {struct_msg}      |      "
+               f"Does it differ by {moderator}?  p = {p_int:.3g}  →  {int_msg}")
+    else:
+        sub = f"Is there structure?  p = {p_struct:.3g}  →  {struct_msg}"
+    fig.suptitle(f"Model-estimated estim effect across current × half-distance space, "
+                 f"by {moderator}\n{sub}", fontsize=11, fontweight='bold')
+    fig.text(0.5, -0.02,
+             "Each map = the model's estimated effect at each point (grey = no data "
+             "there). p < 0.05 means the pattern is real, not noise.",
+             ha='center', fontsize=9, color='#444444')
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         fig.savefig(output_path, dpi=150, bbox_inches='tight')
