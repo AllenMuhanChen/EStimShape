@@ -72,7 +72,10 @@ N_PER_AXIS = 3
 RBF_SPREAD = 1.4          # kernel width as a multiple of the centre spacing
 VALUE_COL = 'effect_size'
 CONDITION_FACTORS = ('polarity', 'waveform', 'trial_type')   # fixed main effects
-MODERATORS = ('polarity', 'trial_type')                       # interactions to test
+# Interactions to test / plot. A tuple entry is a JOINT (combined) moderator —
+# polarity and trial_type are coupled, so ('trial_type','polarity') asks whether the
+# structure differs across the actual combinations, not each factor marginally.
+MODERATORS = ('polarity', 'trial_type', ('trial_type', 'polarity'))
 
 
 # ---------------------------------------------------------------------------
@@ -127,6 +130,23 @@ class _Scaler:
 def _present_factors(d, factors):
     """Categorical factors present in d with >1 level (usable as fixed effects)."""
     return [f for f in factors if f in d.columns and d[f].dropna().nunique() > 1]
+
+
+def _resolve_moderator(d, mod, factors):
+    """Turn a moderator spec into (display key, dataframe column, other-factor list).
+    A tuple builds a JOINT column (e.g. 'Delta Shape | anodic'); a string is a single
+    factor. Materialises the joint column in d. Returns (None, None, None) if unusable."""
+    if isinstance(mod, (tuple, list)):
+        comps = [c for c in mod if c in factors]
+        if len(comps) < 2:
+            return None, None, None
+        col = "__x__".join(comps)
+        d[col] = d[comps].astype(str).agg(" | ".join, axis=1)
+        others = [f for f in factors if f not in comps]
+        return " × ".join(comps), col, others
+    if mod not in factors:
+        return None, None, None
+    return mod, mod, [f for f in factors if f != mod]
 
 
 def _fit_mixed(formula, d, *, group_col='session_id', vc=None):
@@ -187,15 +207,20 @@ def _surface_grid(rbf, scx, scy, xr, yr, gridsize=60):
     return gx, gy, GX.shape, B, coords
 
 
-def _mask_far_from_data(surf, grid_coords, data_coords, radius=0.6):
-    """NaN-out grid cells whose nearest data point (in standardised space) is
-    farther than `radius` — so we only show the surface where there's data and don't
-    display meaningless extrapolation into empty corners."""
+def _support_keep(grid_coords, data_coords, *, base_radius=1.0, min_keep=0.45):
+    """Boolean keep-mask over grid cells: keep a cell if a data point is within an
+    adaptive radius (standardised space). The radius is at least `base_radius` and
+    grows so at least `min_keep` of the grid is shown, so sparse data never masks the
+    whole plane. Falls back to keeping everything if it would still be too empty."""
     if len(data_coords) == 0:
-        return np.full_like(surf, np.nan)
+        return np.ones(grid_coords.shape[0], dtype=bool)
     d2 = ((grid_coords[:, None, :] - data_coords[None, :, :]) ** 2).sum(-1)
-    nearest = np.sqrt(d2.min(axis=1)).reshape(surf.shape)
-    return np.where(nearest <= radius, surf, np.nan)
+    nearest = np.sqrt(d2.min(axis=1))
+    r = max(base_radius, float(np.quantile(nearest, min_keep)))
+    keep = nearest <= r
+    if keep.mean() < 0.2:
+        keep = np.ones_like(keep)
+    return keep
 
 
 # ---------------------------------------------------------------------------
@@ -277,38 +302,74 @@ def run_mixed_structure_test(trial_types=None, *, x_col='current_per_second',
           f"   {'-> structure' if p1 < 0.05 else '-> no evidence of structure'}")
 
     for mod in moderators:
-        if mod not in factors:
+        key, fcol, others = _resolve_moderator(d, mod, factors)
+        if key is None:
             continue
-        inter = " + ".join(f"{s}:C({mod})" for s in s_cols)
-        print(f"\nFitting M2[{mod}] (M1 + spatial × {mod}) ...")
-        m2 = _fit_mixed(f"{VALUE_COL} ~ {base_terms} + {spatial_terms} + {inter}",
-                        d, vc=vc)
-        stat2, df2, p2 = _lrt(m2, m1)
-        results['interactions'][mod] = {'model': m2, 'lrt': (stat2, df2, p2)}
-        print(f"=== Q2: does the structure differ by {mod}? ===")
-        print(f"    LRT(M2[{mod}] vs M1): chi2({df2}) = {stat2:.2f}   p = {p2:.4g}"
-              f"   {'-> structure differs by ' + mod if p2 < 0.05 else '-> no evidence it differs'}")
+        levels = [lv for lv in d[fcol].dropna().unique() if int((d[fcol] == lv).sum()) >= 8]
+        if len(levels) < 2:
+            print(f"\n[{key}] <2 levels with >= 8 specs; skipping")
+            continue
+        other_mains = " + ".join(f"C({f})" for f in others)
 
-    _print_summary(results, moderators)
+        # Per-level fitted surfaces (robust small models) — these drive the plot and
+        # DO capture coupling, since each combination is fit on its own specs.
+        coef_by_level = {}
+        for lv in levels:
+            sub = d[d[fcol] == lv]
+            rhs = " + ".join(t for t in (other_mains, spatial_terms) if t)
+            try:
+                ml = _fit_mixed(f"{VALUE_COL} ~ {rhs}", sub, vc=vc)
+                coef_by_level[lv] = _spatial_coef(ml, k)
+            except Exception as exc:
+                print(f"    [{key}={lv}] per-level surface fit failed: {exc}")
+
+        # Difference test: does the spatial surface differ across this factor's levels?
+        # (controls for the factor's own means via C(fcol)). Attempted best-effort; a
+        # joint factor with many levels needs more data than a per-spec basis can spend.
+        n_lv = int(d[fcol].dropna().nunique())
+        df_int = k * (n_lv - 1)
+        reduced_mains = " + ".join(t for t in (other_mains, f"C({fcol})") if t)
+        reduced_rhs = f"{reduced_mains} + {spatial_terms}"
+        inter = " + ".join(f"{s}:C({fcol})" for s in s_cols)
+        lrt = None
+        if df_int < max(6, len(d) // 3):
+            try:
+                red = _fit_mixed(f"{VALUE_COL} ~ {reduced_rhs}", d, vc=vc)
+                full = _fit_mixed(f"{VALUE_COL} ~ {reduced_rhs} + {inter}", d, vc=vc)
+                lrt = _lrt(full, red)
+            except Exception as exc:
+                print(f"    [{key}] interaction test failed: {exc}")
+        results['interactions'][key] = {'lrt': lrt, 'factor_col': fcol, 'levels': levels,
+                                        'coef_by_level': coef_by_level}
+        print(f"\n=== Q2: does the structure differ by {key}? ===")
+        if lrt is not None:
+            s2, df2, p2 = lrt
+            verdict = ('-> structure differs' if p2 < 0.05 else '-> no evidence it differs')
+            print(f"    LRT: chi2({df2}) = {s2:.2f}   p = {p2:.4g}   {verdict}")
+        else:
+            print(f"    not testable at this sample size (df={df_int} > n/3); "
+                  f"showing per-combination maps descriptively instead")
+
+    _print_summary(results)
     x_label = X_LABELS.get(x_col, x_col)
-    plotted = [m for m in moderators if m in results['interactions']]
-    for mod in (plotted or [None]):
+    keys = list(results['interactions'].keys())
+    for key in (keys or [None]):
         out_path = None
         if save_dir:
-            tag = mod if mod else 'pooled'
+            tag = _slug(key) if key else 'pooled'
             out_path = os.path.join(save_dir, f"mixed_effects_surface_{tag}_vs_{_slug(x_col)}.png")
-        plot_model_surfaces(results, mod, x_label=x_label,
+        plot_model_surfaces(results, key, x_label=x_label,
                             y_label='corr half-distance (µm)', output_path=out_path)
     return results
 
 
-def _print_summary(results, moderators):
+def _print_summary(results):
     rows = [{'test': 'spatial structure (M1 vs M0)',
              'chi2': round(results['lrt_structure'][0], 2),
              'df': results['lrt_structure'][1],
              'p': results['lrt_structure'][2]}]
-    for mod in moderators:
-        if mod in results['interactions']:
+    for mod in results['interactions']:
+        if results['interactions'][mod].get('lrt') is not None:
             s, dfree, p = results['interactions'][mod]['lrt']
             rows.append({'test': f'structure × {mod} (M2 vs M1)',
                          'chi2': round(s, 2), 'df': dfree, 'p': p})
@@ -329,12 +390,18 @@ def _mod_label(mod, level):
     return short.get(mod, {}).get(level, str(level))
 
 
-def plot_model_surfaces(results, moderator, *, x_label, y_label, output_path=None):
-    """One figure for `moderator`: the pooled fitted effect map, one map per level of
-    the moderator, and (for a 2-level moderator) their difference. Each map = the
-    model's estimated estim effect (red = positive, blue = negative) across the
-    current × half-distance space, shown ONLY where there's data. The p-values say
-    whether the map is really structured, and whether the maps really differ."""
+def _level_label(fcol, lv):
+    if '__x__' in fcol:
+        return str(lv)                       # joint level, already "Delta | anodic"
+    return _mod_label(fcol, lv)
+
+
+def plot_model_surfaces(results, key, *, x_label, y_label, output_path=None):
+    """One figure for moderator `key`: the pooled fitted effect map, one map per level
+    (each fit on its OWN specs, so joint conditions like 'Delta | anodic' are
+    genuinely different maps), and — for a 2-level moderator — their difference. Each
+    map = the model's estimated estim effect (red = +, blue = −) across the current ×
+    half-distance space, shown only where there's data (grey elsewhere)."""
     rbf, scx, scy = results['rbf'], results['scx'], results['scy']
     d, k = results['data'], results['k']
     x_col, y_col = results['x_col'], results['y_col']
@@ -345,73 +412,72 @@ def plot_model_surfaces(results, moderator, *, x_label, y_label, output_path=Non
     def _std_coords(sub):
         return np.column_stack([scx.transform(sub[x_col]), scy.transform(sub[y_col])])
 
-    m1 = results['m1']
-    pooled = _mask_far_from_data((Bg @ _spatial_coef(m1, k)).reshape(shape),
-                                 gcoords, _std_coords(d))
-    panels = [('pooled — all specs', pooled, d)]     # (title, surface, points-or-None)
+    keep = _support_keep(gcoords, _std_coords(d)).reshape(shape)
 
-    mod_info = results['interactions'].get(moderator)
-    level_surfs = {}
-    if mod_info is not None:
-        m2 = mod_info['model']
-        base = _spatial_coef(m2, k)
-        levels = list(d[moderator].dropna().unique())
+    def _surf(coef):
+        return np.where(keep, (Bg @ coef).reshape(shape), np.nan)
+
+    panels = [('pooled — all specs', _surf(_spatial_coef(results['m1'], k)), d)]
+    info = results['interactions'].get(key) if key else None
+    if info is not None:
+        fcol, cbl = info['factor_col'], info['coef_by_level']
+        levels = [lv for lv in info['levels'] if lv in cbl]
         for lv in levels:
-            coef = base + _interaction_coef(m2, k, moderator, lv)
-            sub = d[d[moderator] == lv]
-            surf = _mask_far_from_data((Bg @ coef).reshape(shape), gcoords,
-                                       _std_coords(sub))
-            level_surfs[lv] = ((Bg @ coef).reshape(shape), _std_coords(sub))
-            panels.append((f"{moderator} = {_mod_label(moderator, lv)}", surf, sub))
+            panels.append((_level_label(fcol, lv), _surf(cbl[lv]), d[d[fcol] == lv]))
         if len(levels) == 2:
-            (sa, ca), (sb, cb) = level_surfs[levels[0]], level_surfs[levels[1]]
-            # Difference only where BOTH levels have nearby data (the overlap region).
-            diff = _mask_far_from_data(sa - sb, gcoords, ca)
-            diff = _mask_far_from_data(diff, gcoords, cb)
-            panels.append((f"difference:\n{_mod_label(moderator, levels[0])} − "
-                           f"{_mod_label(moderator, levels[1])}", diff, None))
+            diff = _surf(cbl[levels[0]] - cbl[levels[1]])
+            panels.append((f"difference:\n{_level_label(fcol, levels[0])} − "
+                           f"{_level_label(fcol, levels[1])}", diff, None))
 
-    finite = np.concatenate([p[1][np.isfinite(p[1])].ravel() for p in panels
-                             if np.isfinite(p[1]).any()]) if panels else np.array([0.0])
-    vmax = max(float(np.abs(finite).max()) if finite.size else 1.0, 1e-6)
+    finite = [p[1][np.isfinite(p[1])] for p in panels if np.isfinite(p[1]).any()]
+    allv = np.concatenate(finite) if finite else np.array([0.0])
+    vmax = max(float(np.abs(allv).max()) if allv.size else 1.0, 1e-6)
 
     n = len(panels)
-    fig, axes = plt.subplots(1, n, figsize=(4.6 * n, 4.6), squeeze=False,
-                             constrained_layout=True)
+    ncols = min(4, n)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(4.5 * ncols, 4.4 * nrows),
+                             squeeze=False, constrained_layout=True)
     mesh = None
     for i, (title, surf, pts) in enumerate(panels):
-        ax = axes[0][i]
-        ax.set_facecolor('#eeeeee')      # no-data cells show through as gray
+        ax = axes[i // ncols][i % ncols]
+        ax.set_facecolor('#eeeeee')
         mesh = ax.pcolormesh(gx, gy, np.ma.masked_invalid(surf), cmap='RdBu_r',
                              vmin=-vmax, vmax=vmax, shading='auto')
         if pts is not None:
             ax.scatter(pts[x_col], pts[y_col], s=10, c='black', alpha=0.4, linewidths=0)
-        ax.set_title(title, fontsize=10)
-        ax.set_xlabel(x_label, fontsize=9)
-        if i == 0:
+        ax.set_title(title, fontsize=9)
+        if i // ncols == nrows - 1:
+            ax.set_xlabel(x_label, fontsize=9)
+        if i % ncols == 0:
             ax.set_ylabel(y_label, fontsize=9)
+    for j in range(n, nrows * ncols):
+        axes[j // ncols][j % ncols].axis('off')
 
     if mesh is not None:
-        cbar = fig.colorbar(mesh, ax=axes.ravel().tolist(), shrink=0.7, pad=0.02)
+        cbar = fig.colorbar(mesh, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
         cbar.set_label('fitted estim effect (ON − OFF %)\nred = positive, blue = negative',
                        fontsize=9)
 
     _, _, p_struct = results['lrt_structure']
     struct_msg = ("effect IS spatially structured" if p_struct < 0.05
                   else "no significant spatial structure")
-    if mod_info is not None:
-        _, _, p_int = mod_info['lrt']
-        int_msg = (f"structure DIFFERS by {moderator}" if p_int < 0.05
-                   else f"no significant difference by {moderator}")
-        sub = (f"Is there structure?  p = {p_struct:.3g}  →  {struct_msg}      |      "
-               f"Does it differ by {moderator}?  p = {p_int:.3g}  →  {int_msg}")
-    else:
-        sub = f"Is there structure?  p = {p_struct:.3g}  →  {struct_msg}"
-    fig.suptitle(f"Model-estimated estim effect across current × half-distance space, "
-                 f"by {moderator}\n{sub}", fontsize=11, fontweight='bold')
+    sub = f"Is there structure?  p = {p_struct:.3g}  →  {struct_msg}"
+    title_by = f" by {key}" if key else ""
+    if info is not None:
+        lrt = info.get('lrt')
+        if lrt is not None:
+            p_int = lrt[2]
+            int_msg = ("DIFFERS" if p_int < 0.05 else "no significant difference")
+            sub += (f"      |      Does it differ by {key}?  p = {p_int:.3g}  →  {int_msg}")
+        else:
+            sub += (f"      |      Does it differ by {key}?  not testable at this n "
+                    f"— maps below are descriptive")
+    fig.suptitle(f"Model-estimated estim effect across current × half-distance space"
+                 f"{title_by}\n{sub}", fontsize=11, fontweight='bold')
     fig.text(0.5, -0.02,
-             "Each map = the model's estimated effect at each point (grey = no data "
-             "there). p < 0.05 means the pattern is real, not noise.",
+             "Each map = the model's estimated effect at each point (grey = no data). "
+             "p < 0.05 means the pattern is real, not noise.",
              ha='center', fontsize=9, color='#444444')
     if output_path:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
