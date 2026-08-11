@@ -192,6 +192,12 @@ def _attach_estim_metrics(df):
     shapes = _fetch_estim_shape(session_ids)
     df['waveform'] = [
         shapes.get((s, int(spec))) for s, spec in zip(df['session_id'], df['estim_spec_id'])]
+    # Frequency: current_per_second = total_current × pulse_rate, so
+    # pulse_rate_hz = current_per_second / total_current_uA (NaN when total is 0/missing).
+    cps = pd.to_numeric(df.get('current_per_second'), errors='coerce').to_numpy(dtype=float)
+    tot = pd.to_numeric(df.get('total_current_uA'), errors='coerce').to_numpy(dtype=float)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        df['pulse_rate_hz'] = np.where(tot > 0, cps / tot, np.nan)
     return df
 
 # Tuning families (rows). Each is a different aggregation of the same per-neighbour
@@ -229,10 +235,14 @@ X_METRIC = 'current_per_second'
 X_LABELS = {
     'current_per_second': 'current_per_second (µA·Hz)',
     'total_current_uA': 'total current  (a1 × num_channels, µA)',
+    'pulse_rate_hz': 'pulse rate / frequency (Hz)',
     'n_active_channels': 'num active channels',
 }
 # Current columns retained on every points table (so any can be selected as X).
-CURRENT_COLUMNS = ('current_per_second', 'total_current_uA', 'n_active_channels')
+# pulse_rate_hz = current_per_second / total_current_uA (their product is the dose
+# rate), so total current and frequency are self-consistent decompositions of it.
+CURRENT_COLUMNS = ('current_per_second', 'total_current_uA', 'pulse_rate_hz',
+                   'n_active_channels')
 
 X_COLUMN = X_METRIC
 X_LABEL = X_LABELS.get(X_METRIC, X_METRIC)
@@ -843,11 +853,12 @@ def _resolve_row_cols(points, by_polarity, by_waveform):
 def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
                                         trial_types, by_polarity=True,
                                         by_waveform=False, point_noun='spec',
+                                        x_col=X_COLUMN, x_label=X_LABEL,
                                         output_path=None):
-    """Grid of X = current_per_second vs Y = y_col, colour = estim effect (RdBu_r,
-    symmetric). Columns = trial types; rows = every present combination of the
-    categorical splits — polarity (by_polarity) × waveform (by_waveform). Generic
-    scatter used by the half-distance (and any other single-Y) current-spread plot."""
+    """Grid of X = x_col vs Y = y_col, colour = estim effect (RdBu_r, symmetric).
+    Columns = trial types; rows = every present combination of the categorical
+    splits — polarity (by_polarity) × waveform (by_waveform). Generic scatter used
+    by the half-distance (and any other single-Y) current-spread plot."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
@@ -861,7 +872,7 @@ def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
 
     vmax = _effect_vmax(points)
     # Shared limits across every panel (all trial types / row splits).
-    xlim = _axis_limits(points[X_COLUMN])
+    xlim = _axis_limits(points[x_col])
     ylim = _axis_limits(points[y_col])
 
     scatter_ref = None
@@ -869,8 +880,8 @@ def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
         for c, tt in enumerate(tts):
             ax = axes[r][c]
             sub = _filter_rows(points[points['trial_type'] == tt], group)
-            sub = sub[[X_COLUMN, y_col, 'effect_size']].dropna(subset=[X_COLUMN, y_col])
-            x = sub[X_COLUMN].to_numpy(dtype=float)
+            sub = sub[[x_col, y_col, 'effect_size']].dropna(subset=[x_col, y_col])
+            x = sub[x_col].to_numpy(dtype=float)
             y = sub[y_col].to_numpy(dtype=float)
             eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
             has_eff = np.isfinite(eff)
@@ -898,7 +909,7 @@ def plot_metric_vs_current_by_trialtype(points, y_col, *, y_label, title,
             if ylim:
                 ax.set_ylim(ylim)
             if r == nrows - 1:
-                ax.set_xlabel(X_LABEL, fontsize=9)
+                ax.set_xlabel(x_label, fontsize=9)
             if c == 0:
                 ax.set_ylabel(y_label, fontsize=10)
             ax.grid(True, alpha=0.3)
@@ -1056,11 +1067,11 @@ def _gaussian_effect_field(x, y, eff, *, gridsize=DEFAULT_HEATMAP_GRID,
 def _draw_effect_heatmap(ax, sub, y_col, *, vmax, bandwidth=DEFAULT_HEATMAP_BW,
                          gridsize=DEFAULT_HEATMAP_GRID, mode=DEFAULT_HEATMAP_MODE,
                          density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR,
-                         show_points=True, xrange=None, yrange=None):
+                         show_points=True, xrange=None, yrange=None, x_col=X_COLUMN):
     """Draw one smoothed effect heatmap panel. Returns the pcolormesh (for the
     shared colorbar) or None if too few points. xrange/yrange fix the grid extent
     and axis limits so panels are comparable."""
-    d = sub[[X_COLUMN, y_col, 'effect_size']].dropna()
+    d = sub[[x_col, y_col, 'effect_size']].dropna()
     ax.set_facecolor('#ededed')  # masked/no-data cells show through as gray
 
     def _apply_lims():
@@ -1075,7 +1086,7 @@ def _draw_effect_heatmap(ax, sub, y_col, *, vmax, bandwidth=DEFAULT_HEATMAP_BW,
         _apply_lims()
         return None
     res = _gaussian_effect_field(
-        d[X_COLUMN].to_numpy(), d[y_col].to_numpy(), d['effect_size'].to_numpy(),
+        d[x_col].to_numpy(), d[y_col].to_numpy(), d['effect_size'].to_numpy(),
         gridsize=gridsize, bandwidth=bandwidth, mode=mode, density_floor=density_floor,
         xrange=xrange, yrange=yrange)
     if res is None:
@@ -1085,7 +1096,7 @@ def _draw_effect_heatmap(ax, sub, y_col, *, vmax, bandwidth=DEFAULT_HEATMAP_BW,
     mesh = ax.pcolormesh(gx, gy, np.ma.masked_invalid(field), cmap='RdBu_r',
                          vmin=-vmax, vmax=vmax, shading='auto')
     if show_points:
-        ax.scatter(d[X_COLUMN], d[y_col], s=9, c='black', alpha=0.35, linewidths=0)
+        ax.scatter(d[x_col], d[y_col], s=9, c='black', alpha=0.35, linewidths=0)
     _apply_lims()
     return mesh
 
@@ -1104,11 +1115,11 @@ def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_typ
                                      gridsize=DEFAULT_HEATMAP_GRID,
                                      density_floor=DEFAULT_HEATMAP_DENSITY_FLOOR,
                                      show_points=True, point_noun='spec',
-                                     output_path=None):
+                                     x_col=X_COLUMN, x_label=X_LABEL, output_path=None):
     """Smoothed-effect heatmap version of plot_metric_vs_current_by_trialtype:
     columns = trial types, rows = every present combination of polarity (by_polarity)
     × waveform (by_waveform). Each panel is the Gaussian-smoothed local-mean effect
-    over (current_per_second, y_col)."""
+    over (x_col, y_col)."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
@@ -1120,7 +1131,7 @@ def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_typ
                              squeeze=False, constrained_layout=True)
     vmax = _effect_vmax(points)
     # Shared grid extent + axis limits across every panel.
-    xrange = _axis_limits(points[X_COLUMN])
+    xrange = _axis_limits(points[x_col])
     yrange = _axis_limits(points[y_col])
 
     mesh_ref = None
@@ -1131,7 +1142,7 @@ def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_typ
             mesh = _draw_effect_heatmap(
                 ax, sub, y_col, vmax=vmax, bandwidth=bandwidth, gridsize=gridsize,
                 mode=mode, density_floor=density_floor, show_points=show_points,
-                xrange=xrange, yrange=yrange)
+                xrange=xrange, yrange=yrange, x_col=x_col)
             if mesh is not None:
                 mesh_ref = mesh
             lines = []
@@ -1139,11 +1150,11 @@ def plot_effect_heatmap_by_trialtype(points, y_col, *, y_label, title, trial_typ
                 lines.append(tt)
             if row_cols:
                 lines.append(_row_label(group, row_cols))
-            n_here = int(sub[[X_COLUMN, y_col, 'effect_size']].dropna().shape[0])
+            n_here = int(sub[[x_col, y_col, 'effect_size']].dropna().shape[0])
             lines.append(f"n={n_here} {point_noun}s")
             ax.set_title("\n".join(lines), fontsize=10)
             if r == nrows - 1:
-                ax.set_xlabel(X_LABEL, fontsize=9)
+                ax.set_xlabel(x_label, fontsize=9)
             if c == 0:
                 ax.set_ylabel(y_label, fontsize=10)
 
@@ -1865,26 +1876,34 @@ def build_spec_metric_table(trial_types, *, start_session_id=None,
     return df
 
 
-def run_spec_metrics(trial_types=None, *, y_metrics=Y_METRIC_SELECTION, heatmap=False,
+def run_spec_metrics(trial_types=None, *, y_metrics=Y_METRIC_SELECTION,
+                     x_metrics=(X_METRIC,), heatmap=False,
                      start_session_id=None, exclude_session_ids=None,
                      effect_metric=COMPARISON_METRIC, base_required_conditions=None,
                      exclude_other_estim=True, min_on_trials=COMPARISON_MIN_ON_TRIALS,
                      aggregate_by='spec', by_polarity=True, by_waveform=True,
                      mode=DEFAULT_HEATMAP_MODE, bandwidth=DEFAULT_HEATMAP_BW,
                      save_dir=None):
-    """Build the spec-metric table ONCE, then plot each Y metric in `y_metrics` to
-    its own file — scatter, or smoothed effect heatmap when heatmap=True. Rows are
-    every present combination of polarity (by_polarity) × waveform (by_waveform)."""
+    """Build the spec-metric table ONCE, then plot every (x_metric, y_metric) combo
+    to its own file — scatter, or smoothed effect heatmap when heatmap=True. Rows
+    are every present combination of polarity (by_polarity) × waveform
+    (by_waveform). x_metrics keys index X_LABELS (e.g. 'total_current_uA',
+    'pulse_rate_hz')."""
     if isinstance(y_metrics, str):
         y_metrics = (y_metrics,)
+    if isinstance(x_metrics, str):
+        x_metrics = (x_metrics,)
     unknown = [k for k in y_metrics if k not in Y_METRICS]
     if unknown:
         raise ValueError(f"unknown y_metrics {unknown}; choose from {list(Y_METRICS)}")
+    unknown_x = [k for k in x_metrics if k not in X_LABELS]
+    if unknown_x:
+        raise ValueError(f"unknown x_metrics {unknown_x}; choose from {list(X_LABELS)}")
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
-    print(f"[config] SPEC METRICS vs CURRENT  y_metrics={list(y_metrics)}  "
-          f"heatmap={heatmap}  trial_types={trial_types}  point={aggregate_by}  "
-          f"by_polarity={by_polarity}  by_waveform={by_waveform}")
+    print(f"[config] SPEC METRICS  x_metrics={list(x_metrics)}  "
+          f"y_metrics={list(y_metrics)}  heatmap={heatmap}  trial_types={trial_types}  "
+          f"point={aggregate_by}  by_polarity={by_polarity}  by_waveform={by_waveform}")
 
     df = build_spec_metric_table(
         trial_types, start_session_id=start_session_id,
@@ -1898,22 +1917,26 @@ def run_spec_metrics(trial_types=None, *, y_metrics=Y_METRIC_SELECTION, heatmap=
     cols = [Y_METRICS[k][0] for k in y_metrics]
     points = build_points(df, list(dict.fromkeys(cols + [HALFDIST_COL])), aggregate_by)
     kind = 'heatmap' if heatmap else 'scatter'
-    for key in y_metrics:
-        col, label = Y_METRICS[key]
-        title = _Y_METRIC_TITLES.get(key, label)
-        out_path = (os.path.join(save_dir, f"{key}_{kind}_vs_{_slug(X_COLUMN)}.png")
-                    if save_dir else None)
-        print(f"\n### y-metric '{key}' ({kind}) ###")
-        if heatmap:
-            plot_effect_heatmap_by_trialtype(
-                points, col, y_label=label, title=title, trial_types=trial_types,
-                by_polarity=by_polarity, by_waveform=by_waveform, mode=mode,
-                bandwidth=bandwidth, point_noun=aggregate_by, output_path=out_path)
-        else:
-            plot_metric_vs_current_by_trialtype(
-                points, col, y_label=label, title=title, trial_types=trial_types,
-                by_polarity=by_polarity, by_waveform=by_waveform,
-                point_noun=aggregate_by, output_path=out_path)
+    for x_key in x_metrics:
+        x_label = X_LABELS.get(x_key, x_key)
+        for key in y_metrics:
+            col, label = Y_METRICS[key]
+            title = _Y_METRIC_TITLES.get(key, label)
+            out_path = (os.path.join(save_dir, f"{key}_{kind}_vs_{_slug(x_key)}.png")
+                        if save_dir else None)
+            print(f"\n### y='{key}' vs x='{x_key}' ({kind}) ###")
+            if heatmap:
+                plot_effect_heatmap_by_trialtype(
+                    points, col, y_label=label, title=title, trial_types=trial_types,
+                    by_polarity=by_polarity, by_waveform=by_waveform, mode=mode,
+                    bandwidth=bandwidth, point_noun=aggregate_by,
+                    x_col=x_key, x_label=x_label, output_path=out_path)
+            else:
+                plot_metric_vs_current_by_trialtype(
+                    points, col, y_label=label, title=title, trial_types=trial_types,
+                    by_polarity=by_polarity, by_waveform=by_waveform,
+                    point_noun=aggregate_by, x_col=x_key, x_label=x_label,
+                    output_path=out_path)
     return df, points
 
 
@@ -1935,6 +1958,19 @@ def main_spec_metrics_heatmap():
     run_spec_metrics(
         trial_types=(COMPARISON_TRIAL_TYPES or None), y_metrics=Y_METRIC_SELECTION,
         heatmap=True, start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS, effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        min_on_trials=COMPARISON_MIN_ON_TRIALS, aggregate_by='spec',
+        by_polarity=True, by_waveform=True, save_dir=COMPARISON_SAVE_DIR)
+
+
+def main_halfdist_current_vs_frequency(heatmap=True):
+    """Y = corr half-distance, one figure for X = total current and one for
+    X = pulse rate (frequency), split by trial type × polarity × waveform."""
+    run_spec_metrics(
+        trial_types=(COMPARISON_TRIAL_TYPES or None), y_metrics=('half_distance',),
+        x_metrics=('total_current_uA', 'pulse_rate_hz'), heatmap=heatmap,
+        start_session_id=COMPARISON_START_SESSION_ID,
         exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS, effect_metric=COMPARISON_METRIC,
         base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
         min_on_trials=COMPARISON_MIN_ON_TRIALS, aggregate_by='spec',
@@ -1980,7 +2016,10 @@ if __name__ == '__main__':
     # (edit that tuple / the Y_METRICS registry to choose the y-axis metric):
     #   - main_spec_metrics_heatmap() -> smoothed effect field per selected metric
     #   - main_spec_metrics()         -> effect-coloured scatter per selected metric
-    main_spec_metrics_heatmap()
+    #   - main_halfdist_current_vs_frequency() -> corr half-distance heatmaps with
+    #                                    X = total current AND X = frequency (2 figs)
+    main_halfdist_current_vs_frequency()
+    # main_spec_metrics_heatmap()
     # main_spec_metrics()
     # main_corr_in_half_distance_heatmap()
     # main_symmetry_heatmap()
