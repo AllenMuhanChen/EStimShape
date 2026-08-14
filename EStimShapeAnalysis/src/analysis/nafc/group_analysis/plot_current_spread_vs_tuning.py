@@ -2005,6 +2005,9 @@ RATIO_XLIM = (0.0, 10.0)
 #            in some ratio region?".
 #   'abs'  — |effect| magnitude curves per sign (how BIG positives vs negatives are).
 RATIO_SPLIT_MODE = 'rate'
+# Add marginal "combined" panels: an "ALL trial types" column, an "ALL polarities"
+# row, and their combined-across-everything corner. Set False for just the cells.
+RATIO_ADD_COMBINED = True
 
 
 def _attach_ratio(points, *, x_col='current_per_second', hd_col=HALFDIST_COL,
@@ -2071,7 +2074,8 @@ SIGN_NEG_COLOR = '#2c6fbb'   # blue  — smoothed curve of the negative-effect p
 def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_COL,
                                       x_label=RATIO_LABEL, by_polarity=True,
                                       point_noun='spec', bw_frac=DEFAULT_RATIO_BW_FRAC,
-                                      xlim=RATIO_XLIM, split_mode=None, output_path=None):
+                                      xlim=RATIO_XLIM, split_mode=None,
+                                      add_margins=RATIO_ADD_COMBINED, output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
     ratio. Shared axis + colour limits. `split_mode` picks what the curve(s) show:
 
@@ -2090,7 +2094,14 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
     row_cols = _resolve_row_cols(points, by_polarity, by_waveform=False)
     groups, row_cols = _row_groups(points, row_cols)
 
-    ncols, nrows = len(tts), len(groups)
+    # Marginal "combined" panels: an extra "all trial types" COLUMN (pools trial
+    # types) and an extra "all polarities" ROW (pools the row split). Their corner
+    # is combined-across-everything. Sentinel None = "don't filter on this axis".
+    ALL = None
+    col_keys = list(tts) + ([ALL] if add_margins and len(tts) > 1 else [])
+    row_specs = list(groups) + ([ALL] if add_margins and len(groups) > 1 else [])
+
+    ncols, nrows = len(col_keys), len(row_specs)
     fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.2 * nrows),
                              squeeze=False, constrained_layout=True)
     vmax = _effect_vmax(points)
@@ -2145,15 +2156,20 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         ax.plot(gx, np.where(fin, p, np.nan), color='black', lw=2.2, zorder=4)
 
     scatter_ref = None
-    for r, group in enumerate(groups):
-        for c, tt in enumerate(tts):
+    for r, group in enumerate(row_specs):
+        for c, tt in enumerate(col_keys):
             ax = axes[r][c]
-            sub = _filter_rows(points[points['trial_type'] == tt], group)
+            col_sub = points if tt is ALL else points[points['trial_type'] == tt]
+            sub = col_sub if group is ALL else _filter_rows(col_sub, group)
             sub = sub[[ratio_col, 'effect_size']].dropna()
             x = sub[ratio_col].to_numpy(dtype=float)
             eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
             ok = np.isfinite(x) & np.isfinite(eff)
             x, eff = x[ok], eff[ok]
+
+            # tint the combined margin panels so they read as summaries, not a cell.
+            if tt is ALL or group is ALL:
+                ax.set_facecolor('#f4f4f4')
 
             if split_mode == 'rate':
                 _draw_rate(ax, x, eff)
@@ -2172,11 +2188,14 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                 else:
                     _draw_smooth(ax, x, yv, 'black')
 
+            col_label = 'ALL trial types' if tt is ALL else tt
+            row_label = ('ALL polarities' if group is ALL
+                         else (_row_label(group, row_cols) if row_cols else ''))
             lines = []
             if r == 0:
-                lines.append(tt)
-            if row_cols:
-                lines.append(_row_label(group, row_cols))
+                lines.append(col_label)
+            if row_label:
+                lines.append(row_label)
             lines.append(f"n={len(x)} {point_noun}s")
             ax.set_title("\n".join(lines), fontsize=10)
             if xlim:
@@ -2220,7 +2239,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
                         aggregate_by='spec', by_polarity=True,
                         bw_frac=DEFAULT_RATIO_BW_FRAC, xlim=RATIO_XLIM,
-                        split_mode=RATIO_SPLIT_MODE,
+                        split_mode=RATIO_SPLIT_MODE, add_margins=RATIO_ADD_COMBINED,
                         x_col='current_per_second', save_dir=None):
     """Build the half-distance table, form the current:half-distance ratio per point,
     and draw the effect-vs-ratio grid. Returns (df, points_df)."""
@@ -2250,7 +2269,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
         plot_effect_vs_ratio_by_trialtype(
             points, trial_types=trial_types, by_polarity=by_polarity,
             point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_mode=mode,
-            output_path=out_path)
+            add_margins=add_margins, output_path=out_path)
     return df, points
 
 
