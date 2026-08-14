@@ -1991,6 +1991,10 @@ def main_halfdist_current_vs_frequency(heatmap=True):
 
 RATIO_COL = 'current_per_halfdist'
 RATIO_LABEL = 'current_per_second ÷ corr half-distance  ((µA·Hz)/µm)'
+# Bandwidth of the 1-D kernel curve drawn through the dots, as a FRACTION of the
+# robust spread (~1σ) of the x-axis. Smaller -> wigglier curve hugging local dots;
+# larger -> smoother, flatter. Change this ONE number to retune every ratio plot.
+DEFAULT_RATIO_BW_FRAC = 0.15
 
 
 def _attach_ratio(points, *, x_col='current_per_second', hd_col=HALFDIST_COL,
@@ -2019,7 +2023,7 @@ def _robust_limits(series, *, qlo=1, qhi=99, pad=0.05):
     return (lo - m, hi + m)
 
 
-def _kernel_smooth_1d(x, y, *, gridsize=160, bw_frac=0.15, xrange=None):
+def _kernel_smooth_1d(x, y, *, gridsize=160, bw_frac=DEFAULT_RATIO_BW_FRAC, xrange=None):
     """1-D Nadaraya–Watson smoothing of y over x with a Gaussian kernel whose
     bandwidth is bw_frac × (robust x-spread). Returns (gx, mean, se) with NaN where
     local support is negligible, or None if < 4 finite points."""
@@ -2056,7 +2060,7 @@ SIGN_NEG_COLOR = '#2c6fbb'   # blue  — smoothed curve of the negative-effect p
 
 def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_COL,
                                       x_label=RATIO_LABEL, by_polarity=True,
-                                      point_noun='spec', bw_frac=0.15,
+                                      point_noun='spec', bw_frac=DEFAULT_RATIO_BW_FRAC,
                                       split_sign=False, output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
     ratio, Y = estim effect. Points coloured by effect (house style); shared axis +
@@ -2170,7 +2174,8 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         min_on_trials=COMPARISON_MIN_ON_TRIALS,
                         far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
                         bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
-                        aggregate_by='spec', by_polarity=True, bw_frac=0.15,
+                        aggregate_by='spec', by_polarity=True,
+                        bw_frac=DEFAULT_RATIO_BW_FRAC,
                         x_col='current_per_second', save_dir=None):
     """Build the half-distance table, form the current:half-distance ratio per point,
     and draw the effect-vs-ratio grid. Returns (df, points_df)."""
