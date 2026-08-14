@@ -2050,13 +2050,22 @@ def _kernel_smooth_1d(x, y, *, gridsize=160, bw_frac=0.15, xrange=None):
     return gx, mean, se
 
 
+SIGN_POS_COLOR = '#c0392b'   # red   — smoothed curve of the positive-effect points
+SIGN_NEG_COLOR = '#2c6fbb'   # blue  — smoothed curve of the negative-effect points
+
+
 def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_COL,
                                       x_label=RATIO_LABEL, by_polarity=True,
                                       point_noun='spec', bw_frac=0.15,
-                                      output_path=None):
+                                      split_sign=False, output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
-    ratio, Y = estim effect, with a 1-D kernel-smoothed curve (± SE band) through the
-    points. Points coloured by effect (house style). Shared axis + colour limits."""
+    ratio, Y = estim effect. Points coloured by effect (house style); shared axis +
+    colour limits.
+
+    split_sign=False -> one black kernel-smoothed curve (± SE) through all points.
+    split_sign=True  -> two curves: a RED curve smoothed over the effect>0 points and
+    a BLUE curve over the effect<0 points (each ± SE), showing how the typical
+    positive vs negative effect magnitude varies with the ratio."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
@@ -2070,6 +2079,16 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
     vmax = _effect_vmax(points)
     xlim = _robust_limits(points[ratio_col])
     ylim = _axis_limits(points['effect_size'])
+
+    def _draw_smooth(ax, xv, yv, color):
+        sm = _kernel_smooth_1d(xv, yv, bw_frac=bw_frac, xrange=xlim)
+        if sm is None:
+            return
+        gx, mean, se = sm
+        band = np.isfinite(mean) & np.isfinite(se)
+        ax.fill_between(gx[band], (mean - se)[band], (mean + se)[band],
+                        color=color, alpha=0.15, zorder=3, linewidth=0)
+        ax.plot(gx, mean, color=color, lw=2.2, zorder=4)
 
     scatter_ref = None
     for r, group in enumerate(groups):
@@ -2088,13 +2107,11 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                 s=42, alpha=0.85, edgecolors='black', linewidths=0.4,
                                 zorder=2)
                 scatter_ref = sc
-            sm = _kernel_smooth_1d(x, eff, bw_frac=bw_frac, xrange=xlim)
-            if sm is not None:
-                gx, mean, se = sm
-                band = np.isfinite(mean) & np.isfinite(se)
-                ax.fill_between(gx[band], (mean - se)[band], (mean + se)[band],
-                                color='black', alpha=0.15, zorder=3, linewidth=0)
-                ax.plot(gx, mean, color='black', lw=2.2, zorder=4)
+            if split_sign:
+                _draw_smooth(ax, x[eff > 0], eff[eff > 0], SIGN_POS_COLOR)
+                _draw_smooth(ax, x[eff < 0], eff[eff < 0], SIGN_NEG_COLOR)
+            else:
+                _draw_smooth(ax, x, eff, 'black')
 
             lines = []
             if r == 0:
@@ -2117,8 +2134,10 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
+    curve_desc = ("red = smoothed effect>0 points, blue = smoothed effect<0 points"
+                  if split_sign else "black = 1-D kernel-smoothed curve ± SE")
     fig.suptitle("Estim effect vs current : corr-half-distance ratio  "
-                 "(black = 1-D kernel-smoothed curve ± SE"
+                 f"({curve_desc}"
                  f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
                  fontsize=14, fontweight='bold')
     if output_path:
@@ -2157,11 +2176,15 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
         return df, pd.DataFrame()
     points = build_points(df, [HALFDIST_COL], aggregate_by)
     _attach_ratio(points, x_col=x_col)
-    out_path = (os.path.join(save_dir, f"effect_vs_{_slug(x_col)}_over_halfdist_ratio.png")
-                if save_dir else None)
-    plot_effect_vs_ratio_by_trialtype(
-        points, trial_types=trial_types, by_polarity=by_polarity,
-        point_noun=aggregate_by, bw_frac=bw_frac, output_path=out_path)
+    base = f"effect_vs_{_slug(x_col)}_over_halfdist_ratio"
+    # Two figures from one table build: the single smoothed curve, and the
+    # sign-split version (red curve over effect>0 points, blue over effect<0).
+    for split, suffix in ((False, ''), (True, '_by_sign')):
+        out_path = (os.path.join(save_dir, f"{base}{suffix}.png") if save_dir else None)
+        plot_effect_vs_ratio_by_trialtype(
+            points, trial_types=trial_types, by_polarity=by_polarity,
+            point_noun=aggregate_by, bw_frac=bw_frac, split_sign=split,
+            output_path=out_path)
     return df, points
 
 
