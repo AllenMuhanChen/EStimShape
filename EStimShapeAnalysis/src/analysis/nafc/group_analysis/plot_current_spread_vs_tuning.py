@@ -2003,10 +2003,13 @@ RATIO_XLIM = (0.0, 10.0)
 #   None   — net SIGNED effect (one black curve): overall direction+size blended.
 #   'rate' — effect DIRECTION: P(effect>0 | ratio), where each sign is more LIKELY
 #            (0.5 = balanced; red fill = positives dominate, blue = negatives).
+#   'signed_split' — SIGNED magnitude, two lines: a RED curve = typical positive
+#            effect (above 0) and a BLUE curve = typical negative effect (below 0),
+#            on the signed axis. Shows how big each direction is, sign kept.
 #   'mag'  — effect MAGNITUDE: smoothed |effect| over ALL specs (how BIG the effect
 #            is, ignoring sign) — one black curve.
-#   'abs'  — magnitude split by sign: separate |effect| curves for effect>0 / <0.
-RATIO_MODES = (None, 'rate', 'mag')
+#   'abs'  — magnitude folded by sign: separate |effect| curves for effect>0 / <0.
+RATIO_MODES = (None, 'rate', 'signed_split')
 # Add marginal "combined" panels: an "ALL trial types" column, an "ALL polarities"
 # row, and their combined-across-everything corner. Set False for just the cells.
 RATIO_ADD_COMBINED = True
@@ -2178,14 +2181,16 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                 _draw_rate(ax, x, eff)
             else:
                 yv = np.abs(eff) if split_mode in ('abs', 'mag') else eff
-                if split_mode is None:  # only the signed view has a meaningful 0 line
+                if split_mode in (None, 'signed_split'):  # signed views get a 0 line
                     ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
                 if len(x):
                     sc = ax.scatter(x, yv, c=eff, cmap='RdBu_r', vmin=-vmax, vmax=vmax,
                                     s=42, alpha=0.85, edgecolors='black',
                                     linewidths=0.4, zorder=2)
                     scatter_ref = sc
-                if split_mode == 'abs':
+                if split_mode in ('abs', 'signed_split'):
+                    # two lines: positive-effect points and negative-effect points
+                    # ('abs' folds both to |effect|; 'signed_split' keeps the sign).
                     _draw_smooth(ax, x[eff > 0], yv[eff > 0], SIGN_POS_COLOR)
                     _draw_smooth(ax, x[eff < 0], yv[eff < 0], SIGN_NEG_COLOR)
                 else:  # None (signed) or 'mag' (|effect|): one black curve over all
@@ -2218,9 +2223,10 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
     curve_desc = {
         'rate': "DIRECTION: Y = P(effect>0); red fill = positives more likely, "
                 "blue = negatives more likely (0.5 = balanced)",
+        'signed_split': "SIGNED MAGNITUDE: red = typical positive effect (above 0), "
+                        "blue = typical negative effect (below 0)",
         'mag': "MAGNITUDE: Y = |effect|; black = smoothed overall effect size ± SE",
-        'abs': "MAGNITUDE by sign: Y = |effect|; red = smoothed effect>0 points, "
-               "blue = smoothed effect<0 points",
+        'abs': "MAGNITUDE folded by sign: Y = |effect|; red = effect>0, blue = effect<0",
     }.get(split_mode, "SIGNED effect; black = 1-D kernel-smoothed curve ± SE")
     fig.suptitle("Estim effect vs current : corr-half-distance ratio  "
                  f"({curve_desc}"
@@ -2268,8 +2274,8 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
     base = f"effect_vs_{_slug(x_col)}_over_halfdist_ratio"
     # All requested variants from ONE table build, each to its own file. show=False
     # so every figure is built first and they all pop together at the end.
-    suffixes = {None: '', 'rate': '_direction', 'mag': '_magnitude',
-                'abs': '_magnitude_by_sign'}
+    suffixes = {None: '', 'rate': '_direction', 'signed_split': '_signed_magnitude',
+                'mag': '_magnitude', 'abs': '_magnitude_by_sign'}
     for mode in modes:
         sfx = suffixes.get(mode, f'_{mode}')
         out_path = (os.path.join(save_dir, f"{base}{sfx}.png") if save_dir else None)
