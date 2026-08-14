@@ -1977,6 +1977,208 @@ def main_halfdist_current_vs_frequency(heatmap=True):
         by_polarity=True, by_waveform=True, save_dir=COMPARISON_SAVE_DIR)
 
 
+# ===========================================================================
+# Effect vs the current-per-second : half-distance RATIO.
+#
+# Collapses the 2-D (current × half-distance) plane onto ONE axis — the ratio
+# current_per_second / corr_half_distance — and plots the estim effect directly
+# against it, with a 1-D kernel-smoothed curve (Nadaraya–Watson, ± SE band)
+# drawn through the points. High ratio = a lot of current relative to how far
+# tuning reaches (dose concentrated in a narrow region); low ratio = little
+# current spread over a wide region. 2×4 grid: rows = anodic / cathodic,
+# columns = trial type.
+# ===========================================================================
+
+RATIO_COL = 'current_per_halfdist'
+RATIO_LABEL = 'current_per_second ÷ corr half-distance  ((µA·Hz)/µm)'
+
+
+def _attach_ratio(points, *, x_col='current_per_second', hd_col=HALFDIST_COL,
+                  ratio_col=RATIO_COL):
+    """Add the current : half-distance ratio column to a points table in place
+    (NaN where the half-distance is missing or non-positive)."""
+    x = pd.to_numeric(points.get(x_col), errors='coerce').to_numpy(dtype=float)
+    hd = pd.to_numeric(points.get(hd_col), errors='coerce').to_numpy(dtype=float)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        points[ratio_col] = np.where(hd > 0, x / hd, np.nan)
+    return points
+
+
+def _robust_limits(series, *, qlo=1, qhi=99, pad=0.05):
+    """Percentile-based (lo, hi) limits — robust to a few ratio outliers that would
+    otherwise squash the x-axis — or None."""
+    v = pd.to_numeric(series, errors='coerce')
+    v = v[np.isfinite(v)]
+    if len(v) == 0:
+        return None
+    lo, hi = float(np.percentile(v, qlo)), float(np.percentile(v, qhi))
+    if lo == hi:
+        d = abs(lo) or 1.0
+        return (lo - 0.5 * d, hi + 0.5 * d)
+    m = (hi - lo) * pad
+    return (lo - m, hi + m)
+
+
+def _kernel_smooth_1d(x, y, *, gridsize=160, bw_frac=0.15, xrange=None):
+    """1-D Nadaraya–Watson smoothing of y over x with a Gaussian kernel whose
+    bandwidth is bw_frac × (robust x-spread). Returns (gx, mean, se) with NaN where
+    local support is negligible, or None if < 4 finite points."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    m = np.isfinite(x) & np.isfinite(y)
+    x, y = x[m], y[m]
+    if len(x) < 4:
+        return None
+    spread = (float(np.subtract(*np.percentile(x, [84, 16]))) / 2.0
+              or float(np.std(x)) or 1.0)
+    h = max(bw_frac * spread, 1e-9)
+    lo, hi = (xrange if xrange is not None else (float(x.min()), float(x.max())))
+    gx = np.linspace(lo, hi, gridsize)
+    d = (gx[:, None] - x[None, :]) / h
+    W = np.exp(-0.5 * d * d)
+    sw = W.sum(axis=1)
+    mean = np.divide((W * y[None, :]).sum(axis=1), sw,
+                     out=np.full(gridsize, np.nan), where=sw > 0)
+    var = np.divide((W * (y[None, :] - mean[:, None]) ** 2).sum(axis=1), sw,
+                    out=np.full(gridsize, np.nan), where=sw > 0)
+    neff = np.divide(sw ** 2, (W ** 2).sum(axis=1),
+                     out=np.full(gridsize, np.nan), where=sw > 0)
+    se = np.sqrt(var / np.clip(neff, 1e-9, None))
+    weak = sw < (0.02 * sw.max() if sw.max() > 0 else 0)  # mask ~empty grid regions
+    mean[weak] = np.nan
+    se[weak] = np.nan
+    return gx, mean, se
+
+
+def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_COL,
+                                      x_label=RATIO_LABEL, by_polarity=True,
+                                      point_noun='spec', bw_frac=0.15,
+                                      output_path=None):
+    """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
+    ratio, Y = estim effect, with a 1-D kernel-smoothed curve (± SE band) through the
+    points. Points coloured by effect (house style). Shared axis + colour limits."""
+    tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
+    if not tts:
+        print("No trial types with points to plot.")
+        return None
+    row_cols = _resolve_row_cols(points, by_polarity, by_waveform=False)
+    groups, row_cols = _row_groups(points, row_cols)
+
+    ncols, nrows = len(tts), len(groups)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.2 * nrows),
+                             squeeze=False, constrained_layout=True)
+    vmax = _effect_vmax(points)
+    xlim = _robust_limits(points[ratio_col])
+    ylim = _axis_limits(points['effect_size'])
+
+    scatter_ref = None
+    for r, group in enumerate(groups):
+        for c, tt in enumerate(tts):
+            ax = axes[r][c]
+            sub = _filter_rows(points[points['trial_type'] == tt], group)
+            sub = sub[[ratio_col, 'effect_size']].dropna()
+            x = sub[ratio_col].to_numpy(dtype=float)
+            eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
+            ok = np.isfinite(x) & np.isfinite(eff)
+            x, eff = x[ok], eff[ok]
+
+            ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
+            if len(x):
+                sc = ax.scatter(x, eff, c=eff, cmap='RdBu_r', vmin=-vmax, vmax=vmax,
+                                s=42, alpha=0.85, edgecolors='black', linewidths=0.4,
+                                zorder=2)
+                scatter_ref = sc
+            sm = _kernel_smooth_1d(x, eff, bw_frac=bw_frac, xrange=xlim)
+            if sm is not None:
+                gx, mean, se = sm
+                band = np.isfinite(mean) & np.isfinite(se)
+                ax.fill_between(gx[band], (mean - se)[band], (mean + se)[band],
+                                color='black', alpha=0.15, zorder=3, linewidth=0)
+                ax.plot(gx, mean, color='black', lw=2.2, zorder=4)
+
+            lines = []
+            if r == 0:
+                lines.append(tt)
+            if row_cols:
+                lines.append(_row_label(group, row_cols))
+            lines.append(f"n={len(x)} {point_noun}s")
+            ax.set_title("\n".join(lines), fontsize=10)
+            if xlim:
+                ax.set_xlim(xlim)
+            if ylim:
+                ax.set_ylim(ylim)
+            if r == nrows - 1:
+                ax.set_xlabel(x_label, fontsize=9)
+            if c == 0:
+                ax.set_ylabel('estim effect (ON − OFF %)', fontsize=10)
+            ax.grid(True, alpha=0.3)
+
+    if scatter_ref is not None:
+        cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
+        cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
+                       fontsize=10)
+    fig.suptitle("Estim effect vs current : corr-half-distance ratio  "
+                 "(black = 1-D kernel-smoothed curve ± SE"
+                 f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
+                 fontsize=14, fontweight='bold')
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved plot to {output_path}")
+    plt.show()
+    return fig
+
+
+def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
+                        exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
+                        base_required_conditions=None, exclude_other_estim=True,
+                        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                        far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
+                        bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
+                        aggregate_by='spec', by_polarity=True, bw_frac=0.15,
+                        x_col='current_per_second', save_dir=None):
+    """Build the half-distance table, form the current:half-distance ratio per point,
+    and draw the effect-vs-ratio grid. Returns (df, points_df)."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"[config] EFFECT vs (current:half-distance) RATIO  trial_types={trial_types}  "
+          f"effect_metric={effect_metric}  min_on={min_on_trials}  point={aggregate_by}  "
+          f"by_polarity={by_polarity}  bw_frac={bw_frac}")
+    df = build_current_spread_halfdist_table(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+        base_required_conditions=base_required_conditions,
+        exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials,
+        far_fraction=far_fraction, near_bins=near_bins,
+        bin_agg=bin_agg, smoothing=smoothing)
+    if len(df) == 0:
+        print("Nothing to plot.")
+        return df, pd.DataFrame()
+    points = build_points(df, [HALFDIST_COL], aggregate_by)
+    _attach_ratio(points, x_col=x_col)
+    out_path = (os.path.join(save_dir, f"effect_vs_{_slug(x_col)}_over_halfdist_ratio.png")
+                if save_dir else None)
+    plot_effect_vs_ratio_by_trialtype(
+        points, trial_types=trial_types, by_polarity=by_polarity,
+        point_noun=aggregate_by, bw_frac=bw_frac, output_path=out_path)
+    return df, points
+
+
+def main_effect_vs_ratio():
+    """Estim effect vs the current_per_second : corr-half-distance ratio, with a 1-D
+    kernel-smoothed curve. 2×4 grid (rows = anodic/cathodic, cols = trial type).
+    Uses the shared COMPARISON_* config."""
+    run_effect_vs_ratio(
+        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        exclude_other_estim=True, min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        aggregate_by='spec', by_polarity=True, save_dir=COMPARISON_SAVE_DIR)
+
+
 def main():
     """Current-spread-vs-tuning grid, one figure per trial type, using the shared
     COMPARISON_* config."""
@@ -2018,7 +2220,10 @@ if __name__ == '__main__':
     #   - main_spec_metrics()         -> effect-coloured scatter per selected metric
     #   - main_halfdist_current_vs_frequency() -> corr half-distance heatmaps with
     #                                    X = total current AND X = frequency (2 figs)
-    main_halfdist_current_vs_frequency()
+    #   - main_effect_vs_ratio()      -> estim effect vs current:half-distance ratio,
+    #                                    1-D smoothed curve; 2×4 (polarity × trial type)
+    main_effect_vs_ratio()
+    # main_halfdist_current_vs_frequency()
     # main_spec_metrics_heatmap()
     # main_spec_metrics()
     # main_corr_in_half_distance_heatmap()
