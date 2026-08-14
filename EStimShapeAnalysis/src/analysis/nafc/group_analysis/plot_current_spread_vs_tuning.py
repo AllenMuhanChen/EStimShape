@@ -1998,13 +1998,15 @@ DEFAULT_RATIO_BW_FRAC = 0.15
 # Fixed x-axis (ratio) limits for the ratio plots, e.g. (0.0, 10.0). Set to None to
 # auto-fit to the data's robust (1st–99th percentile) range instead.
 RATIO_XLIM = (0.0, 10.0)
-# What the SIGN-SPLIT companion figure shows (the combined signed-curve figure is
-# always drawn too):
-#   'rate' — P(effect > 0 | ratio): where positive vs negative effects are more
-#            LIKELY (0.5 = balanced). Directly answers "is one sign more common
-#            in some ratio region?".
-#   'abs'  — |effect| magnitude curves per sign (how BIG positives vs negatives are).
-RATIO_SPLIT_MODE = 'rate'
+# Which ratio figures to emit — each split_mode becomes its OWN file, so one run
+# produces all of them together:
+#   None   — net SIGNED effect (one black curve): overall direction+size blended.
+#   'rate' — effect DIRECTION: P(effect>0 | ratio), where each sign is more LIKELY
+#            (0.5 = balanced; red fill = positives dominate, blue = negatives).
+#   'mag'  — effect MAGNITUDE: smoothed |effect| over ALL specs (how BIG the effect
+#            is, ignoring sign) — one black curve.
+#   'abs'  — magnitude split by sign: separate |effect| curves for effect>0 / <0.
+RATIO_MODES = (None, 'rate', 'mag')
 # Add marginal "combined" panels: an "ALL trial types" column, an "ALL polarities"
 # row, and their combined-across-everything corner. Set False for just the cells.
 RATIO_ADD_COMBINED = True
@@ -2075,7 +2077,8 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                       x_label=RATIO_LABEL, by_polarity=True,
                                       point_noun='spec', bw_frac=DEFAULT_RATIO_BW_FRAC,
                                       xlim=RATIO_XLIM, split_mode=None,
-                                      add_margins=RATIO_ADD_COMBINED, output_path=None):
+                                      add_margins=RATIO_ADD_COMBINED, show=True,
+                                      output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
     ratio. Shared axis + colour limits. `split_mode` picks what the curve(s) show:
 
@@ -2111,7 +2114,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
     if split_mode == 'rate':
         ylim = (-0.03, 1.03)
         y_label = 'P(effect > 0)  (fraction of specs)'
-    elif split_mode == 'abs':
+    elif split_mode in ('abs', 'mag'):
         ylim = _axis_limits(yseries.abs())
         ylim = (0.0, ylim[1]) if ylim else None
         y_label = '|estim effect| (ON − OFF %)'
@@ -2174,8 +2177,8 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             if split_mode == 'rate':
                 _draw_rate(ax, x, eff)
             else:
-                yv = np.abs(eff) if split_mode == 'abs' else eff
-                if split_mode != 'abs':
+                yv = np.abs(eff) if split_mode in ('abs', 'mag') else eff
+                if split_mode is None:  # only the signed view has a meaningful 0 line
                     ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
                 if len(x):
                     sc = ax.scatter(x, yv, c=eff, cmap='RdBu_r', vmin=-vmax, vmax=vmax,
@@ -2185,7 +2188,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                 if split_mode == 'abs':
                     _draw_smooth(ax, x[eff > 0], yv[eff > 0], SIGN_POS_COLOR)
                     _draw_smooth(ax, x[eff < 0], yv[eff < 0], SIGN_NEG_COLOR)
-                else:
+                else:  # None (signed) or 'mag' (|effect|): one black curve over all
                     _draw_smooth(ax, x, yv, 'black')
 
             col_label = 'ALL trial types' if tt is ALL else tt
@@ -2213,11 +2216,12 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
     curve_desc = {
-        'rate': "Y = P(effect>0); red fill = positives more likely, "
+        'rate': "DIRECTION: Y = P(effect>0); red fill = positives more likely, "
                 "blue = negatives more likely (0.5 = balanced)",
-        'abs': "Y = |effect|; red = smoothed effect>0 points, "
+        'mag': "MAGNITUDE: Y = |effect|; black = smoothed overall effect size ± SE",
+        'abs': "MAGNITUDE by sign: Y = |effect|; red = smoothed effect>0 points, "
                "blue = smoothed effect<0 points",
-    }.get(split_mode, "black = 1-D kernel-smoothed curve ± SE")
+    }.get(split_mode, "SIGNED effect; black = 1-D kernel-smoothed curve ± SE")
     fig.suptitle("Estim effect vs current : corr-half-distance ratio  "
                  f"({curve_desc}"
                  f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
@@ -2227,7 +2231,8 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         fig.savefig(output_path, dpi=150, bbox_inches='tight')
         fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
         print(f"Saved plot to {output_path}")
-    plt.show()
+    if show:
+        plt.show()
     return fig
 
 
@@ -2239,7 +2244,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
                         aggregate_by='spec', by_polarity=True,
                         bw_frac=DEFAULT_RATIO_BW_FRAC, xlim=RATIO_XLIM,
-                        split_mode=RATIO_SPLIT_MODE, add_margins=RATIO_ADD_COMBINED,
+                        modes=RATIO_MODES, add_margins=RATIO_ADD_COMBINED,
                         x_col='current_per_second', save_dir=None):
     """Build the half-distance table, form the current:half-distance ratio per point,
     and draw the effect-vs-ratio grid. Returns (df, points_df)."""
@@ -2261,15 +2266,18 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
     points = build_points(df, [HALFDIST_COL], aggregate_by)
     _attach_ratio(points, x_col=x_col)
     base = f"effect_vs_{_slug(x_col)}_over_halfdist_ratio"
-    # Two figures from one table build: the combined signed curve, and the
-    # sign-split companion (positive-rate 'rate', or |effect| magnitude 'abs').
-    suffix = {'rate': '_posrate', 'abs': '_by_sign'}.get(split_mode, '_split')
-    for mode, sfx in ((None, ''), (split_mode, suffix)):
+    # All requested variants from ONE table build, each to its own file. show=False
+    # so every figure is built first and they all pop together at the end.
+    suffixes = {None: '', 'rate': '_direction', 'mag': '_magnitude',
+                'abs': '_magnitude_by_sign'}
+    for mode in modes:
+        sfx = suffixes.get(mode, f'_{mode}')
         out_path = (os.path.join(save_dir, f"{base}{sfx}.png") if save_dir else None)
         plot_effect_vs_ratio_by_trialtype(
             points, trial_types=trial_types, by_polarity=by_polarity,
             point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_mode=mode,
-            add_margins=add_margins, output_path=out_path)
+            add_margins=add_margins, show=False, output_path=out_path)
+    plt.show()  # display every variant figure at once
     return df, points
 
 
