@@ -1995,6 +1995,9 @@ RATIO_LABEL = 'current_per_second ÷ corr half-distance  ((µA·Hz)/µm)'
 # robust spread (~1σ) of the x-axis. Smaller -> wigglier curve hugging local dots;
 # larger -> smoother, flatter. Change this ONE number to retune every ratio plot.
 DEFAULT_RATIO_BW_FRAC = 0.15
+# Fixed x-axis (ratio) limits for the ratio plots, e.g. (0.0, 10.0). Set to None to
+# auto-fit to the data's robust (1st–99th percentile) range instead.
+RATIO_XLIM = (0.0, 10.0)
 
 
 def _attach_ratio(points, *, x_col='current_per_second', hd_col=HALFDIST_COL,
@@ -2061,7 +2064,7 @@ SIGN_NEG_COLOR = '#2c6fbb'   # blue  — smoothed curve of the negative-effect p
 def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_COL,
                                       x_label=RATIO_LABEL, by_polarity=True,
                                       point_noun='spec', bw_frac=DEFAULT_RATIO_BW_FRAC,
-                                      split_sign=False, output_path=None):
+                                      xlim=RATIO_XLIM, split_sign=False, output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
     ratio, Y = estim effect. Points coloured by effect (house style); shared axis +
     colour limits.
@@ -2083,7 +2086,8 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
     fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.2 * nrows),
                              squeeze=False, constrained_layout=True)
     vmax = _effect_vmax(points)
-    xlim = _robust_limits(points[ratio_col])
+    # Fixed limits when provided (default RATIO_XLIM), else auto-fit robustly.
+    xlim = xlim if xlim is not None else _robust_limits(points[ratio_col])
     # split_sign compares |effect| on one positive scale; combined keeps signed Y.
     yseries = pd.to_numeric(points['effect_size'], errors='coerce')
     if split_sign:
@@ -2175,7 +2179,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
                         bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
                         aggregate_by='spec', by_polarity=True,
-                        bw_frac=DEFAULT_RATIO_BW_FRAC,
+                        bw_frac=DEFAULT_RATIO_BW_FRAC, xlim=RATIO_XLIM,
                         x_col='current_per_second', save_dir=None):
     """Build the half-distance table, form the current:half-distance ratio per point,
     and draw the effect-vs-ratio grid. Returns (df, points_df)."""
@@ -2203,7 +2207,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
         out_path = (os.path.join(save_dir, f"{base}{suffix}.png") if save_dir else None)
         plot_effect_vs_ratio_by_trialtype(
             points, trial_types=trial_types, by_polarity=by_polarity,
-            point_noun=aggregate_by, bw_frac=bw_frac, split_sign=split,
+            point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_sign=split,
             output_path=out_path)
     return df, points
 
