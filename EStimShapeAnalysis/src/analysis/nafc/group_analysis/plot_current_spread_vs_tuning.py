@@ -2062,10 +2062,12 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
     ratio, Y = estim effect. Points coloured by effect (house style); shared axis +
     colour limits.
 
-    split_sign=False -> one black kernel-smoothed curve (± SE) through all points.
-    split_sign=True  -> two curves: a RED curve smoothed over the effect>0 points and
-    a BLUE curve over the effect<0 points (each ± SE), showing how the typical
-    positive vs negative effect magnitude varies with the ratio."""
+    split_sign=False -> one black kernel-smoothed curve (± SE) through all points,
+    signed effect on Y.
+    split_sign=True  -> Y is |effect|; a RED curve smoothed over the effect>0 points
+    and a BLUE curve over the effect<0 points (each ± SE), both on one positive
+    scale so their magnitudes are directly comparable. Dots stay coloured by the
+    SIGNED effect."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
@@ -2078,7 +2080,15 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                              squeeze=False, constrained_layout=True)
     vmax = _effect_vmax(points)
     xlim = _robust_limits(points[ratio_col])
-    ylim = _axis_limits(points['effect_size'])
+    # split_sign compares |effect| on one positive scale; combined keeps signed Y.
+    yseries = pd.to_numeric(points['effect_size'], errors='coerce')
+    if split_sign:
+        ylim = _axis_limits(yseries.abs())
+        if ylim:
+            ylim = (0.0, ylim[1])
+    else:
+        ylim = _axis_limits(yseries)
+    y_label = '|estim effect| (ON − OFF %)' if split_sign else 'estim effect (ON − OFF %)'
 
     def _draw_smooth(ax, xv, yv, color):
         sm = _kernel_smooth_1d(xv, yv, bw_frac=bw_frac, xrange=xlim)
@@ -2100,18 +2110,22 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
             ok = np.isfinite(x) & np.isfinite(eff)
             x, eff = x[ok], eff[ok]
+            # split_sign: plot |effect| on Y (both curves on one positive scale) but
+            # keep the dots coloured by the SIGNED effect so sign stays visible.
+            yv = np.abs(eff) if split_sign else eff
 
-            ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
+            if not split_sign:
+                ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
             if len(x):
-                sc = ax.scatter(x, eff, c=eff, cmap='RdBu_r', vmin=-vmax, vmax=vmax,
+                sc = ax.scatter(x, yv, c=eff, cmap='RdBu_r', vmin=-vmax, vmax=vmax,
                                 s=42, alpha=0.85, edgecolors='black', linewidths=0.4,
                                 zorder=2)
                 scatter_ref = sc
             if split_sign:
-                _draw_smooth(ax, x[eff > 0], eff[eff > 0], SIGN_POS_COLOR)
-                _draw_smooth(ax, x[eff < 0], eff[eff < 0], SIGN_NEG_COLOR)
+                _draw_smooth(ax, x[eff > 0], yv[eff > 0], SIGN_POS_COLOR)
+                _draw_smooth(ax, x[eff < 0], yv[eff < 0], SIGN_NEG_COLOR)
             else:
-                _draw_smooth(ax, x, eff, 'black')
+                _draw_smooth(ax, x, yv, 'black')
 
             lines = []
             if r == 0:
@@ -2127,14 +2141,15 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             if r == nrows - 1:
                 ax.set_xlabel(x_label, fontsize=9)
             if c == 0:
-                ax.set_ylabel('estim effect (ON − OFF %)', fontsize=10)
+                ax.set_ylabel(y_label, fontsize=10)
             ax.grid(True, alpha=0.3)
 
     if scatter_ref is not None:
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
-    curve_desc = ("red = smoothed effect>0 points, blue = smoothed effect<0 points"
+    curve_desc = ("Y = |effect|; red = smoothed effect>0 points, "
+                  "blue = smoothed effect<0 points"
                   if split_sign else "black = 1-D kernel-smoothed curve ± SE")
     fig.suptitle("Estim effect vs current : corr-half-distance ratio  "
                  f"({curve_desc}"
