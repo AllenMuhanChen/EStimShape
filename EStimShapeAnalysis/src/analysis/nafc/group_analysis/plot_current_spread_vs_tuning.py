@@ -1998,6 +1998,13 @@ DEFAULT_RATIO_BW_FRAC = 0.15
 # Fixed x-axis (ratio) limits for the ratio plots, e.g. (0.0, 10.0). Set to None to
 # auto-fit to the data's robust (1st–99th percentile) range instead.
 RATIO_XLIM = (0.0, 10.0)
+# What the SIGN-SPLIT companion figure shows (the combined signed-curve figure is
+# always drawn too):
+#   'rate' — P(effect > 0 | ratio): where positive vs negative effects are more
+#            LIKELY (0.5 = balanced). Directly answers "is one sign more common
+#            in some ratio region?".
+#   'abs'  — |effect| magnitude curves per sign (how BIG positives vs negatives are).
+RATIO_SPLIT_MODE = 'rate'
 
 
 def _attach_ratio(points, *, x_col='current_per_second', hd_col=HALFDIST_COL,
@@ -2064,17 +2071,18 @@ SIGN_NEG_COLOR = '#2c6fbb'   # blue  — smoothed curve of the negative-effect p
 def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_COL,
                                       x_label=RATIO_LABEL, by_polarity=True,
                                       point_noun='spec', bw_frac=DEFAULT_RATIO_BW_FRAC,
-                                      xlim=RATIO_XLIM, split_sign=False, output_path=None):
+                                      xlim=RATIO_XLIM, split_mode=None, output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
-    ratio, Y = estim effect. Points coloured by effect (house style); shared axis +
-    colour limits.
+    ratio. Shared axis + colour limits. `split_mode` picks what the curve(s) show:
 
-    split_sign=False -> one black kernel-smoothed curve (± SE) through all points,
-    signed effect on Y.
-    split_sign=True  -> Y is |effect|; a RED curve smoothed over the effect>0 points
-    and a BLUE curve over the effect<0 points (each ± SE), both on one positive
-    scale so their magnitudes are directly comparable. Dots stay coloured by the
-    SIGNED effect."""
+      None   -> one black kernel-smoothed curve (± SE) of the SIGNED effect; dots at
+                their signed effect, coloured by effect.
+      'abs'  -> Y is |effect|; a RED curve over effect>0 points and a BLUE curve over
+                effect<0 points (each ± SE) — how BIG positives vs negatives are.
+      'rate' -> Y is P(effect>0 | ratio), the kernel-smoothed fraction of specs that
+                are positive (± binomial SE), with 0.5 = balanced. Red fill where
+                positives dominate, blue where negatives dominate; dots shown as a
+                sign-coloured rug. Answers "where is one sign more LIKELY?"."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
@@ -2088,15 +2096,17 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
     vmax = _effect_vmax(points)
     # Fixed limits when provided (default RATIO_XLIM), else auto-fit robustly.
     xlim = xlim if xlim is not None else _robust_limits(points[ratio_col])
-    # split_sign compares |effect| on one positive scale; combined keeps signed Y.
     yseries = pd.to_numeric(points['effect_size'], errors='coerce')
-    if split_sign:
+    if split_mode == 'rate':
+        ylim = (-0.03, 1.03)
+        y_label = 'P(effect > 0)  (fraction of specs)'
+    elif split_mode == 'abs':
         ylim = _axis_limits(yseries.abs())
-        if ylim:
-            ylim = (0.0, ylim[1])
+        ylim = (0.0, ylim[1]) if ylim else None
+        y_label = '|estim effect| (ON − OFF %)'
     else:
         ylim = _axis_limits(yseries)
-    y_label = '|estim effect| (ON − OFF %)' if split_sign else 'estim effect (ON − OFF %)'
+        y_label = 'estim effect (ON − OFF %)'
 
     def _draw_smooth(ax, xv, yv, color):
         sm = _kernel_smooth_1d(xv, yv, bw_frac=bw_frac, xrange=xlim)
@@ -2108,6 +2118,32 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                         color=color, alpha=0.15, zorder=3, linewidth=0)
         ax.plot(gx, mean, color=color, lw=2.2, zorder=4)
 
+    def _draw_rate(ax, xv, effv):
+        """Smoothed P(effect>0) curve with red/blue fill vs 0.5 and a sign rug."""
+        ax.axhline(0.5, color='#888888', lw=0.8, ls='--', zorder=1)
+        # rug: positive specs as red ticks near the top, negatives blue near bottom.
+        if (effv > 0).any():
+            ax.plot(xv[effv > 0], np.full((effv > 0).sum(), 1.0), '|',
+                    color=SIGN_POS_COLOR, ms=7, alpha=0.5, zorder=2)
+        if (effv < 0).any():
+            ax.plot(xv[effv < 0], np.full((effv < 0).sum(), 0.0), '|',
+                    color=SIGN_NEG_COLOR, ms=7, alpha=0.5, zorder=2)
+        sm = _kernel_smooth_1d(xv, (effv > 0).astype(float), bw_frac=bw_frac, xrange=xlim)
+        if sm is None:
+            return
+        gx, p, se = sm
+        fin = np.isfinite(p)
+        pf = np.where(fin, p, 0.5)
+        lo = np.where(fin, np.clip(p - se, 0, 1), 0.5)
+        hi = np.where(fin, np.clip(p + se, 0, 1), 0.5)
+        ax.fill_between(gx, lo, hi, where=fin, color='0.5', alpha=0.15,
+                        zorder=3, linewidth=0)
+        ax.fill_between(gx, 0.5, pf, where=fin & (pf >= 0.5), color=SIGN_POS_COLOR,
+                        alpha=0.25, zorder=3, linewidth=0)
+        ax.fill_between(gx, 0.5, pf, where=fin & (pf < 0.5), color=SIGN_NEG_COLOR,
+                        alpha=0.25, zorder=3, linewidth=0)
+        ax.plot(gx, np.where(fin, p, np.nan), color='black', lw=2.2, zorder=4)
+
     scatter_ref = None
     for r, group in enumerate(groups):
         for c, tt in enumerate(tts):
@@ -2118,22 +2154,23 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
             ok = np.isfinite(x) & np.isfinite(eff)
             x, eff = x[ok], eff[ok]
-            # split_sign: plot |effect| on Y (both curves on one positive scale) but
-            # keep the dots coloured by the SIGNED effect so sign stays visible.
-            yv = np.abs(eff) if split_sign else eff
 
-            if not split_sign:
-                ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
-            if len(x):
-                sc = ax.scatter(x, yv, c=eff, cmap='RdBu_r', vmin=-vmax, vmax=vmax,
-                                s=42, alpha=0.85, edgecolors='black', linewidths=0.4,
-                                zorder=2)
-                scatter_ref = sc
-            if split_sign:
-                _draw_smooth(ax, x[eff > 0], yv[eff > 0], SIGN_POS_COLOR)
-                _draw_smooth(ax, x[eff < 0], yv[eff < 0], SIGN_NEG_COLOR)
+            if split_mode == 'rate':
+                _draw_rate(ax, x, eff)
             else:
-                _draw_smooth(ax, x, yv, 'black')
+                yv = np.abs(eff) if split_mode == 'abs' else eff
+                if split_mode != 'abs':
+                    ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
+                if len(x):
+                    sc = ax.scatter(x, yv, c=eff, cmap='RdBu_r', vmin=-vmax, vmax=vmax,
+                                    s=42, alpha=0.85, edgecolors='black',
+                                    linewidths=0.4, zorder=2)
+                    scatter_ref = sc
+                if split_mode == 'abs':
+                    _draw_smooth(ax, x[eff > 0], yv[eff > 0], SIGN_POS_COLOR)
+                    _draw_smooth(ax, x[eff < 0], yv[eff < 0], SIGN_NEG_COLOR)
+                else:
+                    _draw_smooth(ax, x, yv, 'black')
 
             lines = []
             if r == 0:
@@ -2156,9 +2193,12 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
-    curve_desc = ("Y = |effect|; red = smoothed effect>0 points, "
-                  "blue = smoothed effect<0 points"
-                  if split_sign else "black = 1-D kernel-smoothed curve ± SE")
+    curve_desc = {
+        'rate': "Y = P(effect>0); red fill = positives more likely, "
+                "blue = negatives more likely (0.5 = balanced)",
+        'abs': "Y = |effect|; red = smoothed effect>0 points, "
+               "blue = smoothed effect<0 points",
+    }.get(split_mode, "black = 1-D kernel-smoothed curve ± SE")
     fig.suptitle("Estim effect vs current : corr-half-distance ratio  "
                  f"({curve_desc}"
                  f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
@@ -2180,6 +2220,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
                         aggregate_by='spec', by_polarity=True,
                         bw_frac=DEFAULT_RATIO_BW_FRAC, xlim=RATIO_XLIM,
+                        split_mode=RATIO_SPLIT_MODE,
                         x_col='current_per_second', save_dir=None):
     """Build the half-distance table, form the current:half-distance ratio per point,
     and draw the effect-vs-ratio grid. Returns (df, points_df)."""
@@ -2201,13 +2242,14 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
     points = build_points(df, [HALFDIST_COL], aggregate_by)
     _attach_ratio(points, x_col=x_col)
     base = f"effect_vs_{_slug(x_col)}_over_halfdist_ratio"
-    # Two figures from one table build: the single smoothed curve, and the
-    # sign-split version (red curve over effect>0 points, blue over effect<0).
-    for split, suffix in ((False, ''), (True, '_by_sign')):
-        out_path = (os.path.join(save_dir, f"{base}{suffix}.png") if save_dir else None)
+    # Two figures from one table build: the combined signed curve, and the
+    # sign-split companion (positive-rate 'rate', or |effect| magnitude 'abs').
+    suffix = {'rate': '_posrate', 'abs': '_by_sign'}.get(split_mode, '_split')
+    for mode, sfx in ((None, ''), (split_mode, suffix)):
+        out_path = (os.path.join(save_dir, f"{base}{sfx}.png") if save_dir else None)
         plot_effect_vs_ratio_by_trialtype(
             points, trial_types=trial_types, by_polarity=by_polarity,
-            point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_sign=split,
+            point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_mode=mode,
             output_path=out_path)
     return df, points
 
