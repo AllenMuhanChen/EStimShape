@@ -2018,6 +2018,10 @@ RATIO_ADD_COMBINED = True
 # band + a global p-value per panel.
 RATIO_RATE_PERM_TEST = True
 RATIO_RATE_N_PERM = 2000
+# Draw the grey permutation NULL band (the "significance shading zone"). The gold
+# significant segments and the per-panel p-value are shown regardless; this only
+# toggles the shaded null envelope + its dotted mean line.
+RATIO_RATE_SHOW_NULL_BAND = False
 # Restrict the shuffle to WITHIN each session (controls the session confound but
 # needs >= 2 specs/session). False = shuffle signs freely across all specs in the
 # panel (more power, but a result can be driven by between-session differences).
@@ -2232,6 +2236,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                       perm_test=RATIO_RATE_PERM_TEST,
                                       n_perm=RATIO_RATE_N_PERM,
                                       within_session=RATIO_RATE_PERM_WITHIN_SESSION,
+                                      show_null_band=RATIO_RATE_SHOW_NULL_BAND,
                                       bootstrap=RATIO_RATE_BOOTSTRAP,
                                       n_boot=RATIO_RATE_N_BOOT,
                                       boot_cluster=RATIO_RATE_BOOT_CLUSTER,
@@ -2330,10 +2335,11 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                   n_perm=n_perm, within_session=within_session)
             if res is not None:
                 _, _, m, lo, hi, sig, pval, n_var_sess, n_var_specs = res
-                # simultaneous NULL envelope (grey) around the null mean (chance).
-                ax.fill_between(gx, lo, hi, color='0.6', alpha=0.20, zorder=2,
-                                linewidth=0)
-                ax.plot(gx, m, color='0.45', lw=1.0, ls=':', zorder=3)
+                if show_null_band:
+                    # simultaneous NULL envelope (grey) around the null mean (chance).
+                    ax.fill_between(gx, lo, hi, color='0.6', alpha=0.20, zorder=2,
+                                    linewidth=0)
+                    ax.plot(gx, m, color='0.45', lw=1.0, ls=':', zorder=3)
                 if sig.any():  # curve leaves the null band -> significant here
                     ax.plot(gx, np.where(sig, p, np.nan), color='#e8a020',
                             lw=3.8, zorder=5)
@@ -2424,8 +2430,9 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
     curve_desc = {
-        'rate': "DIRECTION: Y = P(effect>0); grey = permutation null band (95% "
-                "simultaneous), gold = curve exits it (significant); perm p per panel"
+        'rate': "DIRECTION: Y = P(effect>0); gold = significant (curve exits the "
+                "permutation null), perm p per panel"
+                + ("; grey = null band (95% simultaneous)" if show_null_band else "")
                 + ("; teal = bootstrap 95% CI of the curve" if bootstrap else ""),
         'signed_split': "SIGNED MAGNITUDE: red = typical positive effect (above 0), "
                         "blue = typical negative effect (below 0)",
@@ -2457,6 +2464,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         modes=RATIO_MODES, add_margins=RATIO_ADD_COMBINED,
                         perm_test=RATIO_RATE_PERM_TEST, n_perm=RATIO_RATE_N_PERM,
                         within_session=RATIO_RATE_PERM_WITHIN_SESSION,
+                        show_null_band=RATIO_RATE_SHOW_NULL_BAND,
                         bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
                         boot_cluster=RATIO_RATE_BOOT_CLUSTER,
                         x_col='current_per_second', save_dir=None):
@@ -2491,8 +2499,9 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
             points, trial_types=trial_types, by_polarity=by_polarity,
             point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_mode=mode,
             add_margins=add_margins, perm_test=perm_test, n_perm=n_perm,
-            within_session=within_session, bootstrap=bootstrap, n_boot=n_boot,
-            boot_cluster=boot_cluster, show=False, output_path=out_path)
+            within_session=within_session, show_null_band=show_null_band,
+            bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
+            show=False, output_path=out_path)
     plt.show()  # display every variant figure at once
     return df, points
 
