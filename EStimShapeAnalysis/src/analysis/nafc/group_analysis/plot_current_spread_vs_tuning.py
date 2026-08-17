@@ -2018,6 +2018,13 @@ RATIO_ADD_COMBINED = True
 # band + a global p-value per panel.
 RATIO_RATE_PERM_TEST = True
 RATIO_RATE_N_PERM = 2000
+# Which NULL the permutation test uses (rate + mean-effect curves):
+#   'onoff' — shuffle estim ON/OFF trial labels per spec (precomputed draws). Null =
+#             "estim has no effect"; a significant region = a ratio with a RELIABLE
+#             effect. This is the design-based null tied to the experiment.
+#   'ratio' — permute effect values across ratios. Null = "effect independent of
+#             ratio"; tests whether the effect VARIES with ratio (shape only).
+RATIO_RATE_NULL_MODE = 'onoff'
 # Threshold that counts as "an effect" for the rate figure: the curve is
 # P(effect > RATIO_RATE_THRESHOLD). 0 = P(positive effect); 5 or 10 = chance the
 # effect exceeds that magnitude (a meaningfully positive effect).
@@ -2098,29 +2105,35 @@ def _kernel_smooth_1d(x, y, *, gridsize=160, bw_frac=DEFAULT_RATIO_BW_FRAC, xran
 
 def _perm_curve_band(x, y, sessions, *, bw_frac, xlim, gridsize=160,
                      n_perm=RATIO_RATE_N_PERM, alpha=0.05, seed=0,
-                     within_session=RATIO_RATE_PERM_WITHIN_SESSION, clip01=False):
+                     within_session=RATIO_RATE_PERM_WITHIN_SESSION, clip01=False,
+                     null_draws=None):
     """Permutation test for a kernel-smoothed curve of y vs ratio (y is per-spec:
     a 0/1 indicator for the rate curve, or the raw/absolute effect for the mean
-    curve).
+    curve). Builds a SIMULTANEOUS (sup-t) null envelope from the standardised max
+    deviation over the grid — handling the multiple-comparisons-along-x problem.
 
-    Shuffles y among specs (ratios fixed), recomputes the smoothed curve each time,
-    and builds a SIMULTANEOUS (sup-t) null envelope from the standardised max
-    deviation over the grid — handling the multiple-comparisons-along-x problem in
-    one shot. The null is "y is independent of ratio" (a flat curve at the overall
-    level).
+    Two nulls:
+      null_draws is None (default) — RATIO shuffle: permute y among specs (ratios
+        fixed). Null = "y independent of ratio" (curve varies with ratio?).
+        within_session restricts the shuffle to specs sharing a session.
+      null_draws given (n_specs × n_draws) — supplies precomputed null y-values per
+        spec (e.g. ON/OFF-label-shuffled effects). Null = "estim has no effect"
+        (curve differs from that null at some ratio → reliable effect there).
 
-    within_session=True restricts the shuffle to specs sharing a session (removes the
-    session confound; needs >= 2 specs/session). within_session=False (default)
-    shuffles freely across all specs in the panel — more power, but a result can
-    reflect between-session differences. clip01 bounds the band to [0,1] (rate curve).
-
-    Returns (gx, obs, m, lo, hi, sig_mask, p_value, n_var_sess, n_var_specs) or None
-    if not identifiable."""
+    clip01 bounds the band to [0,1] (rate curve). Returns (gx, obs, m, lo, hi,
+    sig_mask, p_value, n_var_sess, n_var_specs) or None if not identifiable."""
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     if xlim is None or len(x) < 8:
         return None
     sessions = np.asarray(sessions) if sessions is not None else np.zeros(len(x))
+    if null_draws is not None:
+        null_draws = np.asarray(null_draws, dtype=float)
+        # keep only specs that have a full set of null draws
+        keep = np.isfinite(y) & np.isfinite(null_draws).all(axis=1)
+        if keep.sum() < 8:
+            return None
+        x, y, sessions, null_draws = x[keep], y[keep], sessions[keep], null_draws[keep]
     spread = (float(np.subtract(*np.percentile(x, [84, 16]))) / 2.0
               or float(np.std(x)) or 1.0)
     h = max(bw_frac * spread, 1e-9)
@@ -2135,20 +2148,27 @@ def _perm_curve_band(x, y, sessions, *, bw_frac, xlim, gridsize=160,
         p[weak] = np.nan
         return p
 
-    if within_session:
-        groups = [np.where(sessions == s)[0] for s in np.unique(sessions)]
-        groups = [g for g in groups if len(g) >= 2]  # only shufflable sessions
+    if null_draws is not None:
+        n_perm = null_draws.shape[1]
+        P = np.empty((n_perm, gridsize))
+        for b in range(n_perm):
+            P[b] = _curve(null_draws[:, b])
+        groups = None
     else:
-        groups = [np.arange(len(x))]  # shuffle freely across all specs
-    if not groups:
-        return None
-    rng = np.random.default_rng(seed)
-    P = np.empty((n_perm, gridsize))
-    for b in range(n_perm):
-        yp = y.copy()
-        for g in groups:
-            yp[g] = rng.permutation(yp[g])
-        P[b] = _curve(yp)
+        if within_session:
+            groups = [np.where(sessions == s)[0] for s in np.unique(sessions)]
+            groups = [g for g in groups if len(g) >= 2]  # only shufflable sessions
+        else:
+            groups = [np.arange(len(x))]  # shuffle freely across all specs
+        if not groups:
+            return None
+        rng = np.random.default_rng(seed)
+        P = np.empty((n_perm, gridsize))
+        for b in range(n_perm):
+            yp = y.copy()
+            for g in groups:
+                yp[g] = rng.permutation(yp[g])
+            P[b] = _curve(yp)
     with np.errstate(invalid='ignore'):
         m = np.nanmean(P, axis=0)
         s = np.nanstd(P, axis=0)
@@ -2162,7 +2182,7 @@ def _perm_curve_band(x, y, sessions, *, bw_frac, xlim, gridsize=160,
         return float(np.nanmax(z[fin]))
 
     t_obs = _maxdev(obs)
-    t_null = np.array([_maxdev(P[b]) for b in range(n_perm)])
+    t_null = np.array([_maxdev(P[b]) for b in range(len(P))])
     t_null = t_null[np.isfinite(t_null)]
     if not np.isfinite(t_obs) or len(t_null) == 0:
         return None
@@ -2172,11 +2192,14 @@ def _perm_curve_band(x, y, sessions, *, bw_frac, xlim, gridsize=160,
     if clip01:
         lo, hi = np.clip(lo, 0, 1), np.clip(hi, 0, 1)
     sig = fin & ((obs > hi) | (obs < lo))
-    # how many specs actually enter the shuffle (all when unrestricted; only those in
-    # multi-spec sessions when within_session).
-    n_var_specs = int(sum(len(g) for g in groups))
-    n_var_sess = (len(groups) if within_session
-                  else int(len(np.unique(sessions))))
+    # how many specs actually enter the test.
+    if null_draws is not None:
+        n_var_specs = int(len(x))
+        n_var_sess = int(len(np.unique(sessions)))
+    else:
+        n_var_specs = int(sum(len(g) for g in groups))
+        n_var_sess = (len(groups) if within_session
+                      else int(len(np.unique(sessions))))
     return gx, obs, m, lo, hi, sig, pval, n_var_sess, n_var_specs
 
 
@@ -2232,6 +2255,34 @@ def _boot_curve_ci(x, y, sessions=None, *, bw_frac, xlim, gridsize=160,
     return gx, lo, hi
 
 
+def build_onoff_null_draws(trial_types, *, start_session_id=None,
+                           exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
+                           base_required_conditions=None, n_draws=RATIO_RATE_N_PERM,
+                           seed=0):
+    """{(session_id, estim_spec_id, trial_type): np.ndarray(n_draws)} of ON/OFF-label
+    -shuffled effect sizes, aligned to the plotted specs. Mirrors the effect table's
+    per-trial-type loop (same sessions, same required_conditions) so each draw array
+    lines up with a spec's observed effect. Computed once and reused for every mode."""
+    session_ids = iso._get_sessions_with_neighbor_scores()
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+    out = {}
+    for tt in trial_types:
+        rc = _rc_for_trial_type(base_required_conditions, tt)
+        for sid in session_ids:
+            draws = iso.compute_onoff_null_by_spec_for_session(
+                sid, metric=effect_metric, required_conditions=rc,
+                n_draws=n_draws, seed=seed)
+            for spec_id, arr in draws.items():
+                out[(sid, int(spec_id), tt)] = arr
+    print(f"Built ON/OFF null draws: {len(out)} (session, spec, trial_type) cells × "
+          f"{n_draws} shuffles")
+    return out
+
+
 SIGN_POS_COLOR = '#c0392b'   # red   — smoothed curve of the positive-effect points
 SIGN_NEG_COLOR = '#2c6fbb'   # blue  — smoothed curve of the negative-effect points
 BOOT_CI_COLOR = '#2c8c99'    # teal  — bootstrap CI band around the observed curve
@@ -2245,6 +2296,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                       perm_test=RATIO_RATE_PERM_TEST,
                                       n_perm=RATIO_RATE_N_PERM,
                                       within_session=RATIO_RATE_PERM_WITHIN_SESSION,
+                                      null_mode=RATIO_RATE_NULL_MODE, onoff_null=None,
                                       effect_threshold=RATIO_RATE_THRESHOLD,
                                       show_null_band=RATIO_RATE_SHOW_NULL_BAND,
                                       bootstrap=RATIO_RATE_BOOTSTRAP,
@@ -2304,10 +2356,11 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                         color=color, alpha=0.15, zorder=3, linewidth=0)
         ax.plot(gx, mean, color=color, lw=2.2, zorder=4)
 
-    def _draw_rate(ax, xv, effv, sessions=None):
-        """Smoothed P(effect>0) curve with a sign rug, optional permutation null band
-        (grey + gold significant segments) and/or bootstrap CI (teal). Returns
-        (perm_p, n_var_sess, n_var_specs) or None if the permutation test didn't run."""
+    def _draw_rate(ax, xv, effv, sessions=None, null_draws=None):
+        """Smoothed P(effect>threshold) curve with a rug, optional permutation null band
+        (grey + gold significant segments) and/or bootstrap CI. `null_draws` (n×B raw
+        effect draws, ON/OFF null) overrides the ratio-shuffle when null_mode='onoff'.
+        Returns (perm_p, n_var_sess, n_var_specs) or None if the test didn't run."""
         ax.axhline(0.5, color='#888888', lw=0.8, ls='--', zorder=1)
         # rug: specs above the threshold as red ticks near the top, at/below as blue.
         above = effv > effect_threshold
@@ -2344,10 +2397,13 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                 alpha=0.22, zorder=3, linewidth=0)
 
         ret = None
-        if perm_test:
+        nd_ind = (None if null_draws is None
+                  else (np.asarray(null_draws, dtype=float) > effect_threshold).astype(float))
+        skip = (null_mode == 'onoff' and nd_ind is None)
+        if perm_test and not skip:
             res = _perm_curve_band(xv, yb, sessions, bw_frac=bw_frac, xlim=xlim,
                                    n_perm=n_perm, within_session=within_session,
-                                   clip01=True)
+                                   clip01=True, null_draws=nd_ind)
             if res is not None:
                 _, _, m, lo, hi, sig, pval, n_var_sess, n_var_specs = res
                 if show_null_band:
@@ -2369,10 +2425,11 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         ax.plot(gx, np.where(fin, p, np.nan), color='black', lw=2.0, zorder=4)
         return ret
 
-    def _draw_single(ax, xv, yv, sessions=None, color='black'):
+    def _draw_single(ax, xv, yv, sessions=None, color='black', null_draws=None):
         """A single mean curve (signed effect or |effect|) with the SAME test
         machinery as the rate curve: optional bootstrap CI + permutation null band
-        (gold significant segments). Null = 'y independent of ratio' (flat mean).
+        (gold significant segments). `null_draws` (n×B, already in yv's space)
+        overrides the ratio-shuffle with the ON/OFF null when null_mode='onoff'.
         Returns (perm_p, n_var_sess, n_var_specs) or None."""
         # optional bootstrap CI around the mean curve
         if bootstrap:
@@ -2385,10 +2442,11 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                 ax.fill_between(gxb, blo, bhi, where=bok, color=boot_color,
                                 alpha=0.22, zorder=3, linewidth=0)
         ret = None
-        if perm_test:
+        skip = (null_mode == 'onoff' and null_draws is None)
+        if perm_test and not skip:
             res = _perm_curve_band(xv, yv, sessions, bw_frac=bw_frac, xlim=xlim,
                                    n_perm=n_perm, within_session=within_session,
-                                   clip01=False)
+                                   clip01=False, null_draws=null_draws)
             if res is not None:
                 gx, obs, m, lo, hi, sig, pval, n_var_sess, n_var_specs = res
                 fin = np.isfinite(obs)
@@ -2412,7 +2470,9 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             col_sub = points if tt is ALL else points[points['trial_type'] == tt]
             sub = col_sub if group is ALL else _filter_rows(col_sub, group)
             has_sess = 'session_id' in sub.columns
-            keep_cols = [ratio_col, 'effect_size'] + (['session_id'] if has_sess else [])
+            id_cols = [c for c in ('session_id', 'estim_spec_id', 'trial_type')
+                       if c in sub.columns]
+            keep_cols = list(dict.fromkeys([ratio_col, 'effect_size'] + id_cols))
             sub = sub[keep_cols].dropna(subset=[ratio_col, 'effect_size'])
             x = sub[ratio_col].to_numpy(dtype=float)
             eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
@@ -2422,13 +2482,24 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             if sess is not None:
                 sess = sess[ok]
 
+            # ON/OFF null draws for this panel's specs (n × B), aligned to x/eff.
+            nd = None
+            if (null_mode == 'onoff' and onoff_null
+                    and {'session_id', 'estim_spec_id', 'trial_type'} <= set(sub.columns)):
+                B = len(next(iter(onoff_null.values())))
+                keys = list(zip(sub['session_id'].to_numpy()[ok],
+                                sub['estim_spec_id'].to_numpy()[ok],
+                                sub['trial_type'].to_numpy()[ok]))
+                nd = np.array([onoff_null.get((s, int(sp), t), np.full(B, np.nan))
+                               for s, sp, t in keys], dtype=float) if keys else None
+
             # tint the combined margin panels so they read as summaries, not a cell.
             if tt is ALL or group is ALL:
                 ax.set_facecolor('#f4f4f4')
 
             test_res = None
             if split_mode == 'rate':
-                test_res = _draw_rate(ax, x, eff, sess)
+                test_res = _draw_rate(ax, x, eff, sess, null_draws=nd)
             else:
                 yv = np.abs(eff) if split_mode in ('abs', 'mag') else eff
                 if split_mode in (None, 'signed_split'):  # signed views get a 0 line
@@ -2444,7 +2515,10 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                     _draw_smooth(ax, x[eff > 0], yv[eff > 0], SIGN_POS_COLOR)
                     _draw_smooth(ax, x[eff < 0], yv[eff < 0], SIGN_NEG_COLOR)
                 else:  # None (signed) or 'mag' (|effect|): one tested black curve
-                    test_res = _draw_single(ax, x, yv, sess, color='black')
+                    nd_single = (None if nd is None
+                                 else (np.abs(nd) if split_mode == 'mag' else nd))
+                    test_res = _draw_single(ax, x, yv, sess, color='black',
+                                            null_draws=nd_single)
 
             col_label = 'ALL trial types' if tt is ALL else tt
             row_label = ('ALL polarities' if group is ALL
@@ -2458,8 +2532,12 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             if perm_test and split_mode in (None, 'rate', 'mag'):
                 if test_res is not None:
                     pval, n_var_sess, n_var_specs = test_res
-                    note = (f"{n_var_specs} specs in {n_var_sess} multi-spec sess"
-                            if within_session else f"perm n={n_var_specs}")
+                    if null_mode == 'onoff':
+                        note = f"ON/OFF null, n={n_var_specs}"
+                    elif within_session:
+                        note = f"{n_var_specs} specs in {n_var_sess} multi-spec sess"
+                    else:
+                        note = f"ratio null, n={n_var_specs}"
                     n_line += (f"   perm p={pval:.3g}{' *' if pval < 0.05 else ''}"
                                f"  ({note})")
                 else:
@@ -2480,15 +2558,16 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
+    _null_word = ("ON/OFF-shuffle null = reliable effect" if null_mode == 'onoff'
+                  else "ratio-shuffle null = varies with ratio")
     _test_desc = (
-        ("; gold = significant (curve exits the permutation null), perm p per panel"
-         if perm_test else "")
+        (f"; gold = significant ({_null_word}), perm p per panel" if perm_test else "")
         + ("; grey = null band (95% simultaneous)" if perm_test and show_null_band else "")
         + (f"; {'teal' if show_null_band else 'grey'} = bootstrap 95% CI"
            if bootstrap else ""))
     curve_desc = {
-        'rate': f"Y = P(effect>{effect_threshold:g}); gold = significant (curve exits "
-                "the permutation null), perm p per panel"
+        'rate': f"Y = P(effect>{effect_threshold:g}); gold = significant ({_null_word}), "
+                "perm p per panel"
                 + ("; grey = null band (95% simultaneous)" if show_null_band else "")
                 + (f"; {'teal' if show_null_band else 'grey'} = bootstrap 95% CI"
                    if bootstrap else ""),
@@ -2524,6 +2603,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         modes=RATIO_MODES, add_margins=RATIO_ADD_COMBINED,
                         perm_test=RATIO_RATE_PERM_TEST, n_perm=RATIO_RATE_N_PERM,
                         within_session=RATIO_RATE_PERM_WITHIN_SESSION,
+                        null_mode=RATIO_RATE_NULL_MODE,
                         effect_threshold=RATIO_RATE_THRESHOLD,
                         show_null_band=RATIO_RATE_SHOW_NULL_BAND,
                         bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
@@ -2548,6 +2628,16 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
         return df, pd.DataFrame()
     points = build_points(df, [HALFDIST_COL], aggregate_by)
     _attach_ratio(points, x_col=x_col)
+
+    # For the ON/OFF null, precompute the label-shuffled effect draws ONCE (shared by
+    # every mode). Only needed when the permutation test runs with null_mode='onoff'.
+    onoff_null = None
+    if perm_test and null_mode == 'onoff':
+        onoff_null = build_onoff_null_draws(
+            trial_types, start_session_id=start_session_id,
+            exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+            base_required_conditions=base_required_conditions, n_draws=n_perm)
+
     base = f"effect_vs_{_slug(x_col)}_over_halfdist_ratio"
     # All requested variants from ONE table build, each to its own file. show=False
     # so every figure is built first and they all pop together at the end.
@@ -2560,9 +2650,10 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
             points, trial_types=trial_types, by_polarity=by_polarity,
             point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_mode=mode,
             add_margins=add_margins, perm_test=perm_test, n_perm=n_perm,
-            within_session=within_session, effect_threshold=effect_threshold,
-            show_null_band=show_null_band, bootstrap=bootstrap, n_boot=n_boot,
-            boot_cluster=boot_cluster, show=False, output_path=out_path)
+            within_session=within_session, null_mode=null_mode, onoff_null=onoff_null,
+            effect_threshold=effect_threshold, show_null_band=show_null_band,
+            bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
+            show=False, output_path=out_path)
     plt.show()  # display every variant figure at once
     return df, points
 
