@@ -2013,6 +2013,11 @@ RATIO_MODES = (None, 'rate', 'signed_split')
 # Add marginal "combined" panels: an "ALL trial types" column, an "ALL polarities"
 # row, and their combined-across-everything corner. Set False for just the cells.
 RATIO_ADD_COMBINED = True
+# For the 'rate' (P(effect>0)) figure: overlay a within-session sign-permutation
+# test — shuffle effect signs among specs sharing a session, rebuild the smoothed
+# curve, and draw a SIMULTANEOUS (sup-t) null band + a global p-value per panel.
+RATIO_RATE_PERM_TEST = True
+RATIO_RATE_N_PERM = 2000
 
 
 def _attach_ratio(points, *, x_col='current_per_second', hd_col=HALFDIST_COL,
@@ -2072,6 +2077,78 @@ def _kernel_smooth_1d(x, y, *, gridsize=160, bw_frac=DEFAULT_RATIO_BW_FRAC, xran
     return gx, mean, se
 
 
+def _perm_rate_band(x, eff, sessions, *, bw_frac, xlim, gridsize=160,
+                    n_perm=RATIO_RATE_N_PERM, alpha=0.05, seed=0):
+    """Within-session sign-permutation test for the P(effect>0 | ratio) curve.
+
+    Shuffles the effect SIGN among specs sharing a session (ratios fixed), recomputes
+    the kernel-smoothed positive-rate curve each time, and builds a SIMULTANEOUS
+    (sup-t) null envelope from the standardised max deviation over the grid. This
+    controls the session confound (each session's own positive rate and ratio set are
+    preserved) and the multiple-comparisons-along-x problem in one shot.
+
+    Returns (gx, p_obs, m, lo, hi, sig_mask, p_value) or None if not identifiable
+    (no session has >= 2 specs whose sign can vary)."""
+    x = np.asarray(x, dtype=float)
+    eff = np.asarray(eff, dtype=float)
+    if xlim is None or len(x) < 8:
+        return None
+    sessions = np.asarray(sessions) if sessions is not None else np.zeros(len(x))
+    pos = (eff > 0).astype(float)
+    spread = (float(np.subtract(*np.percentile(x, [84, 16]))) / 2.0
+              or float(np.std(x)) or 1.0)
+    h = max(bw_frac * spread, 1e-9)
+    gx = np.linspace(xlim[0], xlim[1], gridsize)
+    d = (gx[:, None] - x[None, :]) / h
+    W = np.exp(-0.5 * d * d)
+    sw = W.sum(axis=1)
+    weak = sw < (0.02 * sw.max() if sw.max() > 0 else 0)
+
+    def _curve(y):
+        p = np.divide(W @ y, sw, out=np.full(gridsize, np.nan), where=sw > 0)
+        p[weak] = np.nan
+        return p
+
+    groups = [np.where(sessions == s)[0] for s in np.unique(sessions)]
+    groups = [g for g in groups if len(g) >= 2]  # only sessions that can be shuffled
+    if not groups:
+        return None
+    rng = np.random.default_rng(seed)
+    P = np.empty((n_perm, gridsize))
+    for b in range(n_perm):
+        yp = pos.copy()
+        for g in groups:
+            yp[g] = rng.permutation(yp[g])
+        P[b] = _curve(yp)
+    with np.errstate(invalid='ignore'):
+        m = np.nanmean(P, axis=0)
+        s = np.nanstd(P, axis=0)
+    fin = np.isfinite(m) & np.isfinite(s) & (s > 1e-9) & ~weak
+    if not fin.any():
+        return None
+    p_obs = _curve(pos)
+
+    def _maxdev(p):
+        z = np.abs(p - m) / s
+        return float(np.nanmax(z[fin]))
+
+    t_obs = _maxdev(p_obs)
+    t_null = np.array([_maxdev(P[b]) for b in range(n_perm)])
+    t_null = t_null[np.isfinite(t_null)]
+    if not np.isfinite(t_obs) or len(t_null) == 0:
+        return None
+    pval = (1 + int(np.sum(t_null >= t_obs))) / (len(t_null) + 1)
+    tstar = float(np.quantile(t_null, 1 - alpha))
+    lo = np.clip(m - tstar * s, 0, 1)
+    hi = np.clip(m + tstar * s, 0, 1)
+    sig = fin & ((p_obs > hi) | (p_obs < lo))
+    # how much data actually carries within-session signal: specs in sessions with
+    # >= 2 specs (singletons are held fixed and inform nothing).
+    n_var_sess = len(groups)
+    n_var_specs = int(sum(len(g) for g in groups))
+    return gx, p_obs, m, lo, hi, sig, pval, n_var_sess, n_var_specs
+
+
 SIGN_POS_COLOR = '#c0392b'   # red   — smoothed curve of the positive-effect points
 SIGN_NEG_COLOR = '#2c6fbb'   # blue  — smoothed curve of the negative-effect points
 
@@ -2081,7 +2158,8 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                       point_noun='spec', bw_frac=DEFAULT_RATIO_BW_FRAC,
                                       xlim=RATIO_XLIM, split_mode=None,
                                       add_margins=RATIO_ADD_COMBINED, show=True,
-                                      output_path=None):
+                                      perm_test=RATIO_RATE_PERM_TEST,
+                                      n_perm=RATIO_RATE_N_PERM, output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
     ratio. Shared axis + colour limits. `split_mode` picks what the curve(s) show:
 
@@ -2135,8 +2213,9 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                         color=color, alpha=0.15, zorder=3, linewidth=0)
         ax.plot(gx, mean, color=color, lw=2.2, zorder=4)
 
-    def _draw_rate(ax, xv, effv):
-        """Smoothed P(effect>0) curve with red/blue fill vs 0.5 and a sign rug."""
+    def _draw_rate(ax, xv, effv, sessions=None):
+        """Smoothed P(effect>0) curve with a sign rug. Returns the within-session
+        permutation p-value (or None if the test didn't run / isn't identifiable)."""
         ax.axhline(0.5, color='#888888', lw=0.8, ls='--', zorder=1)
         # rug: positive specs as red ticks near the top, negatives blue near bottom.
         if (effv > 0).any():
@@ -2145,9 +2224,36 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         if (effv < 0).any():
             ax.plot(xv[effv < 0], np.full((effv < 0).sum(), 0.0), '|',
                     color=SIGN_NEG_COLOR, ms=7, alpha=0.5, zorder=2)
+
+        if perm_test:
+            res = _perm_rate_band(xv, effv, sessions, bw_frac=bw_frac, xlim=xlim,
+                                  n_perm=n_perm)
+            if res is None:
+                sm = _kernel_smooth_1d(xv, (effv > 0).astype(float),
+                                       bw_frac=bw_frac, xrange=xlim)
+                if sm is not None:
+                    ax.plot(sm[0], sm[1], color='black', lw=2.2, zorder=4)
+                return None
+            gx, p, m, lo, hi, sig, pval, n_var_sess, n_var_specs = res
+            fin = np.isfinite(p)
+            pf = np.where(fin, p, 0.5)
+            # simultaneous within-session null envelope (grey) around the null mean.
+            ax.fill_between(gx, lo, hi, color='0.6', alpha=0.20, zorder=2, linewidth=0)
+            ax.plot(gx, m, color='0.45', lw=1.0, ls=':', zorder=3)
+            # faint direction fill vs 0.5
+            ax.fill_between(gx, 0.5, pf, where=fin & (pf >= 0.5), color=SIGN_POS_COLOR,
+                            alpha=0.14, zorder=2, linewidth=0)
+            ax.fill_between(gx, 0.5, pf, where=fin & (pf < 0.5), color=SIGN_NEG_COLOR,
+                            alpha=0.14, zorder=2, linewidth=0)
+            ax.plot(gx, np.where(fin, p, np.nan), color='black', lw=2.0, zorder=4)
+            if sig.any():  # segments where the curve leaves the null band
+                ax.plot(gx, np.where(sig, p, np.nan), color='#e8a020', lw=3.8, zorder=5)
+            return pval, n_var_sess, n_var_specs
+
+        # no permutation test: pointwise ± binomial SE band
         sm = _kernel_smooth_1d(xv, (effv > 0).astype(float), bw_frac=bw_frac, xrange=xlim)
         if sm is None:
-            return
+            return None
         gx, p, se = sm
         fin = np.isfinite(p)
         pf = np.where(fin, p, 0.5)
@@ -2160,6 +2266,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         ax.fill_between(gx, 0.5, pf, where=fin & (pf < 0.5), color=SIGN_NEG_COLOR,
                         alpha=0.25, zorder=3, linewidth=0)
         ax.plot(gx, np.where(fin, p, np.nan), color='black', lw=2.2, zorder=4)
+        return None
 
     scatter_ref = None
     for r, group in enumerate(row_specs):
@@ -2167,18 +2274,24 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             ax = axes[r][c]
             col_sub = points if tt is ALL else points[points['trial_type'] == tt]
             sub = col_sub if group is ALL else _filter_rows(col_sub, group)
-            sub = sub[[ratio_col, 'effect_size']].dropna()
+            has_sess = 'session_id' in sub.columns
+            keep_cols = [ratio_col, 'effect_size'] + (['session_id'] if has_sess else [])
+            sub = sub[keep_cols].dropna(subset=[ratio_col, 'effect_size'])
             x = sub[ratio_col].to_numpy(dtype=float)
             eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
+            sess = sub['session_id'].to_numpy() if has_sess else None
             ok = np.isfinite(x) & np.isfinite(eff)
             x, eff = x[ok], eff[ok]
+            if sess is not None:
+                sess = sess[ok]
 
             # tint the combined margin panels so they read as summaries, not a cell.
             if tt is ALL or group is ALL:
                 ax.set_facecolor('#f4f4f4')
 
+            rate_p = None
             if split_mode == 'rate':
-                _draw_rate(ax, x, eff)
+                rate_p = _draw_rate(ax, x, eff, sess)
             else:
                 yv = np.abs(eff) if split_mode in ('abs', 'mag') else eff
                 if split_mode in (None, 'signed_split'):  # signed views get a 0 line
@@ -2204,7 +2317,15 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                 lines.append(col_label)
             if row_label:
                 lines.append(row_label)
-            lines.append(f"n={len(x)} {point_noun}s")
+            n_line = f"n={len(x)} {point_noun}s"
+            if split_mode == 'rate' and perm_test:
+                if rate_p is not None:
+                    pval, n_var_sess, n_var_specs = rate_p
+                    n_line += (f"   perm p={pval:.3g}{' *' if pval < 0.05 else ''}"
+                               f"  ({n_var_specs} specs in {n_var_sess} multi-spec sess)")
+                else:
+                    n_line += "   perm p=n/a"
+            lines.append(n_line)
             ax.set_title("\n".join(lines), fontsize=10)
             if xlim:
                 ax.set_xlim(xlim)
@@ -2221,8 +2342,8 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
     curve_desc = {
-        'rate': "DIRECTION: Y = P(effect>0); red fill = positives more likely, "
-                "blue = negatives more likely (0.5 = balanced)",
+        'rate': "DIRECTION: Y = P(effect>0); grey = within-session permutation null "
+                "band (95% simultaneous), gold = curve exits it; perm p per panel",
         'signed_split': "SIGNED MAGNITUDE: red = typical positive effect (above 0), "
                         "blue = typical negative effect (below 0)",
         'mag': "MAGNITUDE: Y = |effect|; black = smoothed overall effect size ± SE",
@@ -2251,6 +2372,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         aggregate_by='spec', by_polarity=True,
                         bw_frac=DEFAULT_RATIO_BW_FRAC, xlim=RATIO_XLIM,
                         modes=RATIO_MODES, add_margins=RATIO_ADD_COMBINED,
+                        perm_test=RATIO_RATE_PERM_TEST, n_perm=RATIO_RATE_N_PERM,
                         x_col='current_per_second', save_dir=None):
     """Build the half-distance table, form the current:half-distance ratio per point,
     and draw the effect-vs-ratio grid. Returns (df, points_df)."""
@@ -2282,7 +2404,8 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
         plot_effect_vs_ratio_by_trialtype(
             points, trial_types=trial_types, by_polarity=by_polarity,
             point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_mode=mode,
-            add_margins=add_margins, show=False, output_path=out_path)
+            add_margins=add_margins, perm_test=perm_test, n_perm=n_perm,
+            show=False, output_path=out_path)
     plt.show()  # display every variant figure at once
     return df, points
 
