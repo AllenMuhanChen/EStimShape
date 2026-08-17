@@ -2022,6 +2022,13 @@ RATIO_RATE_N_PERM = 2000
 # needs >= 2 specs/session). False = shuffle signs freely across all specs in the
 # panel (more power, but a result can be driven by between-session differences).
 RATIO_RATE_PERM_WITHIN_SESSION = False
+# Optional bootstrap CI overlay on the 'rate' figure: resample specs WITH
+# replacement, rebuild the curve, and draw a pointwise percentile band AROUND the
+# observed curve (uncertainty of the estimate — complements the permutation NULL
+# band). RATIO_RATE_BOOT_CLUSTER resamples whole sessions instead of specs.
+RATIO_RATE_BOOTSTRAP = False
+RATIO_RATE_N_BOOT = 2000
+RATIO_RATE_BOOT_CLUSTER = False
 
 
 def _attach_ratio(points, *, x_col='current_per_second', hd_col=HALFDIST_COL,
@@ -2162,8 +2169,59 @@ def _perm_rate_band(x, eff, sessions, *, bw_frac, xlim, gridsize=160,
     return gx, p_obs, m, lo, hi, sig, pval, n_var_sess, n_var_specs
 
 
+def _boot_rate_ci(x, eff, sessions=None, *, bw_frac, xlim, gridsize=160,
+                  n_boot=RATIO_RATE_N_BOOT, alpha=0.05, seed=1, cluster=False):
+    """Percentile bootstrap CI for the P(effect>0 | ratio) curve — the uncertainty
+    OF THE ESTIMATE (complements the permutation null band).
+
+    Resamples specs WITH replacement (cluster=True resamples whole sessions with
+    replacement, respecting the session clustering), recomputes the kernel-smoothed
+    positive-rate curve, and takes the pointwise (1-alpha) percentile band. Returns
+    (gx, lo, hi) or None if not enough data."""
+    x = np.asarray(x, dtype=float)
+    eff = np.asarray(eff, dtype=float)
+    if xlim is None or len(x) < 8:
+        return None
+    pos = (eff > 0).astype(float)
+    n = len(x)
+    gx = np.linspace(xlim[0], xlim[1], gridsize)
+    spread = (float(np.subtract(*np.percentile(x, [84, 16]))) / 2.0
+              or float(np.std(x)) or 1.0)
+    h = max(bw_frac * spread, 1e-9)
+
+    def _curve(idx):
+        xb, yb = x[idx], pos[idx]
+        d = (gx[:, None] - xb[None, :]) / h
+        W = np.exp(-0.5 * d * d)
+        sw = W.sum(axis=1)
+        p = np.divide(W @ yb, sw, out=np.full(gridsize, np.nan), where=sw > 0)
+        p[sw < (0.02 * sw.max() if sw.max() > 0 else 0)] = np.nan
+        return p
+
+    rng = np.random.default_rng(seed)
+    sess_groups = None
+    if cluster and sessions is not None:
+        sessions = np.asarray(sessions)
+        uniq = np.unique(sessions)
+        sess_groups = (uniq, {s: np.where(sessions == s)[0] for s in uniq})
+    B = np.full((n_boot, gridsize), np.nan)
+    for b in range(n_boot):
+        if sess_groups is not None:
+            uniq, idx_by = sess_groups
+            chosen = rng.choice(uniq, size=len(uniq), replace=True)
+            idx = np.concatenate([idx_by[s] for s in chosen])
+        else:
+            idx = rng.integers(0, n, n)
+        B[b] = _curve(idx)
+    with np.errstate(invalid='ignore'):
+        lo = np.nanpercentile(B, 100 * alpha / 2, axis=0)
+        hi = np.nanpercentile(B, 100 * (1 - alpha / 2), axis=0)
+    return gx, np.clip(lo, 0, 1), np.clip(hi, 0, 1)
+
+
 SIGN_POS_COLOR = '#c0392b'   # red   — smoothed curve of the positive-effect points
 SIGN_NEG_COLOR = '#2c6fbb'   # blue  — smoothed curve of the negative-effect points
+BOOT_CI_COLOR = '#2c8c99'    # teal  — bootstrap CI band around the observed curve
 
 
 def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_COL,
@@ -2174,6 +2232,9 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                       perm_test=RATIO_RATE_PERM_TEST,
                                       n_perm=RATIO_RATE_N_PERM,
                                       within_session=RATIO_RATE_PERM_WITHIN_SESSION,
+                                      bootstrap=RATIO_RATE_BOOTSTRAP,
+                                      n_boot=RATIO_RATE_N_BOOT,
+                                      boot_cluster=RATIO_RATE_BOOT_CLUSTER,
                                       output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
     ratio. Shared axis + colour limits. `split_mode` picks what the curve(s) show:
@@ -2229,8 +2290,9 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         ax.plot(gx, mean, color=color, lw=2.2, zorder=4)
 
     def _draw_rate(ax, xv, effv, sessions=None):
-        """Smoothed P(effect>0) curve with a sign rug. Returns the within-session
-        permutation p-value (or None if the test didn't run / isn't identifiable)."""
+        """Smoothed P(effect>0) curve with a sign rug, optional permutation null band
+        (grey + gold significant segments) and/or bootstrap CI (teal). Returns
+        (perm_p, n_var_sess, n_var_specs) or None if the permutation test didn't run."""
         ax.axhline(0.5, color='#888888', lw=0.8, ls='--', zorder=1)
         # rug: positive specs as red ticks near the top, negatives blue near bottom.
         if (effv > 0).any():
@@ -2240,48 +2302,51 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             ax.plot(xv[effv < 0], np.full((effv < 0).sum(), 0.0), '|',
                     color=SIGN_NEG_COLOR, ms=7, alpha=0.5, zorder=2)
 
-        if perm_test:
-            res = _perm_rate_band(xv, effv, sessions, bw_frac=bw_frac, xlim=xlim,
-                                  n_perm=n_perm, within_session=within_session)
-            if res is None:
-                sm = _kernel_smooth_1d(xv, (effv > 0).astype(float),
-                                       bw_frac=bw_frac, xrange=xlim)
-                if sm is not None:
-                    ax.plot(sm[0], sm[1], color='black', lw=2.2, zorder=4)
-                return None
-            gx, p, m, lo, hi, sig, pval, n_var_sess, n_var_specs = res
-            fin = np.isfinite(p)
-            pf = np.where(fin, p, 0.5)
-            # simultaneous within-session null envelope (grey) around the null mean.
-            ax.fill_between(gx, lo, hi, color='0.6', alpha=0.20, zorder=2, linewidth=0)
-            ax.plot(gx, m, color='0.45', lw=1.0, ls=':', zorder=3)
-            # faint direction fill vs 0.5
-            ax.fill_between(gx, 0.5, pf, where=fin & (pf >= 0.5), color=SIGN_POS_COLOR,
-                            alpha=0.14, zorder=2, linewidth=0)
-            ax.fill_between(gx, 0.5, pf, where=fin & (pf < 0.5), color=SIGN_NEG_COLOR,
-                            alpha=0.14, zorder=2, linewidth=0)
-            ax.plot(gx, np.where(fin, p, np.nan), color='black', lw=2.0, zorder=4)
-            if sig.any():  # segments where the curve leaves the null band
-                ax.plot(gx, np.where(sig, p, np.nan), color='#e8a020', lw=3.8, zorder=5)
-            return pval, n_var_sess, n_var_specs
-
-        # no permutation test: pointwise ± binomial SE band
         sm = _kernel_smooth_1d(xv, (effv > 0).astype(float), bw_frac=bw_frac, xrange=xlim)
         if sm is None:
             return None
         gx, p, se = sm
         fin = np.isfinite(p)
         pf = np.where(fin, p, 0.5)
-        lo = np.where(fin, np.clip(p - se, 0, 1), 0.5)
-        hi = np.where(fin, np.clip(p + se, 0, 1), 0.5)
-        ax.fill_between(gx, lo, hi, where=fin, color='0.5', alpha=0.15,
-                        zorder=3, linewidth=0)
+        # faint direction fill vs 0.5 (which sign dominates — not significance)
         ax.fill_between(gx, 0.5, pf, where=fin & (pf >= 0.5), color=SIGN_POS_COLOR,
-                        alpha=0.25, zorder=3, linewidth=0)
+                        alpha=0.14, zorder=2, linewidth=0)
         ax.fill_between(gx, 0.5, pf, where=fin & (pf < 0.5), color=SIGN_NEG_COLOR,
-                        alpha=0.25, zorder=3, linewidth=0)
-        ax.plot(gx, np.where(fin, p, np.nan), color='black', lw=2.2, zorder=4)
-        return None
+                        alpha=0.14, zorder=2, linewidth=0)
+
+        # optional bootstrap CI: uncertainty AROUND the observed curve (teal).
+        if bootstrap:
+            ci = _boot_rate_ci(xv, effv, sessions, bw_frac=bw_frac, xlim=xlim,
+                               n_boot=n_boot, cluster=boot_cluster)
+            if ci is not None:
+                _, blo, bhi = ci
+                bok = np.isfinite(blo) & np.isfinite(bhi)
+                ax.fill_between(gx, blo, bhi, where=bok, color=BOOT_CI_COLOR,
+                                alpha=0.22, zorder=3, linewidth=0)
+
+        ret = None
+        if perm_test:
+            res = _perm_rate_band(xv, effv, sessions, bw_frac=bw_frac, xlim=xlim,
+                                  n_perm=n_perm, within_session=within_session)
+            if res is not None:
+                _, _, m, lo, hi, sig, pval, n_var_sess, n_var_specs = res
+                # simultaneous NULL envelope (grey) around the null mean (chance).
+                ax.fill_between(gx, lo, hi, color='0.6', alpha=0.20, zorder=2,
+                                linewidth=0)
+                ax.plot(gx, m, color='0.45', lw=1.0, ls=':', zorder=3)
+                if sig.any():  # curve leaves the null band -> significant here
+                    ax.plot(gx, np.where(sig, p, np.nan), color='#e8a020',
+                            lw=3.8, zorder=5)
+                ret = (pval, n_var_sess, n_var_specs)
+        elif not bootstrap:
+            # neither test: pointwise ± binomial SE band as a plain uncertainty gauge
+            lo = np.where(fin, np.clip(p - se, 0, 1), 0.5)
+            hi = np.where(fin, np.clip(p + se, 0, 1), 0.5)
+            ax.fill_between(gx, lo, hi, where=fin, color='0.5', alpha=0.15,
+                            zorder=3, linewidth=0)
+
+        ax.plot(gx, np.where(fin, p, np.nan), color='black', lw=2.0, zorder=4)
+        return ret
 
     scatter_ref = None
     for r, group in enumerate(row_specs):
@@ -2359,8 +2424,9 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
     curve_desc = {
-        'rate': "DIRECTION: Y = P(effect>0); grey = within-session permutation null "
-                "band (95% simultaneous), gold = curve exits it; perm p per panel",
+        'rate': "DIRECTION: Y = P(effect>0); grey = permutation null band (95% "
+                "simultaneous), gold = curve exits it (significant); perm p per panel"
+                + ("; teal = bootstrap 95% CI of the curve" if bootstrap else ""),
         'signed_split': "SIGNED MAGNITUDE: red = typical positive effect (above 0), "
                         "blue = typical negative effect (below 0)",
         'mag': "MAGNITUDE: Y = |effect|; black = smoothed overall effect size ± SE",
@@ -2391,6 +2457,8 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         modes=RATIO_MODES, add_margins=RATIO_ADD_COMBINED,
                         perm_test=RATIO_RATE_PERM_TEST, n_perm=RATIO_RATE_N_PERM,
                         within_session=RATIO_RATE_PERM_WITHIN_SESSION,
+                        bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
+                        boot_cluster=RATIO_RATE_BOOT_CLUSTER,
                         x_col='current_per_second', save_dir=None):
     """Build the half-distance table, form the current:half-distance ratio per point,
     and draw the effect-vs-ratio grid. Returns (df, points_df)."""
@@ -2423,7 +2491,8 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
             points, trial_types=trial_types, by_polarity=by_polarity,
             point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_mode=mode,
             add_margins=add_margins, perm_test=perm_test, n_perm=n_perm,
-            within_session=within_session, show=False, output_path=out_path)
+            within_session=within_session, bootstrap=bootstrap, n_boot=n_boot,
+            boot_cluster=boot_cluster, show=False, output_path=out_path)
     plt.show()  # display every variant figure at once
     return df, points
 
