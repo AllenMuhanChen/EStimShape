@@ -2013,11 +2013,15 @@ RATIO_MODES = (None, 'rate', 'signed_split')
 # Add marginal "combined" panels: an "ALL trial types" column, an "ALL polarities"
 # row, and their combined-across-everything corner. Set False for just the cells.
 RATIO_ADD_COMBINED = True
-# For the 'rate' (P(effect>0)) figure: overlay a within-session sign-permutation
-# test — shuffle effect signs among specs sharing a session, rebuild the smoothed
-# curve, and draw a SIMULTANEOUS (sup-t) null band + a global p-value per panel.
+# For the 'rate' (P(effect>0)) figure: overlay a sign-permutation test — shuffle
+# effect signs, rebuild the smoothed curve, and draw a SIMULTANEOUS (sup-t) null
+# band + a global p-value per panel.
 RATIO_RATE_PERM_TEST = True
 RATIO_RATE_N_PERM = 2000
+# Restrict the shuffle to WITHIN each session (controls the session confound but
+# needs >= 2 specs/session). False = shuffle signs freely across all specs in the
+# panel (more power, but a result can be driven by between-session differences).
+RATIO_RATE_PERM_WITHIN_SESSION = False
 
 
 def _attach_ratio(points, *, x_col='current_per_second', hd_col=HALFDIST_COL,
@@ -2078,17 +2082,22 @@ def _kernel_smooth_1d(x, y, *, gridsize=160, bw_frac=DEFAULT_RATIO_BW_FRAC, xran
 
 
 def _perm_rate_band(x, eff, sessions, *, bw_frac, xlim, gridsize=160,
-                    n_perm=RATIO_RATE_N_PERM, alpha=0.05, seed=0):
-    """Within-session sign-permutation test for the P(effect>0 | ratio) curve.
+                    n_perm=RATIO_RATE_N_PERM, alpha=0.05, seed=0,
+                    within_session=RATIO_RATE_PERM_WITHIN_SESSION):
+    """Sign-permutation test for the P(effect>0 | ratio) curve.
 
-    Shuffles the effect SIGN among specs sharing a session (ratios fixed), recomputes
-    the kernel-smoothed positive-rate curve each time, and builds a SIMULTANEOUS
-    (sup-t) null envelope from the standardised max deviation over the grid. This
-    controls the session confound (each session's own positive rate and ratio set are
-    preserved) and the multiple-comparisons-along-x problem in one shot.
+    Shuffles the effect SIGN (ratios fixed), recomputes the kernel-smoothed
+    positive-rate curve each time, and builds a SIMULTANEOUS (sup-t) null envelope
+    from the standardised max deviation over the grid — handling the
+    multiple-comparisons-along-x problem in one shot.
 
-    Returns (gx, p_obs, m, lo, hi, sig_mask, p_value) or None if not identifiable
-    (no session has >= 2 specs whose sign can vary)."""
+    within_session=True restricts the shuffle to specs sharing a session (removes the
+    session confound; needs >= 2 specs/session). within_session=False (default)
+    shuffles signs freely across all specs in the panel — more power, but a result
+    can reflect between-session differences.
+
+    Returns (gx, p_obs, m, lo, hi, sig_mask, p_value, n_var_sess, n_var_specs) or
+    None if not identifiable."""
     x = np.asarray(x, dtype=float)
     eff = np.asarray(eff, dtype=float)
     if xlim is None or len(x) < 8:
@@ -2109,8 +2118,11 @@ def _perm_rate_band(x, eff, sessions, *, bw_frac, xlim, gridsize=160,
         p[weak] = np.nan
         return p
 
-    groups = [np.where(sessions == s)[0] for s in np.unique(sessions)]
-    groups = [g for g in groups if len(g) >= 2]  # only sessions that can be shuffled
+    if within_session:
+        groups = [np.where(sessions == s)[0] for s in np.unique(sessions)]
+        groups = [g for g in groups if len(g) >= 2]  # only shufflable sessions
+    else:
+        groups = [np.arange(len(x))]  # shuffle signs freely across all specs
     if not groups:
         return None
     rng = np.random.default_rng(seed)
@@ -2142,10 +2154,11 @@ def _perm_rate_band(x, eff, sessions, *, bw_frac, xlim, gridsize=160,
     lo = np.clip(m - tstar * s, 0, 1)
     hi = np.clip(m + tstar * s, 0, 1)
     sig = fin & ((p_obs > hi) | (p_obs < lo))
-    # how much data actually carries within-session signal: specs in sessions with
-    # >= 2 specs (singletons are held fixed and inform nothing).
-    n_var_sess = len(groups)
+    # how many specs actually enter the shuffle (all of them when unrestricted; only
+    # those in multi-spec sessions when within_session).
     n_var_specs = int(sum(len(g) for g in groups))
+    n_var_sess = (len(groups) if within_session
+                  else int(len(np.unique(sessions))))
     return gx, p_obs, m, lo, hi, sig, pval, n_var_sess, n_var_specs
 
 
@@ -2159,7 +2172,9 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                       xlim=RATIO_XLIM, split_mode=None,
                                       add_margins=RATIO_ADD_COMBINED, show=True,
                                       perm_test=RATIO_RATE_PERM_TEST,
-                                      n_perm=RATIO_RATE_N_PERM, output_path=None):
+                                      n_perm=RATIO_RATE_N_PERM,
+                                      within_session=RATIO_RATE_PERM_WITHIN_SESSION,
+                                      output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
     ratio. Shared axis + colour limits. `split_mode` picks what the curve(s) show:
 
@@ -2227,7 +2242,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
 
         if perm_test:
             res = _perm_rate_band(xv, effv, sessions, bw_frac=bw_frac, xlim=xlim,
-                                  n_perm=n_perm)
+                                  n_perm=n_perm, within_session=within_session)
             if res is None:
                 sm = _kernel_smooth_1d(xv, (effv > 0).astype(float),
                                        bw_frac=bw_frac, xrange=xlim)
@@ -2321,8 +2336,10 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             if split_mode == 'rate' and perm_test:
                 if rate_p is not None:
                     pval, n_var_sess, n_var_specs = rate_p
+                    note = (f"{n_var_specs} specs in {n_var_sess} multi-spec sess"
+                            if within_session else f"perm n={n_var_specs}")
                     n_line += (f"   perm p={pval:.3g}{' *' if pval < 0.05 else ''}"
-                               f"  ({n_var_specs} specs in {n_var_sess} multi-spec sess)")
+                               f"  ({note})")
                 else:
                     n_line += "   perm p=n/a"
             lines.append(n_line)
@@ -2373,6 +2390,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         bw_frac=DEFAULT_RATIO_BW_FRAC, xlim=RATIO_XLIM,
                         modes=RATIO_MODES, add_margins=RATIO_ADD_COMBINED,
                         perm_test=RATIO_RATE_PERM_TEST, n_perm=RATIO_RATE_N_PERM,
+                        within_session=RATIO_RATE_PERM_WITHIN_SESSION,
                         x_col='current_per_second', save_dir=None):
     """Build the half-distance table, form the current:half-distance ratio per point,
     and draw the effect-vs-ratio grid. Returns (df, points_df)."""
@@ -2405,7 +2423,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
             points, trial_types=trial_types, by_polarity=by_polarity,
             point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_mode=mode,
             add_margins=add_margins, perm_test=perm_test, n_perm=n_perm,
-            show=False, output_path=out_path)
+            within_session=within_session, show=False, output_path=out_path)
     plt.show()  # display every variant figure at once
     return df, points
 
