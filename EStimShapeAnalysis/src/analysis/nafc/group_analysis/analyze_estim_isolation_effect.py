@@ -155,29 +155,12 @@ def _apply_required_conditions(data: pd.DataFrame, required_conditions) -> pd.Da
 # Per-spec effect computation
 # ---------------------------------------------------------------------------
 
-def compute_effect_by_spec_for_session(session_id, metric=METRIC_PCT_HYPOTHESIZED,
-                                       required_conditions=None,
-                                       behavioral_conditions=BEHAVIORAL_KEYS):
-    """Raw estim effect per estim_spec_id for one session.
-
-    Returns a list of dicts: session_id, estim_spec_id, n_on, n_off,
-    on_pct, off_pct, effect_size. Specs with no estim-ON or no matched
-    estim-OFF trials still appear, with None for the missing percentages.
-    """
-    data = read_trial_data_from_repository(session_id)
-    if data is None or len(data) == 0:
-        return []
-
-    data = _apply_required_conditions(data, required_conditions)
-    data = _filter_for_metric(data, metric)
-    data = data[data['is_hypothesized_choice'].notna()]
-    if len(data) == 0:
-        return []
-
-    present_behavioral = [c for c in behavioral_conditions if c in data.columns]
-    if not present_behavioral:
-        present_behavioral = ['trial_type'] if 'trial_type' in data.columns else []
-
+def _pooled_onoff_by_spec(data, present_behavioral):
+    """{spec_id: (on_arr, off_vals)} of pooled is_hypothesized_choice outcomes for a
+    session's already-filtered trial data. ON outcomes are pooled across the
+    behavioral groups the spec ran in; OFF outcomes are pooled across exactly those
+    matched behavioral groups. This is the single source of truth for both the
+    observed effect and the ON/OFF-shuffle null (so they always agree)."""
     spec_on_vals = defaultdict(list)         # spec_id -> [outcomes]
     spec_behavioral_keys = defaultdict(set)  # spec_id -> {behavioral tuple, ...}
     off_by_bkey = {}                         # behavioral tuple -> np.array of outcomes
@@ -197,13 +180,83 @@ def compute_effect_by_spec_for_session(session_id, metric=METRIC_PCT_HYPOTHESIZE
                 spec_rows['is_hypothesized_choice'].to_numpy(dtype=float).tolist())
             spec_behavioral_keys[spec_id].add(bkey)
 
-    rows = []
+    out = {}
     for spec_id, on_vals in spec_on_vals.items():
         off_arrays = [off_by_bkey[bkey] for bkey in spec_behavioral_keys[spec_id]
                       if len(off_by_bkey.get(bkey, [])) > 0]
         off_vals = np.concatenate(off_arrays) if off_arrays else np.array([])
+        out[spec_id] = (np.asarray(on_vals, dtype=float), off_vals)
+    return out
 
-        on_arr = np.asarray(on_vals, dtype=float)
+
+def _present_behavioral(data, behavioral_conditions):
+    present = [c for c in behavioral_conditions if c in data.columns]
+    if not present:
+        present = ['trial_type'] if 'trial_type' in data.columns else []
+    return present
+
+
+def compute_onoff_null_by_spec_for_session(session_id, *,
+                                           metric=METRIC_PCT_HYPOTHESIZED,
+                                           required_conditions=None,
+                                           behavioral_conditions=BEHAVIORAL_KEYS,
+                                           n_draws=2000, seed=0):
+    """{spec_id: np.ndarray(n_draws)} of ON/OFF-shuffled effect sizes for one session.
+
+    For each spec, pools its ON and matched-OFF is_hypothesized_choice outcomes
+    exactly like the observed effect, then repeatedly shuffles the ON/OFF labels
+    (pool, permute, re-split at the original n_on) and recomputes ON−OFF %. This is
+    the label-shuffle null for the test "does estim reliably have an effect" — the
+    same statistic and pooling as compute_effect_by_spec_for_session, so the null is
+    consistent with the plotted effect. Specs lacking ON or OFF trials are omitted."""
+    data = read_trial_data_from_repository(session_id)
+    if data is None or len(data) == 0:
+        return {}
+    data = _apply_required_conditions(data, required_conditions)
+    data = _filter_for_metric(data, metric)
+    data = data[data['is_hypothesized_choice'].notna()]
+    if len(data) == 0:
+        return {}
+    pooled = _pooled_onoff_by_spec(data, _present_behavioral(data, behavioral_conditions))
+    rng = np.random.default_rng(seed)
+    out = {}
+    for spec_id, (on_arr, off_vals) in pooled.items():
+        n_on, n_off = len(on_arr), len(off_vals)
+        if n_on == 0 or n_off == 0:
+            continue
+        allv = np.concatenate([on_arr, off_vals])
+        n = n_on + n_off
+        draws = np.empty(n_draws, dtype=float)
+        for b in range(n_draws):
+            idx = rng.permutation(n)
+            draws[b] = (allv[idx[:n_on]].mean() - allv[idx[n_on:]].mean()) * 100
+        out[spec_id] = draws
+    return out
+
+
+def compute_effect_by_spec_for_session(session_id, metric=METRIC_PCT_HYPOTHESIZED,
+                                       required_conditions=None,
+                                       behavioral_conditions=BEHAVIORAL_KEYS):
+    """Raw estim effect per estim_spec_id for one session.
+
+    Returns a list of dicts: session_id, estim_spec_id, n_on, n_off,
+    on_pct, off_pct, effect_size. Specs with no estim-ON or no matched
+    estim-OFF trials still appear, with None for the missing percentages.
+    """
+    data = read_trial_data_from_repository(session_id)
+    if data is None or len(data) == 0:
+        return []
+
+    data = _apply_required_conditions(data, required_conditions)
+    data = _filter_for_metric(data, metric)
+    data = data[data['is_hypothesized_choice'].notna()]
+    if len(data) == 0:
+        return []
+
+    pooled = _pooled_onoff_by_spec(data, _present_behavioral(data, behavioral_conditions))
+
+    rows = []
+    for spec_id, (on_arr, off_vals) in pooled.items():
         on_pct = float(on_arr.mean() * 100) if len(on_arr) > 0 else None
         off_pct = float(off_vals.mean() * 100) if len(off_vals) > 0 else None
         effect = (on_pct - off_pct) if (on_pct is not None and off_pct is not None) else None
