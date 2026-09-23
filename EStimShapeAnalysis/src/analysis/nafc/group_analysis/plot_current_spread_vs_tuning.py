@@ -58,6 +58,7 @@ compute_estim_neighbor_scores reads — but computes the correlations directly, 
 it does NOT depend on EStimNeighborScores having been populated.
 """
 
+import math
 import os
 import sys
 from pathlib import Path
@@ -2672,6 +2673,245 @@ def main_effect_vs_ratio():
         aggregate_by='spec', by_polarity=True, save_dir=COMPARISON_SAVE_DIR)
 
 
+# ---------------------------------------------------------------------------
+# Simple logistic regression: P(effect > 0) vs ONE predictor
+#
+# Companion to the ratio plots: rather than the current : half-distance ratio,
+# regress the effect DIRECTION on each ingredient on its own — current_per_second
+# alone, and corr half-distance alone — each in its own figure. Same layout as the
+# ratio plots (rows = anodic / cathodic, cols = trial type, plus ALL margins).
+# Each panel shows the fitted logistic curve (± 95% CI, delta method), the specs
+# as a sign-coloured rug, binned empirical proportions as dots, and the slope's
+# Wald p-value.
+# ---------------------------------------------------------------------------
+
+RATE_REG_N_BINS = 6   # quantile bins for the empirical-proportion dots
+
+
+def _fit_logistic_1d(x, y, *, max_iter=100, tol=1e-8):
+    """Logistic regression y ~ 1 + x by Newton/IRLS on a standardised x. Returns
+    dict(b0, b1, cov, p_slope, n, n_pos) in ORIGINAL x units, or None if it can't be
+    fit (too few points, one class only, constant x, or separation)."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = len(x)
+    if n < 3 or y.min() == y.max() or np.ptp(x) == 0:
+        return None
+    mu, sd = x.mean(), x.std()
+    X = np.column_stack([np.ones(n), (x - mu) / sd])
+    beta = np.zeros(2)
+    for _ in range(max_iter):
+        p = 1.0 / (1.0 + np.exp(-(X @ beta)))
+        w = p * (1 - p)
+        H = X.T @ (X * w[:, None])
+        try:
+            step = np.linalg.solve(H, X.T @ (y - p))
+        except np.linalg.LinAlgError:
+            return None
+        beta = beta + step
+        if np.max(np.abs(step)) < tol:
+            break
+    if not np.all(np.isfinite(beta)) or np.abs(beta).max() > 30:  # ~separation
+        return None
+    p = 1.0 / (1.0 + np.exp(-(X @ beta)))
+    try:
+        cov_z = np.linalg.inv(X.T @ (X * (p * (1 - p))[:, None]))
+    except np.linalg.LinAlgError:
+        return None
+    # back-transform from standardised x: b1 = g1/sd, b0 = g0 - g1*mu/sd
+    T = np.array([[1.0, -mu / sd], [0.0, 1.0 / sd]])
+    b = T @ beta
+    cov = T @ cov_z @ T.T
+    z = beta[1] / np.sqrt(cov_z[1, 1])
+    p_slope = float(math.erfc(abs(z) / math.sqrt(2)))
+    return dict(b0=float(b[0]), b1=float(b[1]), cov=cov, p_slope=p_slope,
+                n=n, n_pos=int(y.sum()))
+
+
+def _logistic_curve(fit, gx, z=1.96):
+    """Fitted P and a (lo, hi) CI band on grid gx from a _fit_logistic_1d result."""
+    X = np.column_stack([np.ones(len(gx)), gx])
+    eta = X @ np.array([fit['b0'], fit['b1']])
+    se = np.sqrt(np.einsum('ij,jk,ik->i', X, fit['cov'], X))
+    sig = lambda v: 1.0 / (1.0 + np.exp(-v))
+    return sig(eta), sig(eta - z * se), sig(eta + z * se)
+
+
+def plot_rate_regression_by_trialtype(points, x_col, *, trial_types, x_label,
+                                      by_polarity=True, point_noun='spec',
+                                      effect_threshold=RATIO_RATE_THRESHOLD,
+                                      add_margins=RATIO_ADD_COMBINED, xlim=None,
+                                      n_bins=RATE_REG_N_BINS, show=True,
+                                      output_path=None):
+    """Grid (rows = polarity [+ ALL], cols = trial type [+ ALL]) of a simple logistic
+    regression P(effect > threshold) ~ x_col. Returns the figure."""
+    tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
+    if not tts:
+        print("No trial types with points to plot.")
+        return None
+    row_cols = _resolve_row_cols(points, by_polarity, by_waveform=False)
+    groups, row_cols = _row_groups(points, row_cols)
+
+    ALL = None
+    col_keys = list(tts) + ([ALL] if add_margins and len(tts) > 1 else [])
+    row_specs = list(groups) + ([ALL] if add_margins and len(groups) > 1 else [])
+    ncols, nrows = len(col_keys), len(row_specs)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.2 * nrows),
+                             squeeze=False, constrained_layout=True)
+    xlim = xlim if xlim is not None else _robust_limits(points[x_col])
+
+    for r, group in enumerate(row_specs):
+        for c, tt in enumerate(col_keys):
+            ax = axes[r][c]
+            col_sub = points if tt is ALL else points[points['trial_type'] == tt]
+            sub = col_sub if group is ALL else _filter_rows(col_sub, group)
+            x = pd.to_numeric(sub[x_col], errors='coerce').to_numpy(dtype=float)
+            eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
+            ok = np.isfinite(x) & np.isfinite(eff)
+            x, eff = x[ok], eff[ok]
+            y = (eff > effect_threshold).astype(float)
+
+            if tt is ALL or group is ALL:
+                ax.set_facecolor('#f4f4f4')
+            ax.axhline(0.5, color='#888888', lw=0.8, ls='--', zorder=1)
+            # rug: positive specs at the top (red), the rest at the bottom (blue)
+            pos = y > 0
+            if pos.any():
+                ax.plot(x[pos], np.full(int(pos.sum()), 1.0), '|',
+                        color=SIGN_POS_COLOR, ms=7, alpha=0.5, zorder=2)
+            if (~pos).any():
+                ax.plot(x[~pos], np.full(int((~pos).sum()), 0.0), '|',
+                        color=SIGN_NEG_COLOR, ms=7, alpha=0.5, zorder=2)
+
+            # binned empirical proportions (quantile bins) as a visual check
+            if len(x) >= 2 * n_bins:
+                edges = np.unique(np.quantile(x, np.linspace(0, 1, n_bins + 1)))
+                idx = np.clip(np.searchsorted(edges, x, side='right') - 1,
+                              0, len(edges) - 2)
+                for b in range(len(edges) - 1):
+                    m = idx == b
+                    if m.any():
+                        ax.plot(np.median(x[m]), y[m].mean(), 'o', color='0.3',
+                                ms=4 + 8 * m.sum() / len(x), alpha=0.8, zorder=3)
+
+            fit = _fit_logistic_1d(x, y)
+            stat_line = "logistic fit n/a"
+            if fit is not None:
+                lo_x, hi_x = xlim if xlim else (x.min(), x.max())
+                gx = np.linspace(lo_x, hi_x, 200)
+                pc, plo, phi = _logistic_curve(fit, gx)
+                ax.fill_between(gx, plo, phi, color='#808080', alpha=0.22, zorder=3,
+                                linewidth=0)
+                sig = fit['p_slope'] < 0.05
+                ax.plot(gx, pc, color='#e8a020' if sig else 'black', lw=2.2, zorder=4)
+                stat_line = (f"slope={fit['b1']:.3g}  p={fit['p_slope']:.3g}"
+                             f"{' *' if sig else ''}")
+
+            col_label = 'ALL trial types' if tt is ALL else tt
+            row_label = ('ALL polarities' if group is ALL
+                         else (_row_label(group, row_cols) if row_cols else ''))
+            lines = []
+            if r == 0:
+                lines.append(col_label)
+            if row_label:
+                lines.append(row_label)
+            lines.append(f"n={len(x)} {point_noun}s ({int(y.sum())} pos)   {stat_line}")
+            ax.set_title("\n".join(lines), fontsize=10)
+            if xlim:
+                ax.set_xlim(xlim)
+            ax.set_ylim(-0.03, 1.03)
+            if r == nrows - 1:
+                ax.set_xlabel(x_label, fontsize=9)
+            if c == 0:
+                ax.set_ylabel(f'P(effect > {effect_threshold:g})', fontsize=10)
+            ax.grid(True, alpha=0.3)
+
+    fig.suptitle(f"P(effect > {effect_threshold:g}) vs {x_label} — logistic regression "
+                 "(grey = 95% CI; gold = slope p<0.05; dots = binned proportions"
+                 f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
+                 fontsize=14, fontweight='bold')
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved plot to {output_path}")
+    if show:
+        plt.show()
+    return fig
+
+
+def run_rate_regression(x_col, x_label, trial_types=None, *, start_session_id=None,
+                        exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
+                        base_required_conditions=None, exclude_other_estim=True,
+                        min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                        far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
+                        bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
+                        aggregate_by='spec', by_polarity=True,
+                        effect_threshold=RATIO_RATE_THRESHOLD,
+                        add_margins=RATIO_ADD_COMBINED, xlim=None,
+                        save_dir=None, show=True):
+    """Build the half-distance table (it carries current_per_second too) and draw
+    the P(effect>threshold) ~ x_col logistic-regression grid. Returns (df, points)."""
+    if trial_types is None:
+        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
+    print(f"[config] P(effect>{effect_threshold:g}) ~ {x_col}  trial_types={trial_types}  "
+          f"effect_metric={effect_metric}  min_on={min_on_trials}  point={aggregate_by}  "
+          f"by_polarity={by_polarity}")
+    df = build_current_spread_halfdist_table(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+        base_required_conditions=base_required_conditions,
+        exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials,
+        far_fraction=far_fraction, near_bins=near_bins,
+        bin_agg=bin_agg, smoothing=smoothing)
+    if len(df) == 0:
+        print("Nothing to plot.")
+        return df, pd.DataFrame()
+    points = build_points(df, [HALFDIST_COL], aggregate_by)
+    out_path = (os.path.join(save_dir, f"effect_direction_vs_{_slug(x_col)}_logistic.png")
+                if save_dir else None)
+    plot_rate_regression_by_trialtype(
+        points, x_col, trial_types=trial_types, x_label=x_label,
+        by_polarity=by_polarity, point_noun=aggregate_by,
+        effect_threshold=effect_threshold, add_margins=add_margins, xlim=xlim,
+        show=show, output_path=out_path)
+    return df, points
+
+
+def _rate_regression_config_kwargs():
+    """Shared COMPARISON_* config for the two rate-regression sub-mains."""
+    return dict(
+        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        start_session_id=COMPARISON_START_SESSION_ID,
+        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
+        effect_metric=COMPARISON_METRIC,
+        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
+        exclude_other_estim=True, min_on_trials=COMPARISON_MIN_ON_TRIALS,
+        aggregate_by='spec', by_polarity=True, save_dir=COMPARISON_SAVE_DIR)
+
+
+def main_rate_vs_current(show=True):
+    """P(effect>0) ~ current_per_second alone (logistic regression), polarity ×
+    trial type grid. Standalone."""
+    run_rate_regression('current_per_second', X_LABELS['current_per_second'],
+                        show=show, **_rate_regression_config_kwargs())
+
+
+def main_rate_vs_half_distance(show=True):
+    """P(effect>0) ~ corr half-distance alone (logistic regression), polarity ×
+    trial type grid. Standalone."""
+    run_rate_regression(HALFDIST_COL, 'corr half-distance (µm)',
+                        show=show, **_rate_regression_config_kwargs())
+
+
+def main_rate_regressions():
+    """Run both single-predictor regressions; each is its own figure, and both pop
+    up together at the end."""
+    main_rate_vs_current(show=False)
+    main_rate_vs_half_distance(show=False)
+    plt.show()
+
+
 def main():
     """Current-spread-vs-tuning grid, one figure per trial type, using the shared
     COMPARISON_* config."""
@@ -2715,7 +2955,12 @@ if __name__ == '__main__':
     #                                    X = total current AND X = frequency (2 figs)
     #   - main_effect_vs_ratio()      -> estim effect vs current:half-distance ratio,
     #                                    1-D smoothed curve; 2×4 (polarity × trial type)
+    #   - main_rate_regressions()     -> P(effect>0) logistic regression on current_per_second
+    #                                    alone and on corr half-distance alone (2 figs);
+    #                                    each also runnable alone: main_rate_vs_current()
+    #                                    / main_rate_vs_half_distance()
     main_effect_vs_ratio()
+    main_rate_regressions()
     # main_halfdist_current_vs_frequency()
     # main_spec_metrics_heatmap()
     # main_spec_metrics()
