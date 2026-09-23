@@ -71,7 +71,7 @@ from src.analysis.nafc.group_analysis.analyze_estim_isolation_effect import (
 # Gaussian spatial-weight bandwidth in STANDARDISED-distance units (each axis is
 # z-scored first, so ~0.5 means "half a standard deviation away in the plane").
 MORAN_BANDWIDTH = 0.5
-MORAN_BANDWIDTH_SWEEP = (0.3, 0.5, 0.8)   # printed sensitivity check
+MORAN_BANDWIDTH_SWEEP = (0.15, 0.3, 0.5, 0.8)   # printed sensitivity check
 MORAN_N_PERM = 5000
 MORAN_MIN_N = 8                           # skip groups smaller than this
 MORAN_SEED = 0
@@ -504,7 +504,7 @@ def main():
         x_col='current_per_second', y_col=HALFDIST_COL,
         # Independent test per trial_type × polarity × waveform. Trim this tuple
         # (e.g. ('trial_type',)) if the 3-way split leaves groups too small.
-        group_by=('trial_type', 'polarity', 'waveform'),
+        group_by=('trial_type', 'polarity'),
         bandwidth=MORAN_BANDWIDTH, n_perm=MORAN_N_PERM,
         start_session_id=COMPARISON_START_SESSION_ID,
         exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,

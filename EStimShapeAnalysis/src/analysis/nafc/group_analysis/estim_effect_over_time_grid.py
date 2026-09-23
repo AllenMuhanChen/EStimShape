@@ -47,10 +47,10 @@ from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
 ALGORITHM_LABEL = 'None'            # kept for parity; raw trials are used either way
 METRIC = METRIC_PCT_HYP_VS_DELTA    # effect = estim_on %metric - estim_off %metric
 
-START_SESSION_ID = None             # e.g. "260402_0"
+START_SESSION_ID = "260113_0"             # e.g. "260402_0"
 EXCLUDE_SESSION_IDS = []            # e.g. ["260421_0", "260410_0"]
 
-WINDOW_SIZE = 100                   # trials in the window centered on each estim trial
+WINDOW_SIZE = 50                   # trials in the window centered on each estim trial
 MIN_SESSION_TRIALS = WINDOW_SIZE    # skip sessions with fewer trials than this
 MIN_ESTIM_TRIALS_FOR_EXTREME = 5    # a condition needs >= this many estim-on trials
                                     # to be eligible as the most positive / negative
@@ -66,7 +66,7 @@ PAGE_SIZE_INCHES = (8.5, 11.0)
 SHOW_GEN_BOUNDARIES = True
 Y_LIM = (-100, 100)                 # shared y-axis on every panel; set None to autoscale
 
-OUTPUT_PDF = '/home/connorlab/Documents/plots/across_experiments/estim_effect_over_time_grid.pdf'
+OUTPUT_PDF = '/home/connorlab/Documents/plots/group_analysis/estim_effect_over_time_grid.pdf'
 
 
 # ===========================================================================
@@ -266,7 +266,7 @@ def _plot_session_into_ax(ax, result):
     ax.set_title(f"{result['session_id']}  "
                  f"(n={result['n_trials']}: {result['n_estim']} estim / {result['n_off']} off)",
                  fontsize=9)
-    ax.set_xlabel('Trial (session order)', fontsize=7)
+    ax.set_xlabel('Trial #', fontsize=7)
     ax.set_ylabel('Effect (pp)', fontsize=7)
     ax.tick_params(labelsize=6)
     ax.grid(True, alpha=0.25)

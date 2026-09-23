@@ -271,7 +271,7 @@ if __name__ == "__main__":
     # 'all', 'cluster', or 'mapped_channel' ('mapped_channel' requires RF info).
     filter_type = 'mapped_channel'
     save_dir = None  # e.g. "/home/connorlab/Documents/plots"
-    cycles_xlim = [0, 10]  # None to auto-scale (all points still feed the trend)
+    cycles_xlim = [0, 20]  # None to auto-scale (all points still feed the trend)
 
     def _path(name):
         return os.path.join(save_dir, name) if save_dir else None
@@ -279,5 +279,5 @@ if __name__ == "__main__":
     plot_rf_size_vs_orientation_tuning(
         filter_type=filter_type, normalize='zscore',
         xlim=cycles_xlim,
-        bin_edges=[0, 0.5, 1.0, 1.5, 2.5, 4, 6, 8.0, np.inf],
+        bin_edges=[0, 0.5, 1.0, 1.5, 2.5, 4, 6, 8.0, 20, np.inf],
         save_path=_path("rf_size_vs_orientation_tuning.png"))

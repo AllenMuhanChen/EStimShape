@@ -758,16 +758,16 @@ _METRIC_ORDER = list(_METRIC_LABELS)
 COMPARISON_METRIC = METRIC_PCT_HYP_VS_DELTA
 # COMPARISON_REQUIRED_CONDITIONS = {'trial_type': 'Hypothesized Shape'}
 COMPARISON_REQUIRED_CONDITIONS = {}
-COMPARISON_START_SESSION_ID = "260402_0"
+COMPARISON_START_SESSION_ID = None #"260113_0"
 COMPARISON_EXCLUDE_SESSION_IDS = ["260421_0", "260410_0"]
-COMPARISON_MIN_ON_TRIALS = 8
-COMPARISON_MIN_OFF_TRIALS = 8
+COMPARISON_MIN_ON_TRIALS = 5
+COMPARISON_MIN_OFF_TRIALS = 5
 COMPARISON_ABS_EFFECT = False          # relate metrics to |effect| (effect strength)
 COMPARISON_SAVE_DIR = "/home/connorlab/Documents/plots/across_experiments/"
 # Split the whole analysis by trial_type. None = single pass using
 # COMPARISON_REQUIRED_CONDITIONS as-is; [] = auto-discover the trial types present;
 # or an explicit list, e.g. ['Hypothesized Shape', 'Random Shape'].
-COMPARISON_TRIAL_TYPES = ['Hypothesized Shape', "Delta Shape", 'Removed Trial', 'Coherence']
+COMPARISON_TRIAL_TYPES = ['Hypothesized Shape', "Delta Shape", 'Removed Trial'] #'Coherence'
 
 
 def _slug(text):
@@ -2700,8 +2700,9 @@ def main():
     #   start_session_id    -> e.g. "260402_0" to start from the first variant
     #                          experiment; None = all scored sessions.
     #   exclude_session_ids -> e.g. ["260421_0", "260410_0"].
-    start_session_id = "260402_0"
-    exclude_session_ids = ["260421_0", "260410_0"]
+    start_session_id = "260113_0"
+    exclude_session_ids = []
+    # exclude_session_ids = ["260421_0", "260410_0"]
 
     save_dir = "/home/connorlab/Documents/plots/across_experiments/"
 
@@ -2716,14 +2717,15 @@ def main():
     isolation_metric = 'pc_mean'
 
     # Plot 1: raw isolation/distance vs effect.
+    MIN_TRIALS = 5
     plot_isolation_vs_effect(
         start_session_id=start_session_id,
         exclude_session_ids=exclude_session_ids,
         metric=metric,
         isolation_metric=isolation_metric,
         required_conditions=required_conditions or None,
-        min_on_trials=10,
-        min_off_trials=10,
+        min_on_trials=MIN_TRIALS,
+        min_off_trials=MIN_TRIALS,
         abs_effect=False,            # True -> relate isolation to effect MAGNITUDE
         color_by_session=True,
         output_path=os.path.join(save_dir, f"isolation_vs_effect_{isolation_metric}.png"),
@@ -2741,8 +2743,8 @@ def main():
         metric=metric,
         isolation_metric=isolation_metric,
         required_conditions=required_conditions or None,
-        min_on_trials=10,
-        min_off_trials=10,
+        min_on_trials=MIN_TRIALS,
+        min_off_trials=MIN_TRIALS,
         require_positive_isolation=False,  # (divide path only) drop isolation <= 0
         combine_op='auto',
         abs_effect=False,

@@ -1050,6 +1050,7 @@ def main():
     # ---- Test 1: max-stat per experiment (is the BEST condition > chance?) ----
     metric = METRIC_PCT_HYP_VS_DELTA
     exclude_session_ids = ["260421_0", "260410_0"]
+    # start_session_id = "260402_0"
     start_session_id = "260402_0"
     algorithm_label = 'None'
     # algorithm_label = 'first_drop_w5_s1_t0_n3_m10_g5_xestim'
@@ -1063,7 +1064,7 @@ def main():
         metric=metric,  # switch to METRIC_PCT_HYP_VS_DELTA to test Hyp vs Delta only
         # algorithm_label='first_drop_w100_s10_t5.0_n3',
         save_path="/home/connorlab/Documents/plots/across_experiments/max_estim_per_experiment.png",
-        show_n=True,
+        show_n=False,
         x_spacing=0.75,
         width_per_exp=1.0,
         # weighting=None    #-> original equal-per-session test (default)
@@ -1086,7 +1087,7 @@ def main():
         algorithm_label=algorithm_label,
         metric=metric,
         # thresholds=None -> (5,10,15,20)% in raw mode, (1.0..3.0) z when studentized
-        thresholds=[-3.0, -2.5, -2.0, -1.5,-1.0,-0.5,0, 0.5, 1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0],
+        thresholds=[-3.0, -2.5, -2.0, -1.5,-1.0,-0.5,0, 0.5, 1, 1.5, 2.0, 2.5, 3.0],
         # studentize=True -> count exceedances of z = effect/own-null SD instead of raw %
         studentize=True,
         save_path="/home/connorlab/Documents/plots/across_experiments/exceedance_count_test.png",

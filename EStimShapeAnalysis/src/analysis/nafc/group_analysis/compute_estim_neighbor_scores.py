@@ -840,7 +840,8 @@ def run_for_sessions(start_session_id=None, exclude_session_ids=None, *,
 
 def main():
     run_for_sessions(
-        start_session_id="260402_0",        # e.g. "260402_0"; None = all sessions
+        # start_session_id="260113_0",        # e.g. "260402_0"; None = all sessions
+        start_session_id=None,
         exclude_session_ids=None,     # e.g. ["260421_0", "260410_0"]
         # Neighbourhood-size sweep: every value is computed and stored, so
         # plot_neighbor_sweep can show correlation-with-effect vs n_neighbors.

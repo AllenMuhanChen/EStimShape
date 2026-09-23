@@ -1994,10 +1994,10 @@ RATIO_LABEL = 'current_per_second ÷ corr half-distance  ((µA·Hz)/µm)'
 # Bandwidth of the 1-D kernel curve drawn through the dots, as a FRACTION of the
 # robust spread (~1σ) of the x-axis. Smaller -> wigglier curve hugging local dots;
 # larger -> smoother, flatter. Change this ONE number to retune every ratio plot.
-DEFAULT_RATIO_BW_FRAC = 0.15
+DEFAULT_RATIO_BW_FRAC = 0.1
 # Fixed x-axis (ratio) limits for the ratio plots, e.g. (0.0, 10.0). Set to None to
 # auto-fit to the data's robust (1st–99th percentile) range instead.
-RATIO_XLIM = (0.0, 10.0)
+RATIO_XLIM = (0.0, 8.0)
 # Which ratio figures to emit — each split_mode becomes its OWN file, so one run
 # produces all of them together:
 #   None   — net SIGNED effect (one black curve): overall direction+size blended.
@@ -2009,7 +2009,7 @@ RATIO_XLIM = (0.0, 10.0)
 #   'mag'  — effect MAGNITUDE: smoothed |effect| over ALL specs (how BIG the effect
 #            is, ignoring sign) — one black curve.
 #   'abs'  — magnitude folded by sign: separate |effect| curves for effect>0 / <0.
-RATIO_MODES = (None, 'rate', 'signed_split')
+RATIO_MODES = (None, 'rate')
 # Add marginal "combined" panels: an "ALL trial types" column, an "ALL polarities"
 # row, and their combined-across-everything corner. Set False for just the cells.
 RATIO_ADD_COMBINED = True
@@ -2017,7 +2017,7 @@ RATIO_ADD_COMBINED = True
 # effect signs, rebuild the smoothed curve, and draw a SIMULTANEOUS (sup-t) null
 # band + a global p-value per panel.
 RATIO_RATE_PERM_TEST = True
-RATIO_RATE_N_PERM = 2000
+RATIO_RATE_N_PERM = 10000
 # Which NULL the permutation test uses (rate + mean-effect curves):
 #   'onoff' — shuffle estim ON/OFF trial labels per spec (precomputed draws). Null =
 #             "estim has no effect"; a significant region = a ratio with a RELIABLE
@@ -2041,7 +2041,7 @@ RATIO_RATE_PERM_WITHIN_SESSION = False
 # replacement, rebuild the curve, and draw a pointwise percentile band AROUND the
 # observed curve (uncertainty of the estimate — complements the permutation NULL
 # band). RATIO_RATE_BOOT_CLUSTER resamples whole sessions instead of specs.
-RATIO_RATE_BOOTSTRAP = False
+RATIO_RATE_BOOTSTRAP = True
 RATIO_RATE_N_BOOT = 2000
 RATIO_RATE_BOOT_CLUSTER = False
 

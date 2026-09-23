@@ -55,25 +55,25 @@ METRIC = METRIC_PCT_HYP_VS_DELTA    # the hyp-vs-delta collapse is what the coun
 # Session selection. session_id is YYMMDD_N, so a lexicographic >= on
 # START_SESSION_ID acts as a "start date". EXCLUDE_SESSION_IDS drops specific
 # sessions entirely.
-START_SESSION_ID = None             # e.g. "260402_0" for first variant experiment
+START_SESSION_ID = "260113_0"             # e.g. "260402_0" for first variant experiment
 EXCLUDE_SESSION_IDS = []            # e.g. ["260421_0", "260410_0"]
 
 # A condition only qualifies as an extreme if it has at least this many trials
 # in BOTH the estim-on and estim-off groups. 0 = consider every condition
 # (the literal most/least positive, even if it rests on a single trial).
-MIN_TRIALS = 0
+MIN_TRIALS = 5
 
 # Unfurl estim_spec_id into physical stimulation params (polarity, shape, a1,
 # pulse_rate_hz, ...) in the printed condition label. Requires a DB lookup per
 # condition; set False for a faster, raw-dict label.
-EXPAND_CONDITIONS = True
+EXPAND_CONDITIONS = False
 
 # Optional path to also write the table as CSV. None = print only.
-OUTPUT_CSV = None
+OUTPUT_CSV = "/home/connorlab/Documents/plots/group_analysis/table_extremes.csv"
 
 # Optional path to write the table as a print-ready (landscape, multi-page) PDF.
 # None = don't make a PDF. Rendered with matplotlib, so no extra dependencies.
-OUTPUT_PDF = None
+OUTPUT_PDF = "/home/connorlab/Documents/plots/group_analysis/table_extremes.pdf"
 PDF_SESSIONS_PER_PAGE = 18
 
 
