@@ -2840,7 +2840,129 @@ def plot_rate_regression_by_trialtype(points, x_col, *, trial_types, x_label,
     return fig
 
 
-def run_rate_regression(x_col, x_label, trial_types=None, *, start_session_id=None,
+def _fit_linear_1d(x, y):
+    """OLS y ~ 1 + x. Returns dict(b0, b1, cov, r, p_slope, n) or None if it can't
+    be fit (fewer than 3 points or constant x). p_slope is the two-sided t-test on
+    the slope (n − 2 df)."""
+    from scipy import stats
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = len(x)
+    if n < 3 or np.ptp(x) == 0:
+        return None
+    X = np.column_stack([np.ones(n), x])
+    beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+    resid = y - X @ beta
+    sigma2 = float(resid @ resid) / (n - 2)
+    cov = sigma2 * np.linalg.inv(X.T @ X)
+    se_b1 = np.sqrt(cov[1, 1])
+    t = beta[1] / se_b1 if se_b1 > 0 else np.inf
+    p_slope = float(2 * stats.t.sf(abs(t), n - 2))
+    r = float(np.corrcoef(x, y)[0, 1]) if np.ptp(y) > 0 else 0.0
+    return dict(b0=float(beta[0]), b1=float(beta[1]), cov=cov, r=r,
+                p_slope=p_slope, n=n)
+
+
+def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
+                                        by_polarity=True, point_noun='spec',
+                                        add_margins=RATIO_ADD_COMBINED, xlim=None,
+                                        show=True, output_path=None):
+    """Grid (rows = polarity [+ ALL], cols = trial type [+ ALL]) of every spec's RAW
+    estim effect vs x_col, coloured by effect, with a simple linear (OLS) regression
+    line ± 95% CI of the fitted mean. Returns the figure."""
+    from scipy import stats
+    tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
+    if not tts:
+        print("No trial types with points to plot.")
+        return None
+    row_cols = _resolve_row_cols(points, by_polarity, by_waveform=False)
+    groups, row_cols = _row_groups(points, row_cols)
+
+    ALL = None
+    col_keys = list(tts) + ([ALL] if add_margins and len(tts) > 1 else [])
+    row_specs = list(groups) + ([ALL] if add_margins and len(groups) > 1 else [])
+    ncols, nrows = len(col_keys), len(row_specs)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.2 * nrows),
+                             squeeze=False, constrained_layout=True)
+    xlim = xlim if xlim is not None else _robust_limits(points[x_col])
+    ylim = _axis_limits(pd.to_numeric(points['effect_size'], errors='coerce'))
+    vmax = _effect_vmax(points)
+
+    scatter_ref = None
+    for r, group in enumerate(row_specs):
+        for c, tt in enumerate(col_keys):
+            ax = axes[r][c]
+            col_sub = points if tt is ALL else points[points['trial_type'] == tt]
+            sub = col_sub if group is ALL else _filter_rows(col_sub, group)
+            x = pd.to_numeric(sub[x_col], errors='coerce').to_numpy(dtype=float)
+            eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
+            ok = np.isfinite(x) & np.isfinite(eff)
+            x, eff = x[ok], eff[ok]
+
+            if tt is ALL or group is ALL:
+                ax.set_facecolor('#f4f4f4')
+            ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
+            if len(x):
+                scatter_ref = ax.scatter(x, eff, c=eff, cmap='RdBu_r', vmin=-vmax,
+                                         vmax=vmax, s=42, alpha=0.85,
+                                         edgecolors='black', linewidths=0.4, zorder=2)
+
+            fit = _fit_linear_1d(x, eff)
+            stat_line = "linear fit n/a"
+            if fit is not None:
+                lo_x, hi_x = xlim if xlim else (x.min(), x.max())
+                gx = np.linspace(lo_x, hi_x, 200)
+                G = np.column_stack([np.ones(len(gx)), gx])
+                yhat = G @ np.array([fit['b0'], fit['b1']])
+                se = np.sqrt(np.einsum('ij,jk,ik->i', G, fit['cov'], G))
+                tcrit = stats.t.ppf(0.975, fit['n'] - 2)
+                ax.fill_between(gx, yhat - tcrit * se, yhat + tcrit * se,
+                                color='#808080', alpha=0.22, zorder=3, linewidth=0)
+                sig = fit['p_slope'] < 0.05
+                ax.plot(gx, yhat, color='#e8a020' if sig else 'black', lw=2.2, zorder=4)
+                stat_line = (f"slope={fit['b1']:.3g}  r={fit['r']:.2f}  "
+                             f"p={fit['p_slope']:.3g}{' *' if sig else ''}")
+
+            col_label = 'ALL trial types' if tt is ALL else tt
+            row_label = ('ALL polarities' if group is ALL
+                         else (_row_label(group, row_cols) if row_cols else ''))
+            lines = []
+            if r == 0:
+                lines.append(col_label)
+            if row_label:
+                lines.append(row_label)
+            lines.append(f"n={len(x)} {point_noun}s   {stat_line}")
+            ax.set_title("\n".join(lines), fontsize=10)
+            if xlim:
+                ax.set_xlim(xlim)
+            if ylim:
+                ax.set_ylim(ylim)
+            if r == nrows - 1:
+                ax.set_xlabel(x_label, fontsize=9)
+            if c == 0:
+                ax.set_ylabel('estim effect (ON − OFF %)', fontsize=10)
+            ax.grid(True, alpha=0.3)
+
+    if scatter_ref is not None:
+        cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
+        cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
+                       fontsize=10)
+    fig.suptitle(f"Estim effect vs {x_label} — linear regression "
+                 "(grey = 95% CI of the fit; gold = slope p<0.05"
+                 f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
+                 fontsize=14, fontweight='bold')
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved plot to {output_path}")
+    if show:
+        plt.show()
+    return fig
+
+
+def run_single_predictor_regression(x_col, x_label, trial_types=None, *, kind='rate',
+                        start_session_id=None,
                         exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
                         base_required_conditions=None, exclude_other_estim=True,
                         min_on_trials=COMPARISON_MIN_ON_TRIALS,
@@ -2850,11 +2972,16 @@ def run_rate_regression(x_col, x_label, trial_types=None, *, start_session_id=No
                         effect_threshold=RATIO_RATE_THRESHOLD,
                         add_margins=RATIO_ADD_COMBINED, xlim=None,
                         save_dir=None, show=True):
-    """Build the half-distance table (it carries current_per_second too) and draw
-    the P(effect>threshold) ~ x_col logistic-regression grid. Returns (df, points)."""
+    """Build the half-distance table (it carries current_per_second too) and draw a
+    single-predictor regression grid on x_col. kind='rate' -> logistic regression of
+    P(effect>threshold); kind='effect' -> linear (OLS) regression of the raw effect.
+    Returns (df, points)."""
+    if kind not in ('rate', 'effect'):
+        raise ValueError(f"kind must be 'rate' or 'effect', got {kind!r}")
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
-    print(f"[config] P(effect>{effect_threshold:g}) ~ {x_col}  trial_types={trial_types}  "
+    y_desc = f"P(effect>{effect_threshold:g})" if kind == 'rate' else "effect"
+    print(f"[config] {y_desc} ~ {x_col}  trial_types={trial_types}  "
           f"effect_metric={effect_metric}  min_on={min_on_trials}  point={aggregate_by}  "
           f"by_polarity={by_polarity}")
     df = build_current_spread_halfdist_table(
@@ -2868,18 +2995,25 @@ def run_rate_regression(x_col, x_label, trial_types=None, *, start_session_id=No
         print("Nothing to plot.")
         return df, pd.DataFrame()
     points = build_points(df, [HALFDIST_COL], aggregate_by)
-    out_path = (os.path.join(save_dir, f"effect_direction_vs_{_slug(x_col)}_logistic.png")
-                if save_dir else None)
-    plot_rate_regression_by_trialtype(
-        points, x_col, trial_types=trial_types, x_label=x_label,
-        by_polarity=by_polarity, point_noun=aggregate_by,
-        effect_threshold=effect_threshold, add_margins=add_margins, xlim=xlim,
-        show=show, output_path=out_path)
+    fname = (f"effect_direction_vs_{_slug(x_col)}_logistic.png" if kind == 'rate'
+             else f"effect_vs_{_slug(x_col)}_linear.png")
+    out_path = os.path.join(save_dir, fname) if save_dir else None
+    if kind == 'rate':
+        plot_rate_regression_by_trialtype(
+            points, x_col, trial_types=trial_types, x_label=x_label,
+            by_polarity=by_polarity, point_noun=aggregate_by,
+            effect_threshold=effect_threshold, add_margins=add_margins, xlim=xlim,
+            show=show, output_path=out_path)
+    else:
+        plot_effect_regression_by_trialtype(
+            points, x_col, trial_types=trial_types, x_label=x_label,
+            by_polarity=by_polarity, point_noun=aggregate_by,
+            add_margins=add_margins, xlim=xlim, show=show, output_path=out_path)
     return df, points
 
 
 def _rate_regression_config_kwargs():
-    """Shared COMPARISON_* config for the two rate-regression sub-mains."""
+    """Shared COMPARISON_* config for the single-predictor regression sub-mains."""
     return dict(
         trial_types=(COMPARISON_TRIAL_TYPES or None),
         start_session_id=COMPARISON_START_SESSION_ID,
@@ -2893,15 +3027,39 @@ def _rate_regression_config_kwargs():
 def main_rate_vs_current(show=True):
     """P(effect>0) ~ current_per_second alone (logistic regression), polarity ×
     trial type grid. Standalone."""
-    run_rate_regression('current_per_second', X_LABELS['current_per_second'],
+    run_single_predictor_regression('current_per_second', X_LABELS['current_per_second'],
                         show=show, **_rate_regression_config_kwargs())
 
 
 def main_rate_vs_half_distance(show=True):
     """P(effect>0) ~ corr half-distance alone (logistic regression), polarity ×
     trial type grid. Standalone."""
-    run_rate_regression(HALFDIST_COL, 'corr half-distance (µm)',
+    run_single_predictor_regression(HALFDIST_COL, 'corr half-distance (µm)',
                         show=show, **_rate_regression_config_kwargs())
+
+
+def main_effect_vs_current(show=True):
+    """Raw estim effect ~ current_per_second alone (linear regression), all specs
+    plotted, polarity × trial type grid. Standalone."""
+    run_single_predictor_regression('current_per_second', X_LABELS['current_per_second'],
+                                    kind='effect', show=show,
+                                    **_rate_regression_config_kwargs())
+
+
+def main_effect_vs_half_distance(show=True):
+    """Raw estim effect ~ corr half-distance alone (linear regression), all specs
+    plotted, polarity × trial type grid. Standalone."""
+    run_single_predictor_regression(HALFDIST_COL, 'corr half-distance (µm)',
+                                    kind='effect', show=show,
+                                    **_rate_regression_config_kwargs())
+
+
+def main_effect_regressions():
+    """Run both raw-effect linear regressions; each is its own figure, and both pop
+    up together at the end."""
+    main_effect_vs_current(show=False)
+    main_effect_vs_half_distance(show=False)
+    plt.show()
 
 
 def main_rate_regressions():
@@ -2959,8 +3117,13 @@ if __name__ == '__main__':
     #                                    alone and on corr half-distance alone (2 figs);
     #                                    each also runnable alone: main_rate_vs_current()
     #                                    / main_rate_vs_half_distance()
+    #   - main_effect_regressions()   -> raw effect linear regression on current_per_second
+    #                                    alone and on corr half-distance alone (2 figs);
+    #                                    each also runnable alone: main_effect_vs_current()
+    #                                    / main_effect_vs_half_distance()
     main_effect_vs_ratio()
     main_rate_regressions()
+    main_effect_regressions()
     # main_halfdist_current_vs_frequency()
     # main_spec_metrics_heatmap()
     # main_spec_metrics()
