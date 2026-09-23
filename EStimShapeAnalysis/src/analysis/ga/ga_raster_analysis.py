@@ -86,8 +86,7 @@ class GARasterAnalysis(Analysis):
             is_mua=self.response_table == "MUASpikeResponses",
             parsed_spikes_path=context.ga_parsed_spikes_path,
             db_name=context.ga_database,
-            mua_metric=self.mua_method or "mad_k4_block100",
-            mua_k=self.mua_k or 4.0, mua_block=self.mua_block or 100)
+            mua_metric=self.mua_method)
 
         data = fields.to_data(task_ids)
         if rename_map:

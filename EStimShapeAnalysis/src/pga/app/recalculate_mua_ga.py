@@ -24,7 +24,7 @@ from clat.util import connection
 from src.analysis.ga.repo_ga_response_update import update_repository_with_ga_responses
 from src.pga.app.recalculate_ga import clear_driving_responses
 from src.pga.response_processing import GAResponseProcessor, RankBaselineNormalizeResponseProcessor
-from src.pga.spike_parsing import MuaIntanResponseParser
+from src.pga.mua_channel_responses import MuaChannelResponseStore
 from src.startup import context
 
 
@@ -49,14 +49,9 @@ def main():
     print(f"Recalculating GA with MUA metric '{metric}' "
           f"(k={ga_config.mua_threshold_k()}, block={ga_config.mua_block_size()}).")
 
-    # 1) Backfill MUAChannelResponses across every generation of the session.
-    parser = MuaIntanResponseParser(
-        ga_config.base_intan_path, ga_config.db_util,
-        mua_metric=metric,
-        threshold_k=ga_config.mua_threshold_k(),
-        block_size=ga_config.mua_block_size(),
-    )
-    parser.parse_all_generations_to_mua(ga_config.ga_name)
+    # 1) Backfill MUAChannelResponses across every generation of the session
+    #    (only stims without stored spike timestamps are re-detected).
+    MuaChannelResponseStore.for_ga(metric).backfill()
 
     # 2) Recompute driving responses from the now-populated MUA table.
     processor = build_mua_processor(ga_config)

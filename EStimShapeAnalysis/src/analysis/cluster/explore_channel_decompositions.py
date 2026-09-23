@@ -755,7 +755,7 @@ def explore(
 
 
 def main():
-    data_loader = DbDataLoader(context.ga_config.connection())
+    data_loader = DbDataLoader()
     channel_mapper = DBCChannelMapper("A")
     explore(data_loader, channel_mapper)
 

@@ -56,7 +56,8 @@ class IsogaborDataLoader(DataLoader):
         elif data_type == "mua":
             self.response_table = "MUASpikeResponses"
             self.spike_rate_col = "Spike Rate by channel"
-            self.mua_method = "mad_k4_block100"
+            from src.pga.mua_channel_responses import DEFAULT_MUA_METRIC
+            self.mua_method = DEFAULT_MUA_METRIC
         else:
             raise ValueError(f"Unknown data type: {data_type}")
         self._compiled_data: pd.DataFrame | None = None
