@@ -58,6 +58,8 @@ compute_estim_neighbor_scores reads — but computes the correlations directly, 
 it does NOT depend on EStimNeighborScores having been populated.
 """
 
+import functools
+import inspect
 import math
 import os
 import sys
@@ -792,6 +794,35 @@ def compute_session_half_distance(session_id, *, exclude_other_estim=True,
     return out
 
 
+# In-process cache for the expensive table builders below, so running several
+# mains in one script (ratio, rate/effect regressions, smoothed curves, ...) builds
+# each table ONCE. Keyed on the fully-bound call arguments (defaults applied), so
+# callers that spell the same config differently still hit. Lasts only for this
+# Python process — a fresh run always re-reads the DB. Clear with
+# _TABLE_CACHE.clear() if the DB changes mid-session.
+_TABLE_CACHE = {}
+
+
+def _cached_table(fn):
+    sig = inspect.signature(fn)
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        bound = sig.bind(*args, **kwargs)
+        bound.apply_defaults()
+        key = (fn.__name__, repr(sorted(bound.arguments.items())))
+        if key in _TABLE_CACHE:
+            print(f"[cache] reusing {fn.__name__} result")
+        else:
+            _TABLE_CACHE[key] = fn(*args, **kwargs)
+        hit = _TABLE_CACHE[key]
+        # hand out a copy of DataFrames so callers adding columns can't taint it
+        return hit.copy() if isinstance(hit, pd.DataFrame) else hit
+
+    return wrapper
+
+
+@_cached_table
 def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
                                         exclude_session_ids=None,
                                         effect_metric=COMPARISON_METRIC,
@@ -2256,6 +2287,7 @@ def _boot_curve_ci(x, y, sessions=None, *, bw_frac, xlim, gridsize=160,
     return gx, lo, hi
 
 
+@_cached_table
 def build_onoff_null_draws(trial_types, *, start_session_id=None,
                            exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
                            base_required_conditions=None, n_draws=RATIO_RATE_N_PERM,
@@ -2303,7 +2335,8 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                       bootstrap=RATIO_RATE_BOOTSTRAP,
                                       n_boot=RATIO_RATE_N_BOOT,
                                       boot_cluster=RATIO_RATE_BOOT_CLUSTER,
-                                      output_path=None):
+                                      x_desc='current : corr-half-distance ratio',
+                                      x_short='ratio', output_path=None):
     """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
     ratio. Shared axis + colour limits. `split_mode` picks what the curve(s) show:
 
@@ -2538,7 +2571,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                     elif within_session:
                         note = f"{n_var_specs} specs in {n_var_sess} multi-spec sess"
                     else:
-                        note = f"ratio null, n={n_var_specs}"
+                        note = f"{x_short} null, n={n_var_specs}"
                     n_line += (f"   perm p={pval:.3g}{' *' if pval < 0.05 else ''}"
                                f"  ({note})")
                 else:
@@ -2560,7 +2593,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
                        fontsize=10)
     _null_word = ("ON/OFF-shuffle null = reliable effect" if null_mode == 'onoff'
-                  else "ratio-shuffle null = varies with ratio")
+                  else f"{x_short}-shuffle null = varies with {x_short}")
     _test_desc = (
         (f"; gold = significant ({_null_word}), perm p per panel" if perm_test else "")
         + ("; grey = null band (95% simultaneous)" if perm_test and show_null_band else "")
@@ -2579,7 +2612,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         'abs': "MAGNITUDE folded by sign: Y = |effect|; red = effect>0, blue = effect<0",
     }.get(split_mode, "SIGNED mean effect; black = smoothed curve"
           + (_test_desc if perm_test or bootstrap else " ± SE"))
-    fig.suptitle("Estim effect vs current : corr-half-distance ratio  "
+    fig.suptitle(f"Estim effect vs {x_desc}  "
                  f"({curve_desc}"
                  f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
                  fontsize=14, fontweight='bold')
@@ -2593,14 +2626,27 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
     return fig
 
 
-def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
+# X-axes the smoothed effect-curve plots can use. Each entry:
+#   (column, axis label, title phrase, short name for the null wording,
+#    default x-limits, output-file stem). 'current' takes its column/label from the
+#   run's x_col; '{x}' in a stem is replaced by x_col's slug.
+SMOOTH_X_AXES = {
+    'ratio': (RATIO_COL, RATIO_LABEL, 'current : corr-half-distance ratio', 'ratio',
+              RATIO_XLIM, 'effect_vs_{x}_over_halfdist_ratio'),
+    'current': (None, None, None, 'current', None, 'effect_vs_{x}_smoothed'),
+    'half_distance': (HALFDIST_COL, 'corr half-distance (µm)', 'corr half-distance',
+                      'half-distance', None, 'effect_vs_corr_half_distance_smoothed'),
+}
+
+
+def run_effect_vs_ratio(trial_types=None, *, x_axis='ratio', start_session_id=None,
                         exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
                         base_required_conditions=None, exclude_other_estim=True,
                         min_on_trials=COMPARISON_MIN_ON_TRIALS,
                         far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
                         bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
                         aggregate_by='spec', by_polarity=True,
-                        bw_frac=DEFAULT_RATIO_BW_FRAC, xlim=RATIO_XLIM,
+                        bw_frac=DEFAULT_RATIO_BW_FRAC, xlim='default',
                         modes=RATIO_MODES, add_margins=RATIO_ADD_COMBINED,
                         perm_test=RATIO_RATE_PERM_TEST, n_perm=RATIO_RATE_N_PERM,
                         within_session=RATIO_RATE_PERM_WITHIN_SESSION,
@@ -2609,12 +2655,23 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
                         show_null_band=RATIO_RATE_SHOW_NULL_BAND,
                         bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
                         boot_cluster=RATIO_RATE_BOOT_CLUSTER,
-                        x_col='current_per_second', save_dir=None):
-    """Build the half-distance table, form the current:half-distance ratio per point,
-    and draw the effect-vs-ratio grid. Returns (df, points_df)."""
+                        x_col='current_per_second', save_dir=None, show=True):
+    """Build the half-distance table and draw the kernel-smoothed effect-curve grid
+    (one figure per mode in `modes`) against the chosen X (`x_axis`, a key of
+    SMOOTH_X_AXES): 'ratio' = x_col ÷ corr half-distance (the default), 'current' =
+    x_col alone, 'half_distance' = corr half-distance alone. xlim='default' uses
+    that axis's default (RATIO_XLIM for the ratio, robust auto-fit otherwise).
+    Returns (df, points_df)."""
+    if x_axis not in SMOOTH_X_AXES:
+        raise ValueError(f"x_axis must be one of {list(SMOOTH_X_AXES)}, got {x_axis!r}")
+    plot_col, x_label, x_desc, x_short, default_xlim, stem = SMOOTH_X_AXES[x_axis]
+    if x_axis == 'current':
+        plot_col, x_label, x_desc = x_col, X_LABELS.get(x_col, x_col), x_col
+    if xlim == 'default':
+        xlim = default_xlim
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
-    print(f"[config] EFFECT vs (current:half-distance) RATIO  trial_types={trial_types}  "
+    print(f"[config] EFFECT vs {x_desc.upper()}  trial_types={trial_types}  "
           f"effect_metric={effect_metric}  min_on={min_on_trials}  point={aggregate_by}  "
           f"by_polarity={by_polarity}  bw_frac={bw_frac}")
     df = build_current_spread_halfdist_table(
@@ -2639,7 +2696,7 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
             exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
             base_required_conditions=base_required_conditions, n_draws=n_perm)
 
-    base = f"effect_vs_{_slug(x_col)}_over_halfdist_ratio"
+    base = stem.format(x=_slug(x_col))
     # All requested variants from ONE table build, each to its own file. show=False
     # so every figure is built first and they all pop together at the end.
     suffixes = {None: '', 'rate': '_direction', 'signed_split': '_signed_magnitude',
@@ -2654,8 +2711,10 @@ def run_effect_vs_ratio(trial_types=None, *, start_session_id=None,
             within_session=within_session, null_mode=null_mode, onoff_null=onoff_null,
             effect_threshold=effect_threshold, show_null_band=show_null_band,
             bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
+            ratio_col=plot_col, x_label=x_label, x_desc=x_desc, x_short=x_short,
             show=False, output_path=out_path)
-    plt.show()  # display every variant figure at once
+    if show:
+        plt.show()  # display every variant figure at once
     return df, points
 
 
@@ -2671,6 +2730,26 @@ def main_effect_vs_ratio():
         base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
         exclude_other_estim=True, min_on_trials=COMPARISON_MIN_ON_TRIALS,
         aggregate_by='spec', by_polarity=True, save_dir=COMPARISON_SAVE_DIR)
+
+
+def main_effect_smoothed_vs_current(show=True):
+    """Same smoothed effect curves as main_effect_vs_ratio (every mode in
+    RATIO_MODES, same tests), but X = current_per_second alone. Standalone."""
+    run_effect_vs_ratio(x_axis='current', show=show, **_rate_regression_config_kwargs())
+
+
+def main_effect_smoothed_vs_half_distance(show=True):
+    """Same smoothed effect curves as main_effect_vs_ratio, but X = corr
+    half-distance alone. Standalone."""
+    run_effect_vs_ratio(x_axis='half_distance', show=show,
+                        **_rate_regression_config_kwargs())
+
+
+def main_effect_smoothed_simple_axes():
+    """Both simplified-X smoothed plots; all their figures pop up together."""
+    main_effect_smoothed_vs_current(show=False)
+    main_effect_smoothed_vs_half_distance(show=False)
+    plt.show()
 
 
 # ---------------------------------------------------------------------------
@@ -3121,7 +3200,14 @@ if __name__ == '__main__':
     #                                    alone and on corr half-distance alone (2 figs);
     #                                    each also runnable alone: main_effect_vs_current()
     #                                    / main_effect_vs_half_distance()
+    #   - main_effect_smoothed_simple_axes() -> the main_effect_vs_ratio smoothed curves
+    #                                    with X = current_per_second alone and X = corr
+    #                                    half-distance alone; each also runnable alone:
+    #                                    main_effect_smoothed_vs_current() /
+    #                                    main_effect_smoothed_vs_half_distance()
+    # All of these share ONE half-distance table (and ON/OFF null) via _TABLE_CACHE.
     main_effect_vs_ratio()
+    main_effect_smoothed_simple_axes()
     main_rate_regressions()
     main_effect_regressions()
     # main_halfdist_current_vs_frequency()
