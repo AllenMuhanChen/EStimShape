@@ -452,7 +452,8 @@ def build_points(df, metric_cols, aggregate_by='spec'):
     if aggregate_by != 'spec':
         raise ValueError(f"aggregate_by must be 'spec' or 'experiment'; got {aggregate_by!r}")
     keep = (['trial_type', 'polarity', 'waveform', 'session_id', 'estim_spec_id',
-             'effect_size'] + list(CURRENT_COLUMNS) + list(metric_cols))
+             'effect_size', 'n_on', 'n_off', 'on_pct', 'off_pct']
+            + list(CURRENT_COLUMNS) + list(metric_cols))
     keep = [c for c in dict.fromkeys(keep) if c in df.columns]  # de-dup, keep order
     return df[keep].copy()
 
@@ -2919,6 +2920,42 @@ def plot_rate_regression_by_trialtype(points, x_col, *, trial_types, x_label,
     return fig
 
 
+EFFECT_Z_COL = 'effect_z'
+EFFECT_P_COL = 'effect_p_positive'
+# one-sided p = 0.05 / 0.01 in z units, drawn as dotted guides on the z plots
+EFFECT_Z_REF_LINES = ((1.645, 'z=±1.645 (one-sided p=0.05)'), (-1.645, ''))
+
+
+def _attach_effect_z(points):
+    """Add, per spec, the one-sided p-value for H1: estim effect > 0 (EFFECT_P_COL)
+    and its signed z-score z = Φ⁻¹(1 − p) (EFFECT_Z_COL), in place.
+
+    Outcomes are binary, so the ON/OFF label-shuffle test is exactly Fisher's exact
+    test: given the pooled ON+OFF trials and their total hypothesised choices, the
+    number of hypothesised choices landing in the ON group is hypergeometric. We use
+    the mid-p (P(X > k) + ½·P(X = k)) so a zero effect maps to p ≈ 0.5, z ≈ 0, and
+    equal-and-opposite effects get equal-and-opposite z. Positive z = evidence FOR a
+    positive effect, negative z = evidence for a negative one; |z| grows with both
+    the effect size and the number of trials. NaN where counts are missing."""
+    from scipy import stats
+    n_on = pd.to_numeric(points.get('n_on'), errors='coerce').to_numpy(dtype=float)
+    n_off = pd.to_numeric(points.get('n_off'), errors='coerce').to_numpy(dtype=float)
+    on_pct = pd.to_numeric(points.get('on_pct'), errors='coerce').to_numpy(dtype=float)
+    off_pct = pd.to_numeric(points.get('off_pct'), errors='coerce').to_numpy(dtype=float)
+    ok = (np.isfinite(n_on) & np.isfinite(n_off) & np.isfinite(on_pct)
+          & np.isfinite(off_pct) & (n_on > 0) & (n_off > 0))
+    p = np.full(len(points), np.nan)
+    for i in np.where(ok)[0]:
+        k_on = int(round(on_pct[i] * n_on[i] / 100))
+        k_off = int(round(off_pct[i] * n_off[i] / 100))
+        total, succ, draws = int(n_on[i] + n_off[i]), k_on + k_off, int(n_on[i])
+        p[i] = (stats.hypergeom.sf(k_on, total, succ, draws)
+                + 0.5 * stats.hypergeom.pmf(k_on, total, succ, draws))
+    points[EFFECT_P_COL] = p
+    points[EFFECT_Z_COL] = stats.norm.isf(p)
+    return points
+
+
 def _fit_linear_1d(x, y):
     """OLS y ~ 1 + x. Returns dict(b0, b1, cov, r, p_slope, n) or None if it can't
     be fit (fewer than 3 points or constant x). p_slope is the two-sided t-test on
@@ -2945,10 +2982,14 @@ def _fit_linear_1d(x, y):
 def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
                                         by_polarity=True, point_noun='spec',
                                         add_margins=RATIO_ADD_COMBINED, xlim=None,
+                                        y_col='effect_size',
+                                        y_label='estim effect (ON − OFF %)',
+                                        y_desc='Estim effect', ref_lines=(),
                                         show=True, output_path=None):
-    """Grid (rows = polarity [+ ALL], cols = trial type [+ ALL]) of every spec's RAW
-    estim effect vs x_col, coloured by effect, with a simple linear (OLS) regression
-    line ± 95% CI of the fitted mean. Returns the figure."""
+    """Grid (rows = polarity [+ ALL], cols = trial type [+ ALL]) of every spec's
+    y_col (default the RAW estim effect) vs x_col, coloured by y_col on a symmetric
+    scale, with a simple linear (OLS) regression line ± 95% CI of the fitted mean.
+    ref_lines = extra ((y, label), ...) dotted horizontal guides. Returns the figure."""
     from scipy import stats
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
@@ -2964,8 +3005,10 @@ def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
     fig, axes = plt.subplots(nrows, ncols, figsize=(5.2 * ncols, 4.2 * nrows),
                              squeeze=False, constrained_layout=True)
     xlim = xlim if xlim is not None else _robust_limits(points[x_col])
-    ylim = _axis_limits(pd.to_numeric(points['effect_size'], errors='coerce'))
-    vmax = _effect_vmax(points)
+    yall = pd.to_numeric(points[y_col], errors='coerce')
+    ylim = _axis_limits(yall)
+    yfin = yall[np.isfinite(yall)]
+    vmax = max(float(np.abs(yfin).max()), 1e-6) if len(yfin) else 1.0
 
     scatter_ref = None
     for r, group in enumerate(row_specs):
@@ -2974,13 +3017,15 @@ def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
             col_sub = points if tt is ALL else points[points['trial_type'] == tt]
             sub = col_sub if group is ALL else _filter_rows(col_sub, group)
             x = pd.to_numeric(sub[x_col], errors='coerce').to_numpy(dtype=float)
-            eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
+            eff = pd.to_numeric(sub[y_col], errors='coerce').to_numpy(dtype=float)
             ok = np.isfinite(x) & np.isfinite(eff)
             x, eff = x[ok], eff[ok]
 
             if tt is ALL or group is ALL:
                 ax.set_facecolor('#f4f4f4')
             ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
+            for yref, _ in ref_lines:
+                ax.axhline(yref, color='#888888', lw=0.8, ls=':', zorder=1)
             if len(x):
                 scatter_ref = ax.scatter(x, eff, c=eff, cmap='RdBu_r', vmin=-vmax,
                                          vmax=vmax, s=42, alpha=0.85,
@@ -3019,15 +3064,15 @@ def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
             if r == nrows - 1:
                 ax.set_xlabel(x_label, fontsize=9)
             if c == 0:
-                ax.set_ylabel('estim effect (ON − OFF %)', fontsize=10)
+                ax.set_ylabel(y_label, fontsize=10)
             ax.grid(True, alpha=0.3)
 
     if scatter_ref is not None:
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
-        cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
-                       fontsize=10)
-    fig.suptitle(f"Estim effect vs {x_label} — linear regression "
-                 "(grey = 95% CI of the fit; gold = slope p<0.05"
+        cbar.set_label(f'{y_label}  — red = positive, blue = negative', fontsize=10)
+    ref_desc = "".join(f"; dotted = {lab}" for _, lab in ref_lines[:1])
+    fig.suptitle(f"{y_desc} vs {x_label} — linear regression "
+                 f"(grey = 95% CI of the fit; gold = slope p<0.05{ref_desc}"
                  f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
                  fontsize=14, fontweight='bold')
     if output_path:
@@ -3055,11 +3100,12 @@ def run_single_predictor_regression(x_col, x_label, trial_types=None, *, kind='r
     single-predictor regression grid on x_col. kind='rate' -> logistic regression of
     P(effect>threshold); kind='effect' -> linear (OLS) regression of the raw effect.
     Returns (df, points)."""
-    if kind not in ('rate', 'effect'):
-        raise ValueError(f"kind must be 'rate' or 'effect', got {kind!r}")
+    if kind not in ('rate', 'effect', 'effect_z'):
+        raise ValueError(f"kind must be 'rate', 'effect' or 'effect_z', got {kind!r}")
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
-    y_desc = f"P(effect>{effect_threshold:g})" if kind == 'rate' else "effect"
+    y_desc = {'rate': f"P(effect>{effect_threshold:g})", 'effect': "effect",
+              'effect_z': "effect z (one-sided p for effect>0)"}[kind]
     print(f"[config] {y_desc} ~ {x_col}  trial_types={trial_types}  "
           f"effect_metric={effect_metric}  min_on={min_on_trials}  point={aggregate_by}  "
           f"by_polarity={by_polarity}")
@@ -3074,8 +3120,9 @@ def run_single_predictor_regression(x_col, x_label, trial_types=None, *, kind='r
         print("Nothing to plot.")
         return df, pd.DataFrame()
     points = build_points(df, [HALFDIST_COL], aggregate_by)
-    fname = (f"effect_direction_vs_{_slug(x_col)}_logistic.png" if kind == 'rate'
-             else f"effect_vs_{_slug(x_col)}_linear.png")
+    fname = {'rate': f"effect_direction_vs_{_slug(x_col)}_logistic.png",
+             'effect': f"effect_vs_{_slug(x_col)}_linear.png",
+             'effect_z': f"effect_z_vs_{_slug(x_col)}_linear.png"}[kind]
     out_path = os.path.join(save_dir, fname) if save_dir else None
     if kind == 'rate':
         plot_rate_regression_by_trialtype(
@@ -3083,11 +3130,20 @@ def run_single_predictor_regression(x_col, x_label, trial_types=None, *, kind='r
             by_polarity=by_polarity, point_noun=aggregate_by,
             effect_threshold=effect_threshold, add_margins=add_margins, xlim=xlim,
             show=show, output_path=out_path)
-    else:
+    elif kind == 'effect':
         plot_effect_regression_by_trialtype(
             points, x_col, trial_types=trial_types, x_label=x_label,
             by_polarity=by_polarity, point_noun=aggregate_by,
             add_margins=add_margins, xlim=xlim, show=show, output_path=out_path)
+    else:
+        _attach_effect_z(points)
+        plot_effect_regression_by_trialtype(
+            points, x_col, trial_types=trial_types, x_label=x_label,
+            by_polarity=by_polarity, point_noun=aggregate_by,
+            add_margins=add_margins, xlim=xlim, y_col=EFFECT_Z_COL,
+            y_label='effect z  (Φ⁻¹(1 − p), H1: effect > 0)',
+            y_desc='Estim effect z-score', ref_lines=EFFECT_Z_REF_LINES,
+            show=show, output_path=out_path)
     return df, points
 
 
@@ -3138,6 +3194,29 @@ def main_effect_regressions():
     up together at the end."""
     main_effect_vs_current(show=False)
     main_effect_vs_half_distance(show=False)
+    plt.show()
+
+
+def main_effect_z_vs_current(show=True):
+    """Per-spec effect z-score (from the one-sided p for effect > 0) ~
+    current_per_second alone (linear regression), one dot per spec. Standalone."""
+    run_single_predictor_regression('current_per_second', X_LABELS['current_per_second'],
+                                    kind='effect_z', show=show,
+                                    **_rate_regression_config_kwargs())
+
+
+def main_effect_z_vs_half_distance(show=True):
+    """Per-spec effect z-score ~ corr half-distance alone (linear regression), one
+    dot per spec. Standalone."""
+    run_single_predictor_regression(HALFDIST_COL, 'corr half-distance (µm)',
+                                    kind='effect_z', show=show,
+                                    **_rate_regression_config_kwargs())
+
+
+def main_effect_z_regressions():
+    """Both effect-z regressions; the two figures pop up together."""
+    main_effect_z_vs_current(show=False)
+    main_effect_z_vs_half_distance(show=False)
     plt.show()
 
 
@@ -3205,11 +3284,17 @@ if __name__ == '__main__':
     #                                    half-distance alone; each also runnable alone:
     #                                    main_effect_smoothed_vs_current() /
     #                                    main_effect_smoothed_vs_half_distance()
+    #   - main_effect_z_regressions() -> per-spec z-score of the one-sided p (effect > 0)
+    #                                    regressed on current_per_second alone and on corr
+    #                                    half-distance alone (2 figs); each also runnable
+    #                                    alone: main_effect_z_vs_current() /
+    #                                    main_effect_z_vs_half_distance()
     # All of these share ONE half-distance table (and ON/OFF null) via _TABLE_CACHE.
     main_effect_vs_ratio()
     main_effect_smoothed_simple_axes()
     main_rate_regressions()
     main_effect_regressions()
+    main_effect_z_regressions()
     # main_halfdist_current_vs_frequency()
     # main_spec_metrics_heatmap()
     # main_spec_metrics()
