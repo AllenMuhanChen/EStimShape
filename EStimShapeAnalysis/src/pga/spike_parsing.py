@@ -14,6 +14,7 @@ from clat.intan.spike_file import fetch_spike_tstamps_from_file
 from clat.util.connection import Connection
 from src.lfp.spike_waveform_features import highpass_filter
 from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.mua_channel_responses import MuaChannelResponseStore, DEFAULT_MUA_METRIC, parse_mua_metric
 
 
 class ResponseParser(Protocol):
@@ -267,9 +268,9 @@ class MuaIntanResponseParser(IntanResponseParser):
 
     def __init__(self, base_intan_path, db_util: MultiGaDbUtil = None,
                  date_YYYY_MM_DD: str = None, *,
-                 mua_metric: str = "mad_k4_block100",
-                 threshold_k: float = 4.0,
-                 block_size: int = 100,
+                 mua_metric: str = DEFAULT_MUA_METRIC,
+                 threshold_k: float = None,
+                 block_size: int = None,
                  highpass_hz: float = 300.0,
                  refractory_sec: float = 0.001):
         super().__init__(base_intan_path, db_util, date_YYYY_MM_DD)
@@ -278,12 +279,22 @@ class MuaIntanResponseParser(IntanResponseParser):
         # date subfolder, not just today's.
         self.base_intan_path = base_intan_path
         self.mua_metric = mua_metric
-        self.threshold_k = threshold_k
-        self.block_size = block_size
+        # The metric tag defines the detector; explicit params must agree with it
+        # so rows are never written under a tag that misdescribes them.
+        metric_k, metric_block = parse_mua_metric(mua_metric)
+        if threshold_k is not None and float(threshold_k) != metric_k:
+            raise ValueError(f"threshold_k={threshold_k} disagrees with mua_metric {mua_metric!r}")
+        if block_size is not None and int(block_size) != metric_block:
+            raise ValueError(f"block_size={block_size} disagrees with mua_metric {mua_metric!r}")
+        self.threshold_k = metric_k
+        self.block_size = metric_block
         self.highpass_hz = highpass_hz
         self.refractory_sec = refractory_sec
+        self.store = None
         if self.db_util is not None:
-            self.db_util.create_mua_channel_responses_table_if_not_exists()
+            self.store = MuaChannelResponseStore(self.db_util.conn, mua_metric,
+                                                 db_util=self.db_util, auto_populate=False)
+            self.store.create_table_if_not_exists()
 
     def parse_to_db(self, ga_name: str) -> None:
         # 1) Unchanged spike.dat parse -> ChannelResponses
@@ -341,7 +352,7 @@ class MuaIntanResponseParser(IntanResponseParser):
 
         rows = [r for r in rows if r[4] == r[4]]  # drop NaN rates
         if rows:
-            self.db_util.add_mua_channel_responses_in_batch(rows)
+            self.store.write_rows(rows)
         print(f"MUA parse: wrote {len(rows)} MUAChannelResponses rows "
               f"(metric={self.mua_metric}).")
 

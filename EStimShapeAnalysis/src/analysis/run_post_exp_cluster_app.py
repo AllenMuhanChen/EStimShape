@@ -72,7 +72,7 @@ class DbRepoDataExporter:
 
 def main():
     app = get_qapplication_instance()
-    window = ClusterApplicationWindow(DbDataLoader(context.ga_config.connection()),
+    window = ClusterApplicationWindow(DbDataLoader(),
                                       DbRepoDataExporter(context.ga_config.db_util),
                                       [KernelPCAReducer(),
                                        PCAReducer(),

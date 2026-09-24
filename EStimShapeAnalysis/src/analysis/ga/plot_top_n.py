@@ -21,9 +21,7 @@ from src.analysis.fields.matchstick_fields import ShaftField, TerminationField, 
     MassCenterField
 from src.analysis.ga.cached_ga_fields import LineageField, GAResponseField, RegimeScoreField, GenIdField, ParentIdField
 from src.analysis.ga.response_spec import ResponseSpec
-from src.analysis.isogabor.old_isogabor_analysis import IntanSpikesByChannelField, EpochStartStopTimesField, \
-    IntanSpikeRateByChannelField, MuaSpikesByChannelField, MuaSpikeRateByChannelField, \
-    MuaEpochStartStopTimesField, MuaDbCachedParser
+from src.analysis.isogabor.old_isogabor_analysis import append_response_fields
 from src.analysis.lightness.lightness_analysis import TextureField, ColorField, AverageRGBField
 from src.analysis.modules.grouped_stims_by_response import create_grouped_stimuli_module
 from src.intan.MultiFileParser import MultiFileParser
@@ -199,32 +197,13 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
         fields.append(AverageRGBField(conn))
         fields.append(ClusterResponseField(conn, cluster_combination_strategy))
 
-        # Spike source: MUA (wideband, -k x MAD, block-of-N) vs spike.dat.
-        is_mua = self.response_table == "MUASpikeResponses"
-        if is_mua:
-            from src.analysis.ga.baseline_spike_detection_comparison import (
-                PeriodicBlockMUAParser, MadStrategy)
-            wideband_parser = PeriodicBlockMUAParser(
-                strategy=MadStrategy(threshold_mad=self.mua_k or 4.0),
-                block_size=self.mua_block or 100,
-                to_cache=True,
-                cache_dir=os.path.join(context.ga_parsed_spikes_path, "mua_block_mad"),
-            )
-            # Reuse spikes the live GA parser already wrote to MUAChannelResponses;
-            # only detect missing task_ids from wideband.
-            mua_parser = MuaDbCachedParser(
-                db_name=context.ga_database,
-                mua_metric=self.mua_method or "mad_k4_block100",
-                fallback_parser=wideband_parser,
-            )
-            fields.append(MuaSpikesByChannelField(conn, mua_parser, task_ids, context.ga_intan_path))
-            fields.append(MuaSpikeRateByChannelField(conn, mua_parser, task_ids, context.ga_intan_path))
-            fields.append(MuaEpochStartStopTimesField(conn, mua_parser, task_ids, context.ga_intan_path))
-        else:
-            parser = MultiFileParser(to_cache=True, cache_dir=context.ga_parsed_spikes_path)
-            fields.append(IntanSpikesByChannelField(conn, parser, task_ids, context.ga_intan_path))
-            fields.append(IntanSpikeRateByChannelField(conn, parser, task_ids, context.ga_intan_path))
-            fields.append(EpochStartStopTimesField(conn, parser, task_ids, context.ga_intan_path))
+        # Spike source: MUA (MUAChannelResponses, backfilled if empty) vs spike.dat.
+        rename_map = append_response_fields(
+            fields, conn, task_ids, context.ga_intan_path,
+            is_mua=self.response_table == "MUASpikeResponses",
+            parsed_spikes_path=context.ga_parsed_spikes_path,
+            db_name=context.ga_database,
+            mua_metric=self.mua_method)
 
         fields.append(ShaftField(conn, mstick_spec_data_source))
         fields.append(TerminationField(conn, mstick_spec_data_source))
@@ -232,14 +211,9 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
         fields.append(MassCenterField(conn, mstick_spec_data_source))
 
         data = fields.to_data(task_ids)
-        if is_mua:
-            # Rename the distinct MUA cache columns back to the standard names so
-            # every downstream consumer (export, ResponseSpec, import) is uniform.
-            data = data.rename(columns={
-                "MUA Spikes by channel": "Spikes by channel",
-                "MUA Spike Rate by channel": "Spike Rate by channel",
-                "MUA Epoch": "Epoch",
-            })
+        # Rename the distinct MUA cache columns back to the standard names so
+        # every downstream consumer (export, ResponseSpec, import) is uniform.
+        data = data.rename(columns=rename_map)
         return data
     @staticmethod
     def clean_ga_data(data_for_all_tasks):

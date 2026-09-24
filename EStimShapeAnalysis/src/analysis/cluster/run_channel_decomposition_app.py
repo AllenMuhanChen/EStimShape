@@ -231,7 +231,7 @@ def main():
         session_label = "MOCK"
         save_dir = os.path.join(PLOT_BASE_DIR, "channel_decomp_explore_mock")
     else:
-        data_loader = DbDataLoader(context.ga_config.connection())
+        data_loader = DbDataLoader()
         session_label = context.ga_database
         session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
         save_dir = os.path.join(PLOT_BASE_DIR, session_id, "channel_decomp_explore")

@@ -56,15 +56,16 @@ class Analysis(ABC):
         elif data_type == 'GA':
             self.response_table = None
             self.spike_rates_col = None
-        elif data_type == 'mua' or data_type == 'mua_mad_k4_block100':
-            # Multi-unit activity re-detected from wideband with -4x MAD, threshold
-            # refreshed every 100 task_ids (matches the GA MUA pipeline).
+        elif data_type == 'mua' or data_type.startswith('mua_'):
+            # Multi-unit activity re-detected from wideband (-k x MAD, threshold
+            # refreshed every N task_ids). 'mua' uses the GA default metric;
+            # 'mua_<metric>' (e.g. 'mua_mad_k3_block50') picks another one.
+            from src.pga.mua_channel_responses import DEFAULT_MUA_METRIC, parse_mua_metric
             self.response_table = 'MUASpikeResponses'
             self.spike_tstamps_col = 'Spikes by channel'
             self.spike_rates_col = 'Spike Rate by channel'
-            self.mua_k = 4.0
-            self.mua_block = 100
-            self.mua_method = f"mad_k{self.mua_k:g}_block{self.mua_block}"
+            self.mua_method = DEFAULT_MUA_METRIC if data_type == 'mua' else data_type[len('mua_'):]
+            self.mua_k, self.mua_block = parse_mua_metric(self.mua_method)
 
         else:
             raise ValueError(f"Unknown data type: {data_type}")

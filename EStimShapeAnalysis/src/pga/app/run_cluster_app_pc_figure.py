@@ -318,19 +318,7 @@ class PcInterpretationFigureExporter(DataExporter):
         return PCA(n_components=n_components).fit(X).explained_variance_ratio_
 
     def _fetch_stim_id_order(self) -> list:
-        conn = self.data_loader.conn
-        mua_metric = getattr(self.data_loader, "mua_metric", None)
-        if mua_metric is not None:
-            conn.execute(
-                "SELECT DISTINCT stim_id FROM MUAChannelResponses "
-                "WHERE mua_metric = %s ORDER BY stim_id",
-                (mua_metric,),
-            )
-        else:
-            conn.execute(
-                "SELECT DISTINCT stim_id FROM MUAChannelResponses ORDER BY stim_id"
-            )
-        return [row[0] for row in conn.fetch_all()]
+        return self.data_loader.store.stim_ids()
 
     def _fetch_thumbnails(self, stim_ids: list) -> dict:
         if not stim_ids:
@@ -642,7 +630,7 @@ def main():
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     save_dir = os.path.join(PLOT_BASE_DIR, session_id)
 
-    data_loader = DbDataLoader(context.ga_config.connection())
+    data_loader = DbDataLoader()
     channel_mapper = DBCChannelMapper("A")
     pca_reducer = PCAReducer()
     sparse_pca_reducer = SparsePCAReducer()

@@ -157,7 +157,8 @@ class EStimShapeConfig(Simultaneous3Dvs2DConfig):
     def mua_metric(self):
         """Detection-method tag written by the parser and read by the processor;
         derived from the params so the two never drift."""
-        return f"mad_k{self.mua_threshold_k():g}_block{self.mua_block_size()}"
+        from src.pga.mua_channel_responses import mua_metric_name
+        return mua_metric_name(self.mua_threshold_k(), self.mua_block_size())
 
 
 class MockGrowingPhaseTransitioner(RegimeTransitioner):
