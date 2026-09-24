@@ -3096,6 +3096,52 @@ def prepare_effect_points(trial_types=None, *, start_session_id=None,
     return trial_types, df, points
 
 
+def draw_effect_vs_spread(points, x_key, plot_key, *, trial_types, onoff_null=None,
+                          onoff_null_z=None, by_polarity=True, aggregate_by='spec',
+                          add_margins=RATIO_ADD_COMBINED, bw_frac=DEFAULT_RATIO_BW_FRAC,
+                          perm_test=RATIO_RATE_PERM_TEST, n_perm=RATIO_RATE_N_PERM,
+                          within_session=RATIO_RATE_PERM_WITHIN_SESSION,
+                          null_mode=RATIO_RATE_NULL_MODE,
+                          effect_threshold=RATIO_RATE_THRESHOLD,
+                          show_null_band=RATIO_RATE_SHOW_NULL_BAND,
+                          bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
+                          boot_cluster=RATIO_RATE_BOOT_CLUSTER, alternative=None,
+                          output_path=None):
+    """Draw ONE (X-axis, plot) figure — keys of EFFECT_X_AXES / EFFECT_PLOTS — from a
+    prepare_effect_points table and return it (not shown). onoff_null /
+    onoff_null_z are the raw-effect / z-scale ON/OFF null draws a smoothed plot's
+    permutation test needs (None skips the ON/OFF test). alternative overrides the
+    plot's own two-sided/'greater' setting for smoothed plots."""
+    ax_cfg = EFFECT_X_AXES[x_key]
+    family, mode, extra = EFFECT_PLOTS[plot_key]
+    common = dict(trial_types=trial_types, by_polarity=by_polarity,
+                  point_noun=aggregate_by, add_margins=add_margins, show=False,
+                  output_path=output_path)
+    if family == 'smooth':
+        extra = dict(extra, **({'alternative': alternative} if alternative else {}))
+        return plot_smoothed_effect_by_trialtype(
+            points, x_col=ax_cfg['col'], x_label=ax_cfg['label'],
+            x_desc=ax_cfg['title'], x_short=ax_cfg['short'], xlim=ax_cfg['xlim'],
+            split_mode=mode, bw_frac=bw_frac, perm_test=perm_test, n_perm=n_perm,
+            within_session=within_session, null_mode=null_mode,
+            onoff_null=onoff_null_z if mode == 'z' else onoff_null,
+            effect_threshold=effect_threshold, show_null_band=show_null_band,
+            bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
+            **extra, **common)
+    if mode == 'rate':
+        return plot_rate_regression_by_trialtype(
+            points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+            effect_threshold=effect_threshold, **common)
+    if mode == 'effect':
+        return plot_effect_regression_by_trialtype(
+            points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+            **common)
+    return plot_effect_regression_by_trialtype(  # 'z'
+        points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+        y_col=EFFECT_Z_COL, y_label='effect z  (Φ⁻¹(1 − p), H1: effect > 0)',
+        y_desc='Estim effect z-score', ref_lines=EFFECT_Z_REF_LINES, **common)
+
+
 def run_effect_vs_spread(x_axes=EFFECT_X_SELECTION, plots=EFFECT_PLOT_SELECTION,
                          trial_types=None, *, start_session_id=None,
                          exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
@@ -3148,39 +3194,20 @@ def run_effect_vs_spread(x_axes=EFFECT_X_SELECTION, plots=EFFECT_PLOT_SELECTION,
         if 'z' in smooth_modes:
             onoff_null_z = build_onoff_null_z_draws(points, n_draws=n_perm)
 
-    common = dict(trial_types=trial_types, by_polarity=by_polarity,
-                  point_noun=aggregate_by, add_margins=add_margins, show=False)
-    for x_key in x_axes:
-        ax_cfg = EFFECT_X_AXES[x_key]
-        for plot_key in plots:
-            family, mode, extra = EFFECT_PLOTS[plot_key]
-            out_path = (os.path.join(save_dir, f"{plot_key}_vs_{x_key}.png")
-                        if save_dir else None)
-            if family == 'smooth':
-                plot_smoothed_effect_by_trialtype(
-                    points, x_col=ax_cfg['col'], x_label=ax_cfg['label'],
-                    x_desc=ax_cfg['title'], x_short=ax_cfg['short'],
-                    xlim=ax_cfg['xlim'], split_mode=mode, bw_frac=bw_frac,
+    settings = dict(trial_types=trial_types, by_polarity=by_polarity,
+                    aggregate_by=aggregate_by, add_margins=add_margins, bw_frac=bw_frac,
                     perm_test=perm_test, n_perm=n_perm, within_session=within_session,
-                    null_mode=null_mode,
-                    onoff_null=onoff_null_z if mode == 'z' else onoff_null,
-                    effect_threshold=effect_threshold, show_null_band=show_null_band,
-                    bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
-                    output_path=out_path, **extra, **common)
-            elif mode == 'rate':
-                plot_rate_regression_by_trialtype(
-                    points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
-                    effect_threshold=effect_threshold, output_path=out_path, **common)
-            elif mode == 'effect':
-                plot_effect_regression_by_trialtype(
-                    points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
-                    output_path=out_path, **common)
-            else:  # 'z'
-                plot_effect_regression_by_trialtype(
-                    points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
-                    y_col=EFFECT_Z_COL, y_label='effect z  (Φ⁻¹(1 − p), H1: effect > 0)',
-                    y_desc='Estim effect z-score', ref_lines=EFFECT_Z_REF_LINES,
-                    output_path=out_path, **common)
+                    null_mode=null_mode, effect_threshold=effect_threshold,
+                    show_null_band=show_null_band, bootstrap=bootstrap, n_boot=n_boot,
+                    boot_cluster=boot_cluster)
+    for x_key in x_axes:
+        for plot_key in plots:
+            draw_effect_vs_spread(
+                points, x_key, plot_key, onoff_null=onoff_null,
+                onoff_null_z=onoff_null_z,
+                output_path=(os.path.join(save_dir, f"{plot_key}_vs_{x_key}.png")
+                             if save_dir else None),
+                **settings)
     if show:
         plt.show()  # every figure pops up together
     return df, points
