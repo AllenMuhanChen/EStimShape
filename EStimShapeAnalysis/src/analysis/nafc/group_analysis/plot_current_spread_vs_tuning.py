@@ -2134,7 +2134,7 @@ def _kernel_smooth_1d(x, y, *, gridsize=160, bw_frac=DEFAULT_RATIO_BW_FRAC, xran
 def _perm_curve_band(x, y, sessions, *, bw_frac, xlim, gridsize=160,
                      n_perm=RATIO_RATE_N_PERM, alpha=0.05, seed=0,
                      within_session=RATIO_RATE_PERM_WITHIN_SESSION, clip01=False,
-                     null_draws=None):
+                     null_draws=None, alternative='two-sided'):
     """Permutation test for a kernel-smoothed curve of y vs ratio (y is per-spec:
     a 0/1 indicator for the rate curve, or the raw/absolute effect for the mean
     curve). Builds a SIMULTANEOUS (sup-t) null envelope from the standardised max
@@ -2148,8 +2148,14 @@ def _perm_curve_band(x, y, sessions, *, bw_frac, xlim, gridsize=160,
         spec (e.g. ON/OFF-label-shuffled effects). Null = "estim has no effect"
         (curve differs from that null at some ratio → reliable effect there).
 
-    clip01 bounds the band to [0,1] (rate curve). Returns (gx, obs, m, lo, hi,
-    sig_mask, p_value, n_var_sess, n_var_specs) or None if not identifiable."""
+    alternative='two-sided' flags the curve anywhere OUTSIDE the band (either
+    side); 'greater' is one-sided: the statistic is the max standardised deviation
+    ABOVE the null mean, and only stretches above the band count (lo is then just
+    the null mean). clip01 bounds the band to [0,1] (rate curve). Returns (gx, obs,
+    m, lo, hi, sig_mask, p_value, n_var_sess, n_var_specs) or None if not
+    identifiable."""
+    if alternative not in ('two-sided', 'greater'):
+        raise ValueError(f"alternative must be 'two-sided' or 'greater', got {alternative!r}")
     x = np.asarray(x, dtype=float)
     y = np.asarray(y, dtype=float)
     if xlim is None or len(x) < 8:
@@ -2206,7 +2212,7 @@ def _perm_curve_band(x, y, sessions, *, bw_frac, xlim, gridsize=160,
     obs = _curve(y)
 
     def _maxdev(p):
-        z = np.abs(p - m) / s
+        z = (p - m) / s if alternative == 'greater' else np.abs(p - m) / s
         return float(np.nanmax(z[fin]))
 
     t_obs = _maxdev(obs)
@@ -2216,10 +2222,11 @@ def _perm_curve_band(x, y, sessions, *, bw_frac, xlim, gridsize=160,
         return None
     pval = (1 + int(np.sum(t_null >= t_obs))) / (len(t_null) + 1)
     tstar = float(np.quantile(t_null, 1 - alpha))
-    lo, hi = m - tstar * s, m + tstar * s
+    hi = m + tstar * s
+    lo = m.copy() if alternative == 'greater' else m - tstar * s
     if clip01:
         lo, hi = np.clip(lo, 0, 1), np.clip(hi, 0, 1)
-    sig = fin & ((obs > hi) | (obs < lo))
+    sig = fin & (obs > hi) if alternative == 'greater' else fin & ((obs > hi) | (obs < lo))
     # how many specs actually enter the test.
     if null_draws is not None:
         n_var_specs = int(len(x))
@@ -2321,6 +2328,7 @@ def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
                                       x_label=RATIO_LABEL, by_polarity=True,
                                       point_noun='spec', bw_frac=DEFAULT_RATIO_BW_FRAC,
                                       xlim=RATIO_XLIM, split_mode=None,
+                                      alternative='two-sided',
                                       add_margins=RATIO_ADD_COMBINED, show=True,
                                       perm_test=RATIO_RATE_PERM_TEST,
                                       n_perm=RATIO_RATE_N_PERM,
@@ -2346,6 +2354,8 @@ def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
                 are positive (± binomial SE), with 0.5 = balanced. Red fill where
                 positives dominate, blue where negatives dominate; dots shown as a
                 sign-coloured rug. Answers "where is one sign more LIKELY?".
+    alternative='greater' makes the permutation test one-sided: gold only where the
+    curve is significantly ABOVE the null (e.g. average z > 0), simultaneous over x.
       'z'    -> Y is the per-spec effect z-score (EFFECT_Z_COL, from the one-sided
                 p for effect > 0; needs _attach_effect_z); one black curve with the
                 same bootstrap/permutation machinery as None. For the ON/OFF null,
@@ -2447,7 +2457,8 @@ def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
         if perm_test and not skip:
             res = _perm_curve_band(xv, yb, sessions, bw_frac=bw_frac, xlim=xlim,
                                    n_perm=n_perm, within_session=within_session,
-                                   clip01=True, null_draws=nd_ind)
+                                   clip01=True, null_draws=nd_ind,
+                                   alternative=alternative)
             if res is not None:
                 _, _, m, lo, hi, sig, pval, n_var_sess, n_var_specs = res
                 if show_null_band:
@@ -2490,7 +2501,8 @@ def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
         if perm_test and not skip:
             res = _perm_curve_band(xv, yv, sessions, bw_frac=bw_frac, xlim=xlim,
                                    n_perm=n_perm, within_session=within_session,
-                                   clip01=False, null_draws=null_draws)
+                                   clip01=False, null_draws=null_draws,
+                                   alternative=alternative)
             if res is not None:
                 gx, obs, m, lo, hi, sig, pval, n_var_sess, n_var_specs = res
                 fin = np.isfinite(obs)
@@ -2582,7 +2594,8 @@ def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
                 if test_res is not None:
                     pval, n_var_sess, n_var_specs = test_res
                     if null_mode == 'onoff':
-                        note = f"ON/OFF null, n={n_var_specs}"
+                        note = (f"ON/OFF null{' 1-sided' if alternative == 'greater' else ''}"
+                                f", n={n_var_specs}")
                     elif within_session:
                         note = f"{n_var_specs} specs in {n_var_sess} multi-spec sess"
                     else:
@@ -2609,6 +2622,8 @@ def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
                        + '  — red = positive, blue = negative', fontsize=10)
     _null_word = ("ON/OFF-shuffle null = reliable effect" if null_mode == 'onoff'
                   else f"{x_short}-shuffle null = varies with {x_short}")
+    if alternative == 'greater':
+        _null_word = f"one-sided, ABOVE null; {_null_word}"
     _test_desc = (
         (f"; gold = significant ({_null_word}), perm p per panel" if perm_test else "")
         + ("; grey = null band (95% simultaneous)" if perm_test and show_null_band else "")
@@ -3030,25 +3045,27 @@ EFFECT_X_AXES = {
                   xlim=RATIO_XLIM),
 }
 
-# The plots: key -> (family, y mode). Each (X-axis, plot) pair is its own figure,
-# saved as <plot>_vs_<x-axis>.png.
+# The plots: key -> (family, y mode, extra plot kwargs). Each (X-axis, plot) pair
+# is its own figure, saved as <plot>_vs_<x-axis>.png.
 EFFECT_PLOTS = {
     # Gaussian-kernel-smoothed curves (bootstrap CI + permutation test):
-    'smooth_effect': ('smooth', None),            # signed effect, one black curve
-    'smooth_rate': ('smooth', 'rate'),            # P(effect>0): which sign is likelier
-    'smooth_z': ('smooth', 'z'),                  # per-spec effect z-score
-    'smooth_signed_split': ('smooth', 'signed_split'),  # red/blue curves, sign kept
-    'smooth_mag': ('smooth', 'mag'),              # |effect|, one black curve
-    'smooth_abs': ('smooth', 'abs'),              # |effect|, red/blue by sign
+    'smooth_effect': ('smooth', None, {}),        # signed effect, one black curve
+    'smooth_rate': ('smooth', 'rate', {}),        # P(effect>0): which sign is likelier
+    'smooth_z': ('smooth', 'z', {}),              # average effect z; two-sided test
+    # average effect z; ONE-sided test: gold only where it is significantly > 0
+    'smooth_z_pos': ('smooth', 'z', {'alternative': 'greater'}),
+    'smooth_signed_split': ('smooth', 'signed_split', {}),  # red/blue, sign kept
+    'smooth_mag': ('smooth', 'mag', {}),          # |effect|, one black curve
+    'smooth_abs': ('smooth', 'abs', {}),          # |effect|, red/blue by sign
     # Single-predictor regressions (one straight / logistic fit per panel):
-    'reg_rate': ('regress', 'rate'),              # logistic P(effect>0)
-    'reg_effect': ('regress', 'effect'),          # OLS on the raw effect
-    'reg_z': ('regress', 'z'),                    # OLS on the effect z-score
+    'reg_rate': ('regress', 'rate', {}),          # logistic P(effect>0)
+    'reg_effect': ('regress', 'effect', {}),      # OLS on the raw effect
+    'reg_z': ('regress', 'z', {}),                # OLS on the effect z-score
 }
 
 # What main_effect_vs_spread() draws by default: every X-axis × every plot here.
 EFFECT_X_SELECTION = ('ratio', 'current', 'half_distance')
-EFFECT_PLOT_SELECTION = ('smooth_effect', 'smooth_rate', 'smooth_z',
+EFFECT_PLOT_SELECTION = ('smooth_effect', 'smooth_rate', 'smooth_z', 'smooth_z_pos',
                          'reg_rate', 'reg_effect', 'reg_z')
 
 
@@ -3136,7 +3153,7 @@ def run_effect_vs_spread(x_axes=EFFECT_X_SELECTION, plots=EFFECT_PLOT_SELECTION,
     for x_key in x_axes:
         ax_cfg = EFFECT_X_AXES[x_key]
         for plot_key in plots:
-            family, mode = EFFECT_PLOTS[plot_key]
+            family, mode, extra = EFFECT_PLOTS[plot_key]
             out_path = (os.path.join(save_dir, f"{plot_key}_vs_{x_key}.png")
                         if save_dir else None)
             if family == 'smooth':
@@ -3149,7 +3166,7 @@ def run_effect_vs_spread(x_axes=EFFECT_X_SELECTION, plots=EFFECT_PLOT_SELECTION,
                     onoff_null=onoff_null_z if mode == 'z' else onoff_null,
                     effect_threshold=effect_threshold, show_null_band=show_null_band,
                     bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
-                    output_path=out_path, **common)
+                    output_path=out_path, **extra, **common)
             elif mode == 'rate':
                 plot_rate_regression_by_trialtype(
                     points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
