@@ -3097,9 +3097,11 @@ def run_single_predictor_regression(x_col, x_label, trial_types=None, *, kind='r
                         add_margins=RATIO_ADD_COMBINED, xlim=None,
                         save_dir=None, show=True):
     """Build the half-distance table (it carries current_per_second too) and draw a
-    single-predictor regression grid on x_col. kind='rate' -> logistic regression of
-    P(effect>threshold); kind='effect' -> linear (OLS) regression of the raw effect.
-    Returns (df, points)."""
+    single-predictor regression grid on x_col (RATIO_COL = the current_per_second :
+    corr half-distance ratio, formed per point; x-limits RATIO_XLIM by default).
+    kind='rate' -> logistic regression of P(effect>threshold); kind='effect' ->
+    linear (OLS) regression of the raw effect; kind='effect_z' -> OLS of the
+    per-spec effect z-score (see _attach_effect_z). Returns (df, points)."""
     if kind not in ('rate', 'effect', 'effect_z'):
         raise ValueError(f"kind must be 'rate', 'effect' or 'effect_z', got {kind!r}")
     if trial_types is None:
@@ -3120,6 +3122,10 @@ def run_single_predictor_regression(x_col, x_label, trial_types=None, *, kind='r
         print("Nothing to plot.")
         return df, pd.DataFrame()
     points = build_points(df, [HALFDIST_COL], aggregate_by)
+    if x_col == RATIO_COL:  # the ratio isn't a table column: form it per point
+        _attach_ratio(points)
+        if xlim is None:
+            xlim = RATIO_XLIM
     fname = {'rate': f"effect_direction_vs_{_slug(x_col)}_logistic.png",
              'effect': f"effect_vs_{_slug(x_col)}_linear.png",
              'effect_z': f"effect_z_vs_{_slug(x_col)}_linear.png"}[kind]
@@ -3213,10 +3219,19 @@ def main_effect_z_vs_half_distance(show=True):
                                     **_rate_regression_config_kwargs())
 
 
+def main_effect_z_vs_ratio(show=True):
+    """Per-spec effect z-score ~ current_per_second : corr half-distance ratio
+    (linear regression), one dot per spec. Standalone."""
+    run_single_predictor_regression(RATIO_COL, RATIO_LABEL, kind='effect_z', show=show,
+                                    **_rate_regression_config_kwargs())
+
+
 def main_effect_z_regressions():
-    """Both effect-z regressions; the two figures pop up together."""
+    """All three effect-z regressions (current, half-distance, their ratio); the
+    figures pop up together."""
     main_effect_z_vs_current(show=False)
     main_effect_z_vs_half_distance(show=False)
+    main_effect_z_vs_ratio(show=False)
     plt.show()
 
 
@@ -3285,10 +3300,11 @@ if __name__ == '__main__':
     #                                    main_effect_smoothed_vs_current() /
     #                                    main_effect_smoothed_vs_half_distance()
     #   - main_effect_z_regressions() -> per-spec z-score of the one-sided p (effect > 0)
-    #                                    regressed on current_per_second alone and on corr
-    #                                    half-distance alone (2 figs); each also runnable
-    #                                    alone: main_effect_z_vs_current() /
-    #                                    main_effect_z_vs_half_distance()
+    #                                    regressed on current_per_second alone, corr
+    #                                    half-distance alone, and their ratio (3 figs);
+    #                                    each also runnable alone: main_effect_z_vs_current()
+    #                                    / main_effect_z_vs_half_distance() /
+    #                                    main_effect_z_vs_ratio()
     # All of these share ONE half-distance table (and ON/OFF null) via _TABLE_CACHE.
     main_effect_vs_ratio()
     main_effect_smoothed_simple_axes()
