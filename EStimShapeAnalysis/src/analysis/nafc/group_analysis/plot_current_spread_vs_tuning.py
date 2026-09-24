@@ -2011,15 +2011,22 @@ def main_halfdist_current_vs_frequency(heatmap=True):
 
 
 # ===========================================================================
-# Effect vs the current-per-second : half-distance RATIO.
+# Estim effect vs ONE current-spread axis — current_per_second, corr half-distance,
+# or their RATIO — one point per spec.
 #
-# Collapses the 2-D (current × half-distance) plane onto ONE axis — the ratio
-# current_per_second / corr_half_distance — and plots the estim effect directly
-# against it, with a 1-D kernel-smoothed curve (Nadaraya–Watson, ± SE band)
-# drawn through the points. High ratio = a lot of current relative to how far
-# tuning reaches (dose concentrated in a narrow region); low ratio = little
-# current spread over a wide region. 2×4 grid: rows = anodic / cathodic,
-# columns = trial type.
+# The ratio collapses the 2-D (current × half-distance) plane onto one axis: high
+# ratio = a lot of current relative to how far tuning reaches (dose concentrated
+# in a narrow region); low ratio = little current spread over a wide region.
+#
+# Two plot families, same grid (rows = anodic / cathodic, cols = trial type, plus
+# ALL margins):
+#   - smoothed: a 1-D Gaussian-kernel (Nadaraya–Watson) curve through the points,
+#     with bootstrap CI and permutation test (plot_smoothed_effect_by_trialtype)
+#   - regression: a single-predictor logistic / linear fit
+#     (plot_rate_regression_by_trialtype / plot_effect_regression_by_trialtype)
+# Y can be the signed effect, P(effect>0), or the per-spec effect z-score. Pick
+# which X-axes × plots to draw with EFFECT_X_SELECTION / EFFECT_PLOT_SELECTION
+# (bottom of this section) and run main_effect_vs_spread().
 # ===========================================================================
 
 RATIO_COL = 'current_per_halfdist'
@@ -2031,18 +2038,6 @@ DEFAULT_RATIO_BW_FRAC = 0.1
 # Fixed x-axis (ratio) limits for the ratio plots, e.g. (0.0, 10.0). Set to None to
 # auto-fit to the data's robust (1st–99th percentile) range instead.
 RATIO_XLIM = (0.0, 8.0)
-# Which ratio figures to emit — each split_mode becomes its OWN file, so one run
-# produces all of them together:
-#   None   — net SIGNED effect (one black curve): overall direction+size blended.
-#   'rate' — effect DIRECTION: P(effect>0 | ratio), where each sign is more LIKELY
-#            (0.5 = balanced; red fill = positives dominate, blue = negatives).
-#   'signed_split' — SIGNED magnitude, two lines: a RED curve = typical positive
-#            effect (above 0) and a BLUE curve = typical negative effect (below 0),
-#            on the signed axis. Shows how big each direction is, sign kept.
-#   'mag'  — effect MAGNITUDE: smoothed |effect| over ALL specs (how BIG the effect
-#            is, ignoring sign) — one black curve.
-#   'abs'  — magnitude folded by sign: separate |effect| curves for effect>0 / <0.
-RATIO_MODES = (None, 'rate')
 # Add marginal "combined" panels: an "ALL trial types" column, an "ALL polarities"
 # row, and their combined-across-everything corner. Set False for just the cells.
 RATIO_ADD_COMBINED = True
@@ -2322,7 +2317,7 @@ SIGN_NEG_COLOR = '#2c6fbb'   # blue  — smoothed curve of the negative-effect p
 BOOT_CI_COLOR = '#2c8c99'    # teal  — bootstrap CI band around the observed curve
 
 
-def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_COL,
+def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
                                       x_label=RATIO_LABEL, by_polarity=True,
                                       point_noun='spec', bw_frac=DEFAULT_RATIO_BW_FRAC,
                                       xlim=RATIO_XLIM, split_mode=None,
@@ -2338,8 +2333,10 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                                       boot_cluster=RATIO_RATE_BOOT_CLUSTER,
                                       x_desc='current : corr-half-distance ratio',
                                       x_short='ratio', output_path=None):
-    """2×4 grid (rows = anodic/cathodic, cols = trial type): X = current:half-distance
-    ratio. Shared axis + colour limits. `split_mode` picks what the curve(s) show:
+    """Grid (rows = anodic/cathodic [+ ALL], cols = trial type [+ ALL]) of a 1-D
+    Gaussian-kernel-smoothed curve of the effect over X = x_col (default the
+    current : half-distance ratio). Shared axis + colour limits. `split_mode` picks
+    what the curve(s) show:
 
       None   -> one black kernel-smoothed curve (± SE) of the SIGNED effect; dots at
                 their signed effect, coloured by effect.
@@ -2348,7 +2345,13 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
       'rate' -> Y is P(effect>0 | ratio), the kernel-smoothed fraction of specs that
                 are positive (± binomial SE), with 0.5 = balanced. Red fill where
                 positives dominate, blue where negatives dominate; dots shown as a
-                sign-coloured rug. Answers "where is one sign more LIKELY?"."""
+                sign-coloured rug. Answers "where is one sign more LIKELY?".
+      'z'    -> Y is the per-spec effect z-score (EFFECT_Z_COL, from the one-sided
+                p for effect > 0; needs _attach_effect_z); one black curve with the
+                same bootstrap/permutation machinery as None. For the ON/OFF null,
+                pass the matching z-scale draws (build_onoff_null_z_draws) as
+                onoff_null.
+      'signed_split' / 'mag' -> see the RED/BLUE-by-sign and |effect| variants."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
@@ -2368,11 +2371,17 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                              squeeze=False, constrained_layout=True)
     vmax = _effect_vmax(points)
     # Fixed limits when provided (default RATIO_XLIM), else auto-fit robustly.
-    xlim = xlim if xlim is not None else _robust_limits(points[ratio_col])
+    xlim = xlim if xlim is not None else _robust_limits(points[x_col])
     yseries = pd.to_numeric(points['effect_size'], errors='coerce')
     if split_mode == 'rate':
         ylim = (-0.03, 1.03)
         y_label = f'P(effect > {effect_threshold:g})  (fraction of specs)'
+    elif split_mode == 'z':
+        zall = pd.to_numeric(points[EFFECT_Z_COL], errors='coerce')
+        ylim = _axis_limits(zall)
+        y_label = 'effect z  (Φ⁻¹(1 − p), H1: effect > 0)'
+        zfin = zall[np.isfinite(zall)]
+        vmax = max(float(np.abs(zfin).max()), 1e-6) if len(zfin) else 1.0
     elif split_mode in ('abs', 'mag'):
         ylim = _axis_limits(yseries.abs())
         ylim = (0.0, ylim[1]) if ylim else None
@@ -2507,10 +2516,12 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             has_sess = 'session_id' in sub.columns
             id_cols = [c for c in ('session_id', 'estim_spec_id', 'trial_type')
                        if c in sub.columns]
-            keep_cols = list(dict.fromkeys([ratio_col, 'effect_size'] + id_cols))
-            sub = sub[keep_cols].dropna(subset=[ratio_col, 'effect_size'])
-            x = sub[ratio_col].to_numpy(dtype=float)
-            eff = pd.to_numeric(sub['effect_size'], errors='coerce').to_numpy(dtype=float)
+            # in 'z' mode the plotted value is the z-score, so it stands in for eff
+            y_src = EFFECT_Z_COL if split_mode == 'z' else 'effect_size'
+            keep_cols = list(dict.fromkeys([x_col, y_src] + id_cols))
+            sub = sub[keep_cols].dropna(subset=[x_col, y_src])
+            x = sub[x_col].to_numpy(dtype=float)
+            eff = pd.to_numeric(sub[y_src], errors='coerce').to_numpy(dtype=float)
             sess = sub['session_id'].to_numpy() if has_sess else None
             ok = np.isfinite(x) & np.isfinite(eff)
             x, eff = x[ok], eff[ok]
@@ -2537,8 +2548,11 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                 test_res = _draw_rate(ax, x, eff, sess, null_draws=nd)
             else:
                 yv = np.abs(eff) if split_mode in ('abs', 'mag') else eff
-                if split_mode in (None, 'signed_split'):  # signed views get a 0 line
+                if split_mode in (None, 'signed_split', 'z'):  # signed views: 0 line
                     ax.axhline(0, color='#888888', lw=0.8, ls='--', zorder=1)
+                if split_mode == 'z':
+                    for yref, _ in EFFECT_Z_REF_LINES:
+                        ax.axhline(yref, color='#888888', lw=0.8, ls=':', zorder=1)
                 if len(x):
                     sc = ax.scatter(x, yv, c=eff, cmap='RdBu_r', vmin=-vmax, vmax=vmax,
                                     s=42, alpha=0.85, edgecolors='black',
@@ -2549,7 +2563,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
                     # ('abs' folds both to |effect|; 'signed_split' keeps the sign).
                     _draw_smooth(ax, x[eff > 0], yv[eff > 0], SIGN_POS_COLOR)
                     _draw_smooth(ax, x[eff < 0], yv[eff < 0], SIGN_NEG_COLOR)
-                else:  # None (signed) or 'mag' (|effect|): one tested black curve
+                else:  # None (signed), 'z' or 'mag' (|effect|): one tested black curve
                     nd_single = (None if nd is None
                                  else (np.abs(nd) if split_mode == 'mag' else nd))
                     test_res = _draw_single(ax, x, yv, sess, color='black',
@@ -2564,7 +2578,7 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
             if row_label:
                 lines.append(row_label)
             n_line = f"n={len(x)} {point_noun}s"
-            if perm_test and split_mode in (None, 'rate', 'mag'):
+            if perm_test and split_mode in (None, 'rate', 'mag', 'z'):
                 if test_res is not None:
                     pval, n_var_sess, n_var_specs = test_res
                     if null_mode == 'onoff':
@@ -2591,8 +2605,8 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
 
     if scatter_ref is not None:
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
-        cbar.set_label('estim effect (ON − OFF %)  — red = positive, blue = negative',
-                       fontsize=10)
+        cbar.set_label(('effect z' if split_mode == 'z' else 'estim effect (ON − OFF %)')
+                       + '  — red = positive, blue = negative', fontsize=10)
     _null_word = ("ON/OFF-shuffle null = reliable effect" if null_mode == 'onoff'
                   else f"{x_short}-shuffle null = varies with {x_short}")
     _test_desc = (
@@ -2611,6 +2625,9 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
         'mag': "MAGNITUDE: Y = |effect|; black = smoothed overall effect size"
                + (_test_desc if perm_test or bootstrap else " ± SE"),
         'abs': "MAGNITUDE folded by sign: Y = |effect|; red = effect>0, blue = effect<0",
+        'z': "Y = effect z (one-sided p for effect>0); black = smoothed curve"
+             + (_test_desc if perm_test or bootstrap else " ± SE")
+             + "; dotted = z=±1.645",
     }.get(split_mode, "SIGNED mean effect; black = smoothed curve"
           + (_test_desc if perm_test or bootstrap else " ± SE"))
     fig.suptitle(f"Estim effect vs {x_desc}  "
@@ -2625,132 +2642,6 @@ def plot_effect_vs_ratio_by_trialtype(points, *, trial_types, ratio_col=RATIO_CO
     if show:
         plt.show()
     return fig
-
-
-# X-axes the smoothed effect-curve plots can use. Each entry:
-#   (column, axis label, title phrase, short name for the null wording,
-#    default x-limits, output-file stem). 'current' takes its column/label from the
-#   run's x_col; '{x}' in a stem is replaced by x_col's slug.
-SMOOTH_X_AXES = {
-    'ratio': (RATIO_COL, RATIO_LABEL, 'current : corr-half-distance ratio', 'ratio',
-              RATIO_XLIM, 'effect_vs_{x}_over_halfdist_ratio'),
-    'current': (None, None, None, 'current', None, 'effect_vs_{x}_smoothed'),
-    'half_distance': (HALFDIST_COL, 'corr half-distance (µm)', 'corr half-distance',
-                      'half-distance', None, 'effect_vs_corr_half_distance_smoothed'),
-}
-
-
-def run_effect_vs_ratio(trial_types=None, *, x_axis='ratio', start_session_id=None,
-                        exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
-                        base_required_conditions=None, exclude_other_estim=True,
-                        min_on_trials=COMPARISON_MIN_ON_TRIALS,
-                        far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
-                        bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
-                        aggregate_by='spec', by_polarity=True,
-                        bw_frac=DEFAULT_RATIO_BW_FRAC, xlim='default',
-                        modes=RATIO_MODES, add_margins=RATIO_ADD_COMBINED,
-                        perm_test=RATIO_RATE_PERM_TEST, n_perm=RATIO_RATE_N_PERM,
-                        within_session=RATIO_RATE_PERM_WITHIN_SESSION,
-                        null_mode=RATIO_RATE_NULL_MODE,
-                        effect_threshold=RATIO_RATE_THRESHOLD,
-                        show_null_band=RATIO_RATE_SHOW_NULL_BAND,
-                        bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
-                        boot_cluster=RATIO_RATE_BOOT_CLUSTER,
-                        x_col='current_per_second', save_dir=None, show=True):
-    """Build the half-distance table and draw the kernel-smoothed effect-curve grid
-    (one figure per mode in `modes`) against the chosen X (`x_axis`, a key of
-    SMOOTH_X_AXES): 'ratio' = x_col ÷ corr half-distance (the default), 'current' =
-    x_col alone, 'half_distance' = corr half-distance alone. xlim='default' uses
-    that axis's default (RATIO_XLIM for the ratio, robust auto-fit otherwise).
-    Returns (df, points_df)."""
-    if x_axis not in SMOOTH_X_AXES:
-        raise ValueError(f"x_axis must be one of {list(SMOOTH_X_AXES)}, got {x_axis!r}")
-    plot_col, x_label, x_desc, x_short, default_xlim, stem = SMOOTH_X_AXES[x_axis]
-    if x_axis == 'current':
-        plot_col, x_label, x_desc = x_col, X_LABELS.get(x_col, x_col), x_col
-    if xlim == 'default':
-        xlim = default_xlim
-    if trial_types is None:
-        trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
-    print(f"[config] EFFECT vs {x_desc.upper()}  trial_types={trial_types}  "
-          f"effect_metric={effect_metric}  min_on={min_on_trials}  point={aggregate_by}  "
-          f"by_polarity={by_polarity}  bw_frac={bw_frac}")
-    df = build_current_spread_halfdist_table(
-        trial_types, start_session_id=start_session_id,
-        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
-        base_required_conditions=base_required_conditions,
-        exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials,
-        far_fraction=far_fraction, near_bins=near_bins,
-        bin_agg=bin_agg, smoothing=smoothing)
-    if len(df) == 0:
-        print("Nothing to plot.")
-        return df, pd.DataFrame()
-    points = build_points(df, [HALFDIST_COL], aggregate_by)
-    _attach_ratio(points, x_col=x_col)
-
-    # For the ON/OFF null, precompute the label-shuffled effect draws ONCE (shared by
-    # every mode). Only needed when the permutation test runs with null_mode='onoff'.
-    onoff_null = None
-    if perm_test and null_mode == 'onoff':
-        onoff_null = build_onoff_null_draws(
-            trial_types, start_session_id=start_session_id,
-            exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
-            base_required_conditions=base_required_conditions, n_draws=n_perm)
-
-    base = stem.format(x=_slug(x_col))
-    # All requested variants from ONE table build, each to its own file. show=False
-    # so every figure is built first and they all pop together at the end.
-    suffixes = {None: '', 'rate': '_direction', 'signed_split': '_signed_magnitude',
-                'mag': '_magnitude', 'abs': '_magnitude_by_sign'}
-    for mode in modes:
-        sfx = suffixes.get(mode, f'_{mode}')
-        out_path = (os.path.join(save_dir, f"{base}{sfx}.png") if save_dir else None)
-        plot_effect_vs_ratio_by_trialtype(
-            points, trial_types=trial_types, by_polarity=by_polarity,
-            point_noun=aggregate_by, bw_frac=bw_frac, xlim=xlim, split_mode=mode,
-            add_margins=add_margins, perm_test=perm_test, n_perm=n_perm,
-            within_session=within_session, null_mode=null_mode, onoff_null=onoff_null,
-            effect_threshold=effect_threshold, show_null_band=show_null_band,
-            bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
-            ratio_col=plot_col, x_label=x_label, x_desc=x_desc, x_short=x_short,
-            show=False, output_path=out_path)
-    if show:
-        plt.show()  # display every variant figure at once
-    return df, points
-
-
-def main_effect_vs_ratio():
-    """Estim effect vs the current_per_second : corr-half-distance ratio, with a 1-D
-    kernel-smoothed curve. 2×4 grid (rows = anodic/cathodic, cols = trial type).
-    Uses the shared COMPARISON_* config."""
-    run_effect_vs_ratio(
-        trial_types=(COMPARISON_TRIAL_TYPES or None),
-        start_session_id=COMPARISON_START_SESSION_ID,
-        exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
-        effect_metric=COMPARISON_METRIC,
-        base_required_conditions=COMPARISON_REQUIRED_CONDITIONS or None,
-        exclude_other_estim=True, min_on_trials=COMPARISON_MIN_ON_TRIALS,
-        aggregate_by='spec', by_polarity=True, save_dir=COMPARISON_SAVE_DIR)
-
-
-def main_effect_smoothed_vs_current(show=True):
-    """Same smoothed effect curves as main_effect_vs_ratio (every mode in
-    RATIO_MODES, same tests), but X = current_per_second alone. Standalone."""
-    run_effect_vs_ratio(x_axis='current', show=show, **_rate_regression_config_kwargs())
-
-
-def main_effect_smoothed_vs_half_distance(show=True):
-    """Same smoothed effect curves as main_effect_vs_ratio, but X = corr
-    half-distance alone. Standalone."""
-    run_effect_vs_ratio(x_axis='half_distance', show=show,
-                        **_rate_regression_config_kwargs())
-
-
-def main_effect_smoothed_simple_axes():
-    """Both simplified-X smoothed plots; all their figures pop up together."""
-    main_effect_smoothed_vs_current(show=False)
-    main_effect_smoothed_vs_half_distance(show=False)
-    plt.show()
 
 
 # ---------------------------------------------------------------------------
@@ -2938,22 +2829,61 @@ def _attach_effect_z(points):
     positive effect, negative z = evidence for a negative one; |z| grows with both
     the effect size and the number of trials. NaN where counts are missing."""
     from scipy import stats
-    n_on = pd.to_numeric(points.get('n_on'), errors='coerce').to_numpy(dtype=float)
-    n_off = pd.to_numeric(points.get('n_off'), errors='coerce').to_numpy(dtype=float)
-    on_pct = pd.to_numeric(points.get('on_pct'), errors='coerce').to_numpy(dtype=float)
-    off_pct = pd.to_numeric(points.get('off_pct'), errors='coerce').to_numpy(dtype=float)
-    ok = (np.isfinite(n_on) & np.isfinite(n_off) & np.isfinite(on_pct)
-          & np.isfinite(off_pct) & (n_on > 0) & (n_off > 0))
     p = np.full(len(points), np.nan)
-    for i in np.where(ok)[0]:
-        k_on = int(round(on_pct[i] * n_on[i] / 100))
-        k_off = int(round(off_pct[i] * n_off[i] / 100))
-        total, succ, draws = int(n_on[i] + n_off[i]), k_on + k_off, int(n_on[i])
-        p[i] = (stats.hypergeom.sf(k_on, total, succ, draws)
-                + 0.5 * stats.hypergeom.pmf(k_on, total, succ, draws))
+    for i, (n_on, n_off, k_on, k_off) in _onoff_counts(points).items():
+        p[i] = _midp_positive(k_on, n_on + n_off, k_on + k_off, n_on)
     points[EFFECT_P_COL] = p
     points[EFFECT_Z_COL] = stats.norm.isf(p)
     return points
+
+
+def _onoff_counts(points):
+    """{row position: (n_on, n_off, k_on, k_off)} of trial counts and hypothesised-
+    choice counts per spec, recovered from n_on/n_off/on_pct/off_pct. Rows missing
+    any of them (e.g. aggregate_by='experiment') are left out."""
+    def col(name):
+        if name not in points.columns:
+            return np.full(len(points), np.nan)
+        return pd.to_numeric(points[name], errors='coerce').to_numpy(dtype=float)
+    n_on, n_off, on_pct, off_pct = (col(c) for c in ('n_on', 'n_off', 'on_pct', 'off_pct'))
+    ok = (np.isfinite(n_on) & np.isfinite(n_off) & np.isfinite(on_pct)
+          & np.isfinite(off_pct) & (n_on > 0) & (n_off > 0))
+    return {int(i): (int(n_on[i]), int(n_off[i]),
+                     int(round(on_pct[i] * n_on[i] / 100)),
+                     int(round(off_pct[i] * n_off[i] / 100)))
+            for i in np.where(ok)[0]}
+
+
+def _midp_positive(k_on, total, succ, n_on):
+    """One-sided mid-p for 'ON has more hypothesised choices than chance', i.e.
+    P(X > k_on) + ½·P(X = k_on) with X ~ Hypergeom(total, succ, n_on). k_on may be
+    an array."""
+    from scipy import stats
+    return (stats.hypergeom.sf(k_on, total, succ, n_on)
+            + 0.5 * stats.hypergeom.pmf(k_on, total, succ, n_on))
+
+
+def build_onoff_null_z_draws(points, n_draws=RATIO_RATE_N_PERM, seed=0):
+    """{(session_id, estim_spec_id, trial_type): np.ndarray(n_draws)} of ON/OFF-label-
+    shuffled effect z-scores — the smoothed 'z' plot's null, matching
+    build_onoff_null_draws but on the z scale.
+
+    With binary outcomes and each spec's pooled ON+OFF trials held fixed, shuffling
+    the labels makes the ON group's hypothesised-choice count exactly
+    hypergeometric, so it is sampled directly (no second pass over the trial data)
+    and mapped to z through the same mid-p as _attach_effect_z."""
+    from scipy import stats
+    rng = np.random.default_rng(seed)
+    keys = list(zip(points['session_id'], points['estim_spec_id'], points['trial_type']))
+    out = {}
+    for i, (n_on, n_off, k_on, k_off) in _onoff_counts(points).items():
+        total, succ = n_on + n_off, k_on + k_off
+        z_of_k = stats.norm.isf(_midp_positive(np.arange(n_on + 1), total, succ, n_on))
+        ks = rng.hypergeometric(succ, total - succ, n_on, size=n_draws)
+        s_id, spec, tt = keys[i]
+        out[(s_id, int(spec), tt)] = z_of_k[ks]
+    print(f"Built ON/OFF z-null draws: {len(out)} specs × {n_draws} shuffles")
+    return out
 
 
 def _fit_linear_1d(x, y):
@@ -3085,32 +3015,55 @@ def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
     return fig
 
 
-def run_single_predictor_regression(x_col, x_label, trial_types=None, *, kind='rate',
-                        start_session_id=None,
-                        exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
-                        base_required_conditions=None, exclude_other_estim=True,
-                        min_on_trials=COMPARISON_MIN_ON_TRIALS,
-                        far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
-                        bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
-                        aggregate_by='spec', by_polarity=True,
-                        effect_threshold=RATIO_RATE_THRESHOLD,
-                        add_margins=RATIO_ADD_COMBINED, xlim=None,
-                        save_dir=None, show=True):
-    """Build the half-distance table (it carries current_per_second too) and draw a
-    single-predictor regression grid on x_col (RATIO_COL = the current_per_second :
-    corr half-distance ratio, formed per point; x-limits RATIO_XLIM by default).
-    kind='rate' -> logistic regression of P(effect>threshold); kind='effect' ->
-    linear (OLS) regression of the raw effect; kind='effect_z' -> OLS of the
-    per-spec effect z-score (see _attach_effect_z). Returns (df, points)."""
-    if kind not in ('rate', 'effect', 'effect_z'):
-        raise ValueError(f"kind must be 'rate', 'effect' or 'effect_z', got {kind!r}")
+# ---------------------------------------------------------------------------
+# Effect-vs-spread entry point: every X-axis × plot combination from ONE table
+# ---------------------------------------------------------------------------
+
+# The X-axes. xlim=None auto-fits to the data's 1st–99th percentile range.
+EFFECT_X_AXES = {
+    'current': dict(col='current_per_second', label=X_LABELS['current_per_second'],
+                    title='current_per_second', short='current', xlim=None),
+    'half_distance': dict(col=HALFDIST_COL, label='corr half-distance (µm)',
+                          title='corr half-distance', short='half-distance', xlim=None),
+    'ratio': dict(col=RATIO_COL, label=RATIO_LABEL,
+                  title='current : corr-half-distance ratio', short='ratio',
+                  xlim=RATIO_XLIM),
+}
+
+# The plots: key -> (family, y mode). Each (X-axis, plot) pair is its own figure,
+# saved as <plot>_vs_<x-axis>.png.
+EFFECT_PLOTS = {
+    # Gaussian-kernel-smoothed curves (bootstrap CI + permutation test):
+    'smooth_effect': ('smooth', None),            # signed effect, one black curve
+    'smooth_rate': ('smooth', 'rate'),            # P(effect>0): which sign is likelier
+    'smooth_z': ('smooth', 'z'),                  # per-spec effect z-score
+    'smooth_signed_split': ('smooth', 'signed_split'),  # red/blue curves, sign kept
+    'smooth_mag': ('smooth', 'mag'),              # |effect|, one black curve
+    'smooth_abs': ('smooth', 'abs'),              # |effect|, red/blue by sign
+    # Single-predictor regressions (one straight / logistic fit per panel):
+    'reg_rate': ('regress', 'rate'),              # logistic P(effect>0)
+    'reg_effect': ('regress', 'effect'),          # OLS on the raw effect
+    'reg_z': ('regress', 'z'),                    # OLS on the effect z-score
+}
+
+# What main_effect_vs_spread() draws by default: every X-axis × every plot here.
+EFFECT_X_SELECTION = ('ratio', 'current', 'half_distance')
+EFFECT_PLOT_SELECTION = ('smooth_effect', 'smooth_rate', 'smooth_z',
+                         'reg_rate', 'reg_effect', 'reg_z')
+
+
+def prepare_effect_points(trial_types=None, *, start_session_id=None,
+                          exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
+                          base_required_conditions=None, exclude_other_estim=True,
+                          min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                          far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
+                          bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
+                          aggregate_by='spec'):
+    """The (cached) half-distance table as plotting points with every X-axis column
+    (current_per_second, corr half-distance, their ratio) and the effect z-score
+    attached. Returns (trial_types, df, points); points is empty if nothing matched."""
     if trial_types is None:
         trial_types = _discover_trial_types(start_session_id, exclude_session_ids)
-    y_desc = {'rate': f"P(effect>{effect_threshold:g})", 'effect': "effect",
-              'effect_z': "effect z (one-sided p for effect>0)"}[kind]
-    print(f"[config] {y_desc} ~ {x_col}  trial_types={trial_types}  "
-          f"effect_metric={effect_metric}  min_on={min_on_trials}  point={aggregate_by}  "
-          f"by_polarity={by_polarity}")
     df = build_current_spread_halfdist_table(
         trial_types, start_session_id=start_session_id,
         exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
@@ -3119,44 +3072,107 @@ def run_single_predictor_regression(x_col, x_label, trial_types=None, *, kind='r
         far_fraction=far_fraction, near_bins=near_bins,
         bin_agg=bin_agg, smoothing=smoothing)
     if len(df) == 0:
-        print("Nothing to plot.")
-        return df, pd.DataFrame()
+        return trial_types, df, pd.DataFrame()
     points = build_points(df, [HALFDIST_COL], aggregate_by)
-    if x_col == RATIO_COL:  # the ratio isn't a table column: form it per point
-        _attach_ratio(points)
-        if xlim is None:
-            xlim = RATIO_XLIM
-    fname = {'rate': f"effect_direction_vs_{_slug(x_col)}_logistic.png",
-             'effect': f"effect_vs_{_slug(x_col)}_linear.png",
-             'effect_z': f"effect_z_vs_{_slug(x_col)}_linear.png"}[kind]
-    out_path = os.path.join(save_dir, fname) if save_dir else None
-    if kind == 'rate':
-        plot_rate_regression_by_trialtype(
-            points, x_col, trial_types=trial_types, x_label=x_label,
-            by_polarity=by_polarity, point_noun=aggregate_by,
-            effect_threshold=effect_threshold, add_margins=add_margins, xlim=xlim,
-            show=show, output_path=out_path)
-    elif kind == 'effect':
-        plot_effect_regression_by_trialtype(
-            points, x_col, trial_types=trial_types, x_label=x_label,
-            by_polarity=by_polarity, point_noun=aggregate_by,
-            add_margins=add_margins, xlim=xlim, show=show, output_path=out_path)
-    else:
-        _attach_effect_z(points)
-        plot_effect_regression_by_trialtype(
-            points, x_col, trial_types=trial_types, x_label=x_label,
-            by_polarity=by_polarity, point_noun=aggregate_by,
-            add_margins=add_margins, xlim=xlim, y_col=EFFECT_Z_COL,
-            y_label='effect z  (Φ⁻¹(1 − p), H1: effect > 0)',
-            y_desc='Estim effect z-score', ref_lines=EFFECT_Z_REF_LINES,
-            show=show, output_path=out_path)
+    _attach_ratio(points)
+    _attach_effect_z(points)
+    return trial_types, df, points
+
+
+def run_effect_vs_spread(x_axes=EFFECT_X_SELECTION, plots=EFFECT_PLOT_SELECTION,
+                         trial_types=None, *, start_session_id=None,
+                         exclude_session_ids=None, effect_metric=COMPARISON_METRIC,
+                         base_required_conditions=None, exclude_other_estim=True,
+                         min_on_trials=COMPARISON_MIN_ON_TRIALS,
+                         far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
+                         bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
+                         aggregate_by='spec', by_polarity=True,
+                         add_margins=RATIO_ADD_COMBINED, bw_frac=DEFAULT_RATIO_BW_FRAC,
+                         perm_test=RATIO_RATE_PERM_TEST, n_perm=RATIO_RATE_N_PERM,
+                         within_session=RATIO_RATE_PERM_WITHIN_SESSION,
+                         null_mode=RATIO_RATE_NULL_MODE,
+                         effect_threshold=RATIO_RATE_THRESHOLD,
+                         show_null_band=RATIO_RATE_SHOW_NULL_BAND,
+                         bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
+                         boot_cluster=RATIO_RATE_BOOT_CLUSTER,
+                         save_dir=None, show=True):
+    """Draw every (X-axis in x_axes) × (plot in plots) figure — keys of
+    EFFECT_X_AXES / EFFECT_PLOTS — from ONE points table. The ON/OFF null draws
+    are built once too (raw-effect scale only if a non-z smoothed plot is asked
+    for, z scale only if 'smooth_z' is). Returns (df, points)."""
+    bad = ([x for x in x_axes if x not in EFFECT_X_AXES]
+           + [p for p in plots if p not in EFFECT_PLOTS])
+    if bad:
+        raise ValueError(f"unknown x-axis/plot key(s) {bad}; choose from "
+                         f"{list(EFFECT_X_AXES)} / {list(EFFECT_PLOTS)}")
+    trial_types, df, points = prepare_effect_points(
+        trial_types, start_session_id=start_session_id,
+        exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+        base_required_conditions=base_required_conditions,
+        exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials,
+        far_fraction=far_fraction, near_bins=near_bins, bin_agg=bin_agg,
+        smoothing=smoothing, aggregate_by=aggregate_by)
+    print(f"[config] EFFECT vs SPREAD  x_axes={list(x_axes)}  plots={list(plots)}  "
+          f"trial_types={trial_types}  effect_metric={effect_metric}  "
+          f"min_on={min_on_trials}  point={aggregate_by}  by_polarity={by_polarity}  "
+          f"bw_frac={bw_frac}  null={null_mode if perm_test else 'off'}")
+    if len(points) == 0:
+        print("Nothing to plot.")
+        return df, points
+
+    smooth_modes = {EFFECT_PLOTS[k][1] for k in plots if EFFECT_PLOTS[k][0] == 'smooth'}
+    onoff_null, onoff_null_z = None, None
+    if perm_test and null_mode == 'onoff':
+        if smooth_modes - {'z', 'signed_split', 'abs'}:  # modes that run the test
+            onoff_null = build_onoff_null_draws(
+                trial_types, start_session_id=start_session_id,
+                exclude_session_ids=exclude_session_ids, effect_metric=effect_metric,
+                base_required_conditions=base_required_conditions, n_draws=n_perm)
+        if 'z' in smooth_modes:
+            onoff_null_z = build_onoff_null_z_draws(points, n_draws=n_perm)
+
+    common = dict(trial_types=trial_types, by_polarity=by_polarity,
+                  point_noun=aggregate_by, add_margins=add_margins, show=False)
+    for x_key in x_axes:
+        ax_cfg = EFFECT_X_AXES[x_key]
+        for plot_key in plots:
+            family, mode = EFFECT_PLOTS[plot_key]
+            out_path = (os.path.join(save_dir, f"{plot_key}_vs_{x_key}.png")
+                        if save_dir else None)
+            if family == 'smooth':
+                plot_smoothed_effect_by_trialtype(
+                    points, x_col=ax_cfg['col'], x_label=ax_cfg['label'],
+                    x_desc=ax_cfg['title'], x_short=ax_cfg['short'],
+                    xlim=ax_cfg['xlim'], split_mode=mode, bw_frac=bw_frac,
+                    perm_test=perm_test, n_perm=n_perm, within_session=within_session,
+                    null_mode=null_mode,
+                    onoff_null=onoff_null_z if mode == 'z' else onoff_null,
+                    effect_threshold=effect_threshold, show_null_band=show_null_band,
+                    bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
+                    output_path=out_path, **common)
+            elif mode == 'rate':
+                plot_rate_regression_by_trialtype(
+                    points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+                    effect_threshold=effect_threshold, output_path=out_path, **common)
+            elif mode == 'effect':
+                plot_effect_regression_by_trialtype(
+                    points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+                    output_path=out_path, **common)
+            else:  # 'z'
+                plot_effect_regression_by_trialtype(
+                    points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+                    y_col=EFFECT_Z_COL, y_label='effect z  (Φ⁻¹(1 − p), H1: effect > 0)',
+                    y_desc='Estim effect z-score', ref_lines=EFFECT_Z_REF_LINES,
+                    output_path=out_path, **common)
+    if show:
+        plt.show()  # every figure pops up together
     return df, points
 
 
-def _rate_regression_config_kwargs():
-    """Shared COMPARISON_* config for the single-predictor regression sub-mains."""
+def _comparison_config_kwargs():
+    """The shared COMPARISON_* config, as run_effect_vs_spread kwargs."""
     return dict(
-        trial_types=(COMPARISON_TRIAL_TYPES or None),
+        trial_types=(COMPARISON_TRIAL_TYPES or None),  # None/[] -> auto-discover
         start_session_id=COMPARISON_START_SESSION_ID,
         exclude_session_ids=COMPARISON_EXCLUDE_SESSION_IDS,
         effect_metric=COMPARISON_METRIC,
@@ -3165,82 +3181,17 @@ def _rate_regression_config_kwargs():
         aggregate_by='spec', by_polarity=True, save_dir=COMPARISON_SAVE_DIR)
 
 
-def main_rate_vs_current(show=True):
-    """P(effect>0) ~ current_per_second alone (logistic regression), polarity ×
-    trial type grid. Standalone."""
-    run_single_predictor_regression('current_per_second', X_LABELS['current_per_second'],
-                        show=show, **_rate_regression_config_kwargs())
+def main_effect_vs_spread(x_axes=EFFECT_X_SELECTION, plots=EFFECT_PLOT_SELECTION):
+    """Estim effect vs current-spread axes with the shared COMPARISON_* config. By
+    default every X-axis in EFFECT_X_SELECTION × plot in EFFECT_PLOT_SELECTION; pass
+    subsets for fewer, e.g. main_effect_vs_spread(('ratio',), ('smooth_z',))."""
+    return run_effect_vs_spread(x_axes, plots, **_comparison_config_kwargs())
 
 
-def main_rate_vs_half_distance(show=True):
-    """P(effect>0) ~ corr half-distance alone (logistic regression), polarity ×
-    trial type grid. Standalone."""
-    run_single_predictor_regression(HALFDIST_COL, 'corr half-distance (µm)',
-                        show=show, **_rate_regression_config_kwargs())
-
-
-def main_effect_vs_current(show=True):
-    """Raw estim effect ~ current_per_second alone (linear regression), all specs
-    plotted, polarity × trial type grid. Standalone."""
-    run_single_predictor_regression('current_per_second', X_LABELS['current_per_second'],
-                                    kind='effect', show=show,
-                                    **_rate_regression_config_kwargs())
-
-
-def main_effect_vs_half_distance(show=True):
-    """Raw estim effect ~ corr half-distance alone (linear regression), all specs
-    plotted, polarity × trial type grid. Standalone."""
-    run_single_predictor_regression(HALFDIST_COL, 'corr half-distance (µm)',
-                                    kind='effect', show=show,
-                                    **_rate_regression_config_kwargs())
-
-
-def main_effect_regressions():
-    """Run both raw-effect linear regressions; each is its own figure, and both pop
-    up together at the end."""
-    main_effect_vs_current(show=False)
-    main_effect_vs_half_distance(show=False)
-    plt.show()
-
-
-def main_effect_z_vs_current(show=True):
-    """Per-spec effect z-score (from the one-sided p for effect > 0) ~
-    current_per_second alone (linear regression), one dot per spec. Standalone."""
-    run_single_predictor_regression('current_per_second', X_LABELS['current_per_second'],
-                                    kind='effect_z', show=show,
-                                    **_rate_regression_config_kwargs())
-
-
-def main_effect_z_vs_half_distance(show=True):
-    """Per-spec effect z-score ~ corr half-distance alone (linear regression), one
-    dot per spec. Standalone."""
-    run_single_predictor_regression(HALFDIST_COL, 'corr half-distance (µm)',
-                                    kind='effect_z', show=show,
-                                    **_rate_regression_config_kwargs())
-
-
-def main_effect_z_vs_ratio(show=True):
-    """Per-spec effect z-score ~ current_per_second : corr half-distance ratio
-    (linear regression), one dot per spec. Standalone."""
-    run_single_predictor_regression(RATIO_COL, RATIO_LABEL, kind='effect_z', show=show,
-                                    **_rate_regression_config_kwargs())
-
-
-def main_effect_z_regressions():
-    """All three effect-z regressions (current, half-distance, their ratio); the
-    figures pop up together."""
-    main_effect_z_vs_current(show=False)
-    main_effect_z_vs_half_distance(show=False)
-    main_effect_z_vs_ratio(show=False)
-    plt.show()
-
-
-def main_rate_regressions():
-    """Run both single-predictor regressions; each is its own figure, and both pop
-    up together at the end."""
-    main_rate_vs_current(show=False)
-    main_rate_vs_half_distance(show=False)
-    plt.show()
+def main_effect_vs_ratio():
+    """The original ratio figures: smoothed signed effect and P(effect>0) vs the
+    current : half-distance ratio."""
+    return main_effect_vs_spread(('ratio',), ('smooth_effect', 'smooth_rate'))
 
 
 def main():
@@ -3284,33 +3235,13 @@ if __name__ == '__main__':
     #   - main_spec_metrics()         -> effect-coloured scatter per selected metric
     #   - main_halfdist_current_vs_frequency() -> corr half-distance heatmaps with
     #                                    X = total current AND X = frequency (2 figs)
-    #   - main_effect_vs_ratio()      -> estim effect vs current:half-distance ratio,
-    #                                    1-D smoothed curve; 2×4 (polarity × trial type)
-    #   - main_rate_regressions()     -> P(effect>0) logistic regression on current_per_second
-    #                                    alone and on corr half-distance alone (2 figs);
-    #                                    each also runnable alone: main_rate_vs_current()
-    #                                    / main_rate_vs_half_distance()
-    #   - main_effect_regressions()   -> raw effect linear regression on current_per_second
-    #                                    alone and on corr half-distance alone (2 figs);
-    #                                    each also runnable alone: main_effect_vs_current()
-    #                                    / main_effect_vs_half_distance()
-    #   - main_effect_smoothed_simple_axes() -> the main_effect_vs_ratio smoothed curves
-    #                                    with X = current_per_second alone and X = corr
-    #                                    half-distance alone; each also runnable alone:
-    #                                    main_effect_smoothed_vs_current() /
-    #                                    main_effect_smoothed_vs_half_distance()
-    #   - main_effect_z_regressions() -> per-spec z-score of the one-sided p (effect > 0)
-    #                                    regressed on current_per_second alone, corr
-    #                                    half-distance alone, and their ratio (3 figs);
-    #                                    each also runnable alone: main_effect_z_vs_current()
-    #                                    / main_effect_z_vs_half_distance() /
-    #                                    main_effect_z_vs_ratio()
-    # All of these share ONE half-distance table (and ON/OFF null) via _TABLE_CACHE.
-    main_effect_vs_ratio()
-    main_effect_smoothed_simple_axes()
-    main_rate_regressions()
-    main_effect_regressions()
-    main_effect_z_regressions()
+    #   - main_effect_vs_spread()     -> estim effect vs current_per_second, corr
+    #                                    half-distance and their ratio: smoothed curves
+    #                                    + regressions, Y = effect / P(effect>0) / z.
+    #                                    Choose with EFFECT_X_SELECTION and
+    #                                    EFFECT_PLOT_SELECTION, or pass subsets.
+    #   - main_effect_vs_ratio()      -> just the original smoothed ratio figures
+    main_effect_vs_spread()
     # main_halfdist_current_vs_frequency()
     # main_spec_metrics_heatmap()
     # main_spec_metrics()
