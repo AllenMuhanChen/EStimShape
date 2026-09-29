@@ -300,12 +300,18 @@ def _histogram_edges(array_sets, bin_width):
 
 
 def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='greater',
-                              color="#d9534f", title=None):
+                              color="#d9534f", title=None, weighted_mean=True):
     """Draw one per-condition effect histogram, its chance curve, mean line and the
-    Fisher's combined result onto ``ax``."""
+    Fisher's combined result onto ``ax``.
+
+    ``weighted_mean``: True draws the trial-weighted mean (each condition weighted by
+    n_on + n_off); False draws the raw mean (every condition counts equally)."""
     effects, null_sd = arrays['effects'], arrays['null_sd']
     bin_width = float(edges[1] - edges[0])
-    weighted_mean = float(np.average(effects, weights=arrays['weights']))
+    trial_weighted = float(np.average(effects, weights=arrays['weights']))
+    raw_mean       = float(effects.mean())
+    mean_value = trial_weighted if weighted_mean else raw_mean
+    mean_label = "Trial-weighted mean" if weighted_mean else "Mean"
 
     # Expected counts per bin under H0; conditions with sd=0 (all-yes or all-no)
     # would be a spike at 0 and are left out of the curve.
@@ -318,8 +324,8 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
     ax.plot(x, null_curve, color="black", linewidth=1.8,
             label="Expected from chance (no EStim effect)")
     ax.axvline(0, color="gray", linestyle="--", linewidth=1)
-    ax.axvline(weighted_mean, color="darkred", linewidth=1.5,
-               label=f"Trial-weighted mean = {weighted_mean:+.1f}%")
+    ax.axvline(mean_value, color="darkred", linewidth=1.5,
+               label=f"{mean_label} = {mean_value:+.1f}%")
 
     h1 = "ON > OFF" if alternative == 'greater' else "ON < OFF"
     sig_color = "darkred" if pop['p_combined'] < 0.05 else "#444444"
@@ -336,14 +342,14 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
     ax.spines[['top', 'right']].set_visible(False)
 
     print(f"\nCondition histogram{' [' + title + ']' if title else ''}: {len(effects)} conditions, "
-          f"trial-weighted mean {weighted_mean:+.2f}%, unweighted mean {effects.mean():+.2f}%")
-    return weighted_mean
+          f"trial-weighted mean {trial_weighted:+.2f}%, raw mean {raw_mean:+.2f}%")
+    return mean_value
 
 
 def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=None,
                                     algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                     alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
-                                    bin_width=5.0, save_path=None):
+                                    bin_width=5.0, weighted_mean=True, save_path=None):
     """
     Histogram of per-condition effect sizes (ON% - OFF%, one value per qualifying
     condition across all sessions), with the distribution expected from chance alone.
@@ -355,6 +361,9 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
 
     The p-value shown is the session-level Fisher's combined test, not a test on the
     histogram: conditions share OFF trials, so they are not independent.
+
+    weighted_mean : True (default) draws the trial-weighted mean line; False draws the
+                    raw mean (every condition counts equally).
     """
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
                                 metric, alternative, min_trials)
@@ -366,7 +375,7 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
 
     fig, ax = plt.subplots(figsize=(8, 5))
     _draw_condition_histogram(ax, rows, pop, arrays, _histogram_edges([arrays], bin_width),
-                              alternative=alternative)
+                              alternative=alternative, weighted_mean=weighted_mean)
     ax.set_xlabel("EStim effect: % ON − % OFF (per condition)", fontsize=12)
     fig.tight_layout()
 
@@ -448,7 +457,8 @@ def _describe_rules(rules):
 def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
-                               rules=ESTIM_RULES, bin_width=5.0, save_path=None):
+                               rules=ESTIM_RULES, bin_width=5.0, weighted_mean=True,
+                               save_path=None):
     """
     Per-condition effect histograms split by the estim rules, stacked on a shared
     x-axis (and shared bins / y-axis) for direct comparison:
@@ -458,6 +468,9 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
     Each panel has its own chance curve, trial-weighted mean and session-level
     Fisher's combined test (each session's within-rule / outside-rule conditions
     pooled into their own 2x2 table).
+
+    weighted_mean : True (default) draws the trial-weighted mean line; False draws the
+                    raw mean (every condition counts equally).
     """
     groups = [(RULE_IN,  "Within estim rules",  "#d9534f"),
               (RULE_OUT, "Outside estim rules", "#7f7f7f")]
@@ -487,7 +500,7 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
             ax.set_title(label, fontsize=11, loc="left", fontweight="bold")
             continue
         _draw_condition_histogram(ax, rows, pop, arrays, edges, alternative=alternative,
-                                  color=color, title=label)
+                                  color=color, title=label, weighted_mean=weighted_mean)
 
     axes[-1].set_xlabel("EStim effect: % ON − % OFF (per condition)", fontsize=12)
     fig.suptitle(f"Rules: {_describe_rules(rules)}", fontsize=10, color="#444444")
@@ -610,6 +623,7 @@ def main():
         alternative='greater',   # 'less' -> test whether the average effect is negative
         min_trials=10,
         bin_width=5.0,           # percentage points
+        weighted_mean=True,      # False -> raw mean (every condition counts equally)
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_condition_histogram.png",
     )
 
@@ -622,6 +636,7 @@ def main():
         alternative='greater',
         min_trials=10,
         bin_width=5.0,
+        weighted_mean=True,      # False -> raw mean (every condition counts equally)
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
     )
 
