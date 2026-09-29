@@ -2771,10 +2771,14 @@ def plot_rate_regression_by_trialtype(points, x_col, *, trial_types, x_label,
                                       by_polarity=True, point_noun='spec',
                                       effect_threshold=RATIO_RATE_THRESHOLD,
                                       add_margins=RATIO_ADD_COMBINED, xlim=None,
-                                      n_bins=RATE_REG_N_BINS, show=True,
-                                      output_path=None):
-    """Grid (rows = polarity [+ ALL], cols = trial type [+ ALL]) of a simple logistic
-    regression P(effect > threshold) ~ x_col. Returns the figure."""
+                                      n_bins=RATE_REG_N_BINS, model='linear',
+                                      x_display=None, show=True, output_path=None):
+    """Grid (rows = polarity [+ ALL], cols = trial type [+ ALL]) of a logistic
+    regression P(effect > threshold) ~ x_col (model='linear') or ~ x + x²
+    (model='quadratic': curvature Wald test, turning point marked). Returns the
+    figure."""
+    if model not in ('linear', 'quadratic'):
+        raise ValueError(f"P(effect>0) supports model 'linear' or 'quadratic', got {model!r}")
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
@@ -2825,18 +2829,33 @@ def plot_rate_regression_by_trialtype(points, x_col, *, trial_types, x_label,
                         ax.plot(np.median(x[m]), y[m].mean(), 'o', color='0.3',
                                 ms=4 + 8 * m.sum() / len(x), alpha=0.8, zorder=3)
 
-            fit = _fit_logistic_1d(x, y)
-            stat_line = "logistic fit n/a"
+            fit = (_fit_logistic_1d(x, y) if model == 'linear'
+                   else _fit_logistic_quadratic(x, y))
+            stat_line = f"logistic {model} fit n/a"
             if fit is not None:
                 lo_x, hi_x = xlim if xlim else (x.min(), x.max())
                 gx = np.linspace(lo_x, hi_x, 200)
-                pc, plo, phi = _logistic_curve(fit, gx)
+                if model == 'linear':
+                    pc, plo, phi = _logistic_curve(fit, gx)
+                    sig = fit['p_slope'] < 0.05
+                    stat_line = (f"slope={fit['b1']:.3g}  p={fit['p_slope']:.3g}"
+                                 f"{' *' if sig else ''}")
+                else:
+                    pc, plo, phi = _logistic_quadratic_curve(fit, gx)
+                    sig = fit['p_curv'] < 0.05
+                    v = fit['vertex']
+                    shown = f"{x_display(v):.3g}" if (v is not None and x_display) else (
+                        f"{v:.3g}" if v is not None else None)
+                    where = (f"{fit['kind']} at {shown}" if shown
+                             else f"no {fit['kind']} in range")
+                    stat_line = (f"curvature p={fit['p_curv']:.3g}"
+                                 f"{' *' if sig else ''}  {where}")
+                    if v is not None and lo_x <= v <= hi_x:
+                        ax.axvline(v, color='#e8a020' if sig else 'black', lw=1.0,
+                                   ls=':', zorder=4)
                 ax.fill_between(gx, plo, phi, color='#808080', alpha=0.22, zorder=3,
                                 linewidth=0)
-                sig = fit['p_slope'] < 0.05
                 ax.plot(gx, pc, color='#e8a020' if sig else 'black', lw=2.2, zorder=4)
-                stat_line = (f"slope={fit['b1']:.3g}  p={fit['p_slope']:.3g}"
-                             f"{' *' if sig else ''}")
 
             col_label = 'ALL trial types' if tt is ALL else tt
             row_label = ('ALL polarities' if group is ALL
@@ -2858,8 +2877,12 @@ def plot_rate_regression_by_trialtype(points, x_col, *, trial_types, x_label,
                 ax.set_ylabel(f'P(effect > {effect_threshold:g})', fontsize=10)
             ax.grid(True, alpha=0.3)
 
-    fig.suptitle(f"P(effect > {effect_threshold:g}) vs {x_label} — logistic regression "
-                 "(grey = 95% CI; gold = slope p<0.05; dots = binned proportions"
+    fig.suptitle(f"P(effect > {effect_threshold:g}) vs {x_label} — "
+                 + ("logistic regression (grey = 95% CI; gold = slope p<0.05"
+                    if model == 'linear' else
+                    "quadratic logistic regression (grey = 95% CI; gold = curvature "
+                    "p<0.05; dotted = turning point")
+                 + "; dots = binned proportions"
                  f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
                  fontsize=14, fontweight='bold')
     if output_path:
@@ -2970,18 +2993,299 @@ def _fit_linear_1d(x, y):
                 p_slope=p_slope, n=n)
 
 
+# ---------------------------------------------------------------------------
+# Peaked fits: quadratic and Gaussian (for "rises then falls" relationships)
+# ---------------------------------------------------------------------------
+
+# Gaussian peak fit: grid over peak position (GAUSS_GRID_MU points spanning the
+# data's x range) × width (GAUSS_GRID_SIGMA log-spaced from range/25 to 1.5×range);
+# at each grid point baseline + amplitude are solved in closed form, then the best
+# one is refined by least squares. Peak significance = permutation test, peak
+# location CI + curve band = bootstrap.
+GAUSS_GRID_MU = 80
+GAUSS_GRID_SIGMA = 30
+GAUSS_N_PERM = 1000
+GAUSS_N_BOOT = 300
+# The permutation test only asks "does a bump beat a flat line?" — a monotonic
+# trend passes it with the bump parked at an edge. A peak counts as real (gold)
+# only if its bootstrap 95% CI also stays this fraction of the x range clear of
+# both ends of the data.
+GAUSS_EDGE_MARGIN = 0.05
+REGRESSION_MODELS = ('linear', 'quadratic', 'gaussian')
+
+
+def _std_design(x, degree):
+    """Polynomial design [1, z, z², …] on standardised z = (x − mu)/sd."""
+    mu, sd = float(np.mean(x)), float(np.std(x)) or 1.0
+    z = (np.asarray(x, dtype=float) - mu) / sd
+    return np.column_stack([z ** k for k in range(degree + 1)]), mu, sd
+
+
+def _vertex(beta, mu, sd, x):
+    """(x of the quadratic's turning point, 'peak'/'trough') if it lies within the
+    data's x range, else (None, kind)."""
+    kind = 'peak' if beta[2] < 0 else 'trough'
+    if beta[2] == 0:
+        return None, kind
+    xv = mu + sd * (-beta[1] / (2 * beta[2]))
+    return (xv if x.min() <= xv <= x.max() else None), kind
+
+
+def _fit_quadratic_1d(x, y):
+    """OLS y ~ 1 + z + z² (z = standardised x). Returns dict(beta, cov, mu, sd,
+    p_curv [two-sided t-test on the z² term], vertex, kind, r2, n) or None."""
+    from scipy import stats
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = len(x)
+    if n < 5 or np.ptp(x) == 0:
+        return None
+    X, mu, sd = _std_design(x, 2)
+    beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+    resid = y - X @ beta
+    dof = n - 3
+    sigma2 = float(resid @ resid) / dof
+    try:
+        cov = sigma2 * np.linalg.inv(X.T @ X)
+    except np.linalg.LinAlgError:
+        return None
+    se2 = np.sqrt(cov[2, 2])
+    p_curv = float(2 * stats.t.sf(abs(beta[2] / se2), dof)) if se2 > 0 else 1.0
+    ss_tot = float(((y - y.mean()) ** 2).sum())
+    vx, kind = _vertex(beta, mu, sd, x)
+    return dict(beta=beta, cov=cov, mu=mu, sd=sd, p_curv=p_curv, vertex=vx, kind=kind,
+                r2=1 - float(resid @ resid) / ss_tot if ss_tot > 0 else 0.0, n=n,
+                dof=dof)
+
+
+def _quadratic_curve(fit, gx, level=0.95):
+    """Fitted mean and CI band of a _fit_quadratic_1d result on grid gx."""
+    from scipy import stats
+    z = (gx - fit['mu']) / fit['sd']
+    G = np.column_stack([np.ones_like(z), z, z ** 2])
+    yhat = G @ fit['beta']
+    se = np.sqrt(np.einsum('ij,jk,ik->i', G, fit['cov'], G))
+    t = stats.t.ppf(0.5 + level / 2, fit['dof'])
+    return yhat, yhat - t * se, yhat + t * se
+
+
+def _fit_logistic_quadratic(x, y, *, max_iter=100, tol=1e-8):
+    """Logistic P(y=1) ~ 1 + z + z² by IRLS. Returns dict(beta, cov, mu, sd, p_curv
+    [Wald test on z²], vertex, kind, n) or None (too few points, one class,
+    separation)."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = len(x)
+    if n < 5 or y.min() == y.max() or np.ptp(x) == 0:
+        return None
+    X, mu, sd = _std_design(x, 2)
+    beta = np.zeros(3)
+    for _ in range(max_iter):
+        p = 1.0 / (1.0 + np.exp(-(X @ beta)))
+        H = X.T @ (X * (p * (1 - p))[:, None])
+        try:
+            step = np.linalg.solve(H, X.T @ (y - p))
+        except np.linalg.LinAlgError:
+            return None
+        beta = beta + step
+        if np.max(np.abs(step)) < tol:
+            break
+    if not np.all(np.isfinite(beta)) or np.abs(beta).max() > 30:  # ~separation
+        return None
+    p = 1.0 / (1.0 + np.exp(-(X @ beta)))
+    try:
+        cov = np.linalg.inv(X.T @ (X * (p * (1 - p))[:, None]))
+    except np.linalg.LinAlgError:
+        return None
+    zstat = beta[2] / np.sqrt(cov[2, 2])
+    vx, kind = _vertex(beta, mu, sd, x)
+    return dict(beta=beta, cov=cov, mu=mu, sd=sd, vertex=vx, kind=kind, n=n,
+                p_curv=float(math.erfc(abs(zstat) / math.sqrt(2))))
+
+
+def _logistic_quadratic_curve(fit, gx, z=1.96):
+    zz = (gx - fit['mu']) / fit['sd']
+    G = np.column_stack([np.ones_like(zz), zz, zz ** 2])
+    eta = G @ fit['beta']
+    se = np.sqrt(np.einsum('ij,jk,ik->i', G, fit['cov'], G))
+    sig = lambda v: 1.0 / (1.0 + np.exp(-v))
+    return sig(eta), sig(eta - z * se), sig(eta + z * se)
+
+
+def _gauss_grid(x):
+    lo, hi = float(np.min(x)), float(np.max(x))
+    span = hi - lo
+    mus = np.linspace(lo, hi, GAUSS_GRID_MU)
+    sigmas = np.geomspace(span / 25, span * 1.5, GAUSS_GRID_SIGMA)
+    M, S = np.meshgrid(mus, sigmas, indexing='ij')
+    return M.ravel(), S.ravel()
+
+
+def _gauss_basis(x, M, S):
+    """(grid × n) matrix of exp(−(x − μ)² / 2σ²) for every grid (μ, σ)."""
+    return np.exp(-0.5 * ((x[None, :] - M[:, None]) / S[:, None]) ** 2)
+
+
+def _best_peak(basis, Y):
+    """For each row of Y (P × n), the grid index whose Gaussian basis explains the
+    most variance with a POSITIVE amplitude, and that explained sum of squares.
+    baseline + amplitude are the closed-form least-squares solution."""
+    bc = basis - basis.mean(axis=1, keepdims=True)
+    var = (bc ** 2).sum(axis=1)
+    ok = var > 1e-12
+    Yc = Y - Y.mean(axis=1, keepdims=True)
+    cov = bc @ Yc.T                                   # grid × P
+    red = np.where((cov > 0) & ok[:, None], cov ** 2 / np.where(ok, var, 1)[:, None], 0.0)
+    k = red.argmax(axis=0)
+    return k, red[k, np.arange(Y.shape[0])], cov[k, np.arange(Y.shape[0])], var[k]
+
+
+def _gauss_eval(gx, b0, amp, mu, sigma):
+    return b0 + amp * np.exp(-0.5 * ((gx - mu) / sigma) ** 2)
+
+
+def _fit_gaussian_peak(x, y, *, gx=None, n_perm=GAUSS_N_PERM, n_boot=GAUSS_N_BOOT,
+                       seed=0):
+    """y ≈ b0 + A·exp(−(x − μ)² / 2σ²) with A > 0 (a PEAK). Returns dict(b0, amp,
+    mu, sigma, r2, p [permutation: is the best peak fit better than on x-shuffled
+    data?], mu_ci [bootstrap 95%], interior [mu_ci clear of both data edges, see
+    GAUSS_EDGE_MARGIN], band=(lo, hi) on gx, n) or None.
+
+    p alone does not establish a peak: a monotonic trend also beats a flat line
+    (with μ at an edge). Treat it as a peak only when p < 0.05 AND interior."""
+    from scipy.optimize import curve_fit
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = len(x)
+    if n < 8 or np.ptp(x) == 0 or np.ptp(y) == 0:
+        return None
+    M, S = _gauss_grid(x)
+    basis = _gauss_basis(x, M, S)
+    k, red, cov, var = _best_peak(basis, y[None, :])
+    k, red = int(k[0]), float(red[0])
+    if red <= 0:
+        return None  # no positive-amplitude bump fits better than a flat line
+    g = basis[k]
+    amp = float(cov[0] / var[0])
+    b0 = float(y.mean() - amp * g.mean())
+    mu, sigma = float(M[k]), float(S[k])
+    span = float(np.ptp(x))
+    try:  # refine the grid optimum
+        (b0, amp, mu, sigma), _ = curve_fit(
+            _gauss_eval, x, y, p0=(b0, amp, mu, sigma),
+            bounds=([-np.inf, 0, x.min() - 0.1 * span, span / 25],
+                    [np.inf, np.inf, x.max() + 0.1 * span, span * 3]), maxfev=5000)
+    except Exception:
+        pass
+    ss_tot = float(((y - y.mean()) ** 2).sum())
+    resid = y - _gauss_eval(x, b0, amp, mu, sigma)
+    r2 = 1 - float(resid @ resid) / ss_tot
+
+    rng = np.random.default_rng(seed)
+    # permutation null: shuffle y across x, keep the best-peak explained SS
+    null = np.empty(n_perm)
+    for start in range(0, n_perm, 250):  # chunks keep the grid × P matrix small
+        m = min(250, n_perm - start)
+        Yp = np.stack([rng.permutation(y) for _ in range(m)])
+        null[start:start + m] = _best_peak(basis, Yp)[1]
+    p = (1 + int(np.sum(null >= red))) / (n_perm + 1)
+
+    # bootstrap: resample specs, refit on the grid -> μ CI and a curve band
+    gx = np.linspace(x.min(), x.max(), 200) if gx is None else gx
+    mus, curves = [], []
+    for _ in range(n_boot):
+        idx = rng.integers(0, n, n)
+        xb, yb = x[idx], y[idx]
+        if np.ptp(xb) == 0:
+            continue
+        kb, rb, cb, vb = _best_peak(_gauss_basis(xb, M, S), yb[None, :])
+        if rb[0] <= 0:
+            continue
+        a_b = cb[0] / vb[0]
+        gb = _gauss_eval(xb, 0.0, 1.0, M[kb[0]], S[kb[0]])
+        mus.append(M[kb[0]])
+        curves.append(_gauss_eval(gx, yb.mean() - a_b * gb.mean(), a_b,
+                                  M[kb[0]], S[kb[0]]))
+    mu_ci = tuple(np.percentile(mus, [2.5, 97.5])) if len(mus) > 10 else (np.nan, np.nan)
+    margin = GAUSS_EDGE_MARGIN * span
+    interior = bool(np.isfinite(mu_ci[0]) and mu_ci[0] > x.min() + margin
+                    and mu_ci[1] < x.max() - margin)
+    band = (tuple(np.percentile(np.array(curves), [2.5, 97.5], axis=0))
+            if len(curves) > 10 else None)
+    return dict(b0=b0, amp=amp, mu=mu, sigma=sigma, r2=r2, p=p, mu_ci=mu_ci,
+                interior=interior, band=band, gx=gx, n=n)
+
+
+def _draw_regression(ax, x, y, model, xlim, x_display=None):
+    """Draw a continuous-y regression of the given model on ax (curve + 95% band,
+    gold when significant, a dotted marker at a fitted peak). Returns the stats
+    text for the panel title."""
+    from scipy import stats
+    fmt = (lambda v: f"{x_display(v):.3g}") if x_display else (lambda v: f"{v:.3g}")
+    lo_x, hi_x = xlim if xlim else ((x.min(), x.max()) if len(x) else (0, 1))
+    gx = np.linspace(lo_x, hi_x, 200)
+    if model == 'linear':
+        fit = _fit_linear_1d(x, y)
+        if fit is None:
+            return "linear fit n/a"
+        G = np.column_stack([np.ones(len(gx)), gx])
+        yhat = G @ np.array([fit['b0'], fit['b1']])
+        se = np.sqrt(np.einsum('ij,jk,ik->i', G, fit['cov'], G))
+        t = stats.t.ppf(0.975, fit['n'] - 2)
+        lo, hi, sig = yhat - t * se, yhat + t * se, fit['p_slope'] < 0.05
+        text = (f"slope={fit['b1']:.3g}  r={fit['r']:.2f}  "
+                f"p={fit['p_slope']:.3g}{' *' if sig else ''}")
+        peak = None
+    elif model == 'quadratic':
+        fit = _fit_quadratic_1d(x, y)
+        if fit is None:
+            return "quadratic fit n/a"
+        yhat, lo, hi = _quadratic_curve(fit, gx)
+        sig = fit['p_curv'] < 0.05
+        peak = fit['vertex']
+        where = (f"{fit['kind']} at {fmt(peak)}" if peak is not None
+                 else f"no {fit['kind']} in range")
+        text = (f"curvature p={fit['p_curv']:.3g}{' *' if sig else ''}  "
+                f"{where}  R²={fit['r2']:.2f}")
+    elif model == 'gaussian':
+        fit = _fit_gaussian_peak(x, y, gx=gx)
+        if fit is None:
+            return "Gaussian peak fit n/a (no peak)"
+        yhat = _gauss_eval(gx, fit['b0'], fit['amp'], fit['mu'], fit['sigma'])
+        lo, hi = fit['band'] if fit['band'] is not None else (yhat, yhat)
+        sig = fit['p'] < 0.05 and fit['interior']
+        peak = fit['mu']
+        ci = fit['mu_ci']
+        flag = (' *' if sig else
+                ' (edge: monotonic?)' if fit['p'] < 0.05 else '')
+        text = (f"peak at {fmt(peak)} [{fmt(ci[0])}, {fmt(ci[1])}]  "
+                f"σ={fit['sigma']:.3g}  perm p={fit['p']:.3g}{flag}")
+    else:
+        raise ValueError(f"model must be one of {REGRESSION_MODELS}, got {model!r}")
+    color = '#e8a020' if sig else 'black'
+    ax.fill_between(gx, lo, hi, color='#808080', alpha=0.22, zorder=3, linewidth=0)
+    ax.plot(gx, yhat, color=color, lw=2.2, zorder=4)
+    if peak is not None and lo_x <= peak <= hi_x:
+        ax.axvline(peak, color=color, lw=1.0, ls=':', zorder=4)
+    return text
+
+
 def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
                                         by_polarity=True, point_noun='spec',
                                         add_margins=RATIO_ADD_COMBINED, xlim=None,
                                         y_col='effect_size',
                                         y_label='estim effect (ON − OFF %)',
                                         y_desc='Estim effect', ref_lines=(),
+                                        model='linear', x_display=None,
                                         show=True, output_path=None):
     """Grid (rows = polarity [+ ALL], cols = trial type [+ ALL]) of every spec's
     y_col (default the RAW estim effect) vs x_col, coloured by y_col on a symmetric
-    scale, with a simple linear (OLS) regression line ± 95% CI of the fitted mean.
-    ref_lines = extra ((y, label), ...) dotted horizontal guides. Returns the figure."""
-    from scipy import stats
+    scale, with a regression fit ± 95% band: model='linear' (OLS line),
+    'quadratic' (OLS y ~ x + x²; curvature t-test, turning point marked) or
+    'gaussian' (baseline + positive Gaussian bump; permutation p, bootstrap CI on
+    the peak location). x_display maps x to the units printed for a peak (e.g.
+    10**x on a log axis). ref_lines = extra ((y, label), ...) dotted horizontal
+    guides. Returns the figure."""
     tts = [tt for tt in trial_types if (points['trial_type'] == tt).any()]
     if not tts:
         print("No trial types with points to plot.")
@@ -3024,21 +3328,7 @@ def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
                 _draw_off_axis(ax, x, eff, xlim, c=eff, cmap='RdBu_r',
                                vmin=-vmax, vmax=vmax)
 
-            fit = _fit_linear_1d(x, eff)
-            stat_line = "linear fit n/a"
-            if fit is not None:
-                lo_x, hi_x = xlim if xlim else (x.min(), x.max())
-                gx = np.linspace(lo_x, hi_x, 200)
-                G = np.column_stack([np.ones(len(gx)), gx])
-                yhat = G @ np.array([fit['b0'], fit['b1']])
-                se = np.sqrt(np.einsum('ij,jk,ik->i', G, fit['cov'], G))
-                tcrit = stats.t.ppf(0.975, fit['n'] - 2)
-                ax.fill_between(gx, yhat - tcrit * se, yhat + tcrit * se,
-                                color='#808080', alpha=0.22, zorder=3, linewidth=0)
-                sig = fit['p_slope'] < 0.05
-                ax.plot(gx, yhat, color='#e8a020' if sig else 'black', lw=2.2, zorder=4)
-                stat_line = (f"slope={fit['b1']:.3g}  r={fit['r']:.2f}  "
-                             f"p={fit['p_slope']:.3g}{' *' if sig else ''}")
+            stat_line = _draw_regression(ax, x, eff, model, xlim, x_display)
 
             col_label = 'ALL trial types' if tt is ALL else tt
             row_label = ('ALL polarities' if group is ALL
@@ -3064,8 +3354,15 @@ def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
         cbar = fig.colorbar(scatter_ref, ax=axes.ravel().tolist(), shrink=0.6, pad=0.02)
         cbar.set_label(f'{y_label}  — red = positive, blue = negative', fontsize=10)
     ref_desc = "".join(f"; dotted = {lab}" for _, lab in ref_lines[:1])
-    fig.suptitle(f"{y_desc} vs {x_label} — linear regression "
-                 f"(grey = 95% CI of the fit; gold = slope p<0.05{ref_desc}"
+    model_desc = {
+        'linear': "linear regression (grey = 95% CI of the fit; gold = slope p<0.05",
+        'quadratic': "quadratic regression (grey = 95% CI of the fit; gold = "
+                     "curvature p<0.05; dotted = turning point",
+        'gaussian': "Gaussian peak fit (grey = bootstrap 95% band; gold = peak perm "
+                    "p<0.05 AND its 95% CI [..] clear of the data's edges; "
+                    "'edge: monotonic?' = beats flat only as a trend; dotted = peak",
+    }[model]
+    fig.suptitle(f"{y_desc} vs {x_label} — {model_desc}{ref_desc}"
                  f"{'; rows = ' + ' × '.join(row_cols) if row_cols else ''})",
                  fontsize=14, fontweight='bold')
     if output_path:
@@ -3109,6 +3406,12 @@ EFFECT_PLOTS = {
     'reg_rate': ('regress', 'rate', {}),          # logistic P(effect>0)
     'reg_effect': ('regress', 'effect', {}),      # OLS on the raw effect
     'reg_z': ('regress', 'z', {}),                # OLS on the effect z-score
+    # Peaked fits, for "rises then falls" relationships:
+    'reg_rate_quad': ('regress', 'rate', {'model': 'quadratic'}),   # logistic ~ x + x²
+    'reg_effect_quad': ('regress', 'effect', {'model': 'quadratic'}),
+    'reg_z_quad': ('regress', 'z', {'model': 'quadratic'}),
+    'reg_effect_gauss': ('regress', 'effect', {'model': 'gaussian'}),  # bump + baseline
+    'reg_z_gauss': ('regress', 'z', {'model': 'gaussian'}),
 }
 
 # What main_effect_vs_spread() draws by default: every X-axis × every plot here.
@@ -3228,19 +3531,24 @@ def draw_effect_vs_spread(points, x_key, plot_key, *, trial_types, onoff_null=No
             effect_threshold=effect_threshold, show_null_band=show_null_band,
             bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
             **extra, **common)
-    elif mode == 'rate':
-        fig = plot_rate_regression_by_trialtype(
-            points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
-            effect_threshold=effect_threshold, **common)
-    elif mode == 'effect':
-        fig = plot_effect_regression_by_trialtype(
-            points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
-            **common)
-    else:  # 'z'
-        fig = plot_effect_regression_by_trialtype(
-            points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
-            y_col=EFFECT_Z_COL, y_label='effect z  (Φ⁻¹(1 − p), H1: effect > 0)',
-            y_desc='Estim effect z-score', ref_lines=EFFECT_Z_REF_LINES, **common)
+    else:
+        # regression extras: the model, and peak locations printed in original
+        # units when x is log10-transformed
+        extra = dict(extra, x_display=(lambda v: 10 ** v) if log_x else None)
+        if mode == 'rate':
+            fig = plot_rate_regression_by_trialtype(
+                points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+                effect_threshold=effect_threshold, **extra, **common)
+        elif mode == 'effect':
+            fig = plot_effect_regression_by_trialtype(
+                points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+                **extra, **common)
+        else:  # 'z'
+            fig = plot_effect_regression_by_trialtype(
+                points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+                y_col=EFFECT_Z_COL, y_label='effect z  (Φ⁻¹(1 − p), H1: effect > 0)',
+                y_desc='Estim effect z-score', ref_lines=EFFECT_Z_REF_LINES,
+                **extra, **common)
     if fig is None:
         return None
     if log_x:

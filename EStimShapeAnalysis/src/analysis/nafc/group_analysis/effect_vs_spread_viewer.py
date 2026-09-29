@@ -24,6 +24,7 @@ Run this file, or call main_viewer().
 """
 
 import io
+import re
 import sys
 import time
 import traceback
@@ -51,16 +52,44 @@ CLIPBOARD_DPI = 200
 X_CHOICES = (('current_per_second', 'current'),
              ('corr half-distance', 'half_distance'),
              ('current ÷ half-distance ratio', 'ratio'))
-Y_CHOICES = (('signed effect (ON − OFF %)', {'smooth': 'smooth_effect', 'regress': 'reg_effect'}),
-             ('P(effect > 0)', {'smooth': 'smooth_rate', 'regress': 'reg_rate'}),
-             ('effect z-score', {'smooth': 'smooth_z', 'regress': 'reg_z'}),
+Y_CHOICES = (('signed effect (ON − OFF %)',
+              {'smooth': 'smooth_effect', 'regress': 'reg_effect',
+               'quad': 'reg_effect_quad', 'gauss': 'reg_effect_gauss'}),
+             ('P(effect > 0)',
+              {'smooth': 'smooth_rate', 'regress': 'reg_rate', 'quad': 'reg_rate_quad'}),
+             ('effect z-score',
+              {'smooth': 'smooth_z', 'regress': 'reg_z', 'quad': 'reg_z_quad',
+               'gauss': 'reg_z_gauss'}),
              ('|effect| (magnitude)', {'smooth': 'smooth_mag'}))
 METHOD_CHOICES = (('smoothed (Gaussian kernel)', 'smooth'),
-                  ('regression (linear / logistic)', 'regress'))
+                  ('regression: linear / logistic', 'regress'),
+                  ('regression: quadratic (peak / trough)', 'quad'),
+                  ('regression: Gaussian peak', 'gauss'))
 # (label, perm_test, alternative)
 TEST_CHOICES = (('two-sided', True, 'two-sided'),
                 ('one-sided: above null', True, 'greater'),
                 ('off', False, None))
+
+
+def _wrap_title(title, width=62):
+    """Re-flow each long panel-title line at its double-space field breaks so the
+    stats text of neighbouring panels doesn't collide in the window."""
+    out = []
+    for line in title.split("\n"):
+        if len(line) <= width:
+            out.append(line)
+            continue
+        fields = [f.strip() for f in re.split(r"\s{2,}", line) if f.strip()]
+        cur = ""
+        for f in fields:
+            if cur and len(cur) + 3 + len(f) > width:
+                out.append(cur)
+                cur = f
+            else:
+                cur = f"{cur}   {f}" if cur else f
+        if cur:
+            out.append(cur)
+    return "\n".join(out)
 
 
 class EffectVsSpreadViewer(QMainWindow):
@@ -376,6 +405,7 @@ class EffectVsSpreadViewer(QMainWindow):
         if sup is not None:
             sup.set_text("")
         for ax in fig.axes:
+            ax.set_title(_wrap_title(ax.get_title()))
             ax.title.set_fontsize(7.5)
             ax.xaxis.label.set_fontsize(8)
             ax.yaxis.label.set_fontsize(8)
