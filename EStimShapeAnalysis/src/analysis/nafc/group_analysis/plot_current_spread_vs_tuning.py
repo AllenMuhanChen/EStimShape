@@ -3154,13 +3154,16 @@ def draw_effect_vs_spread(points, x_key, plot_key, *, trial_types, onoff_null=No
                           show_null_band=RATIO_RATE_SHOW_NULL_BAND,
                           bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
                           boot_cluster=RATIO_RATE_BOOT_CLUSTER, alternative=None,
-                          output_path=None):
+                          xlim='default', output_path=None):
     """Draw ONE (X-axis, plot) figure — keys of EFFECT_X_AXES / EFFECT_PLOTS — from a
     prepare_effect_points table and return it (not shown). onoff_null /
     onoff_null_z are the raw-effect / z-scale ON/OFF null draws a smoothed plot's
     permutation test needs (None skips the ON/OFF test). alternative overrides the
-    plot's own two-sided/'greater' setting for smoothed plots."""
-    ax_cfg = EFFECT_X_AXES[x_key]
+    plot's own two-sided/'greater' setting for smoothed plots. xlim='default' uses
+    the axis's EFFECT_X_AXES limits; None auto-fits; (lo, hi) fixes them."""
+    ax_cfg = dict(EFFECT_X_AXES[x_key])
+    if xlim != 'default':
+        ax_cfg['xlim'] = xlim
     family, mode, extra = EFFECT_PLOTS[plot_key]
     common = dict(trial_types=trial_types, by_polarity=by_polarity,
                   point_noun=aggregate_by, add_margins=add_margins, show=False,
