@@ -86,7 +86,7 @@ def build_pooled_table_for_session(session_id, algorithm_label='none',
     comparisons = split_data_by_conditions(data, behavioral_keys, _DEFAULT_ESTIM_CONDITIONS,
                                            trial_start_cutoffs=cutoffs)
 
-    on_frames, off_frames = [], []
+    on_frames, off_frames, conditions = [], [], []
     for comp in comparisons:
         on_df  = _filter_for_metric(comp['estim_on_data'], metric)
         off_df = _filter_for_metric(comp['estim_off_data'], metric)
@@ -96,6 +96,13 @@ def build_pooled_table_for_session(session_id, algorithm_label='none',
             continue
         on_frames.append(on_df)
         off_frames.append(off_df)
+        conditions.append({
+            'cond_dict': {**comp['behavioral_conditions'], **comp['estim_conditions']},
+            'on_yes':  int(on_df['is_hypothesized_choice'].astype(bool).sum()),
+            'off_yes': int(off_df['is_hypothesized_choice'].astype(bool).sum()),
+            'n_on':  len(on_df),
+            'n_off': len(off_df),
+        })
 
     if not on_frames:
         return None
@@ -114,6 +121,9 @@ def build_pooled_table_for_session(session_id, algorithm_label='none',
         'off_yes': off_yes, 'off_no': len(off) - off_yes,
         'n_on':  len(on),
         'n_off': len(off),
+        # Per-condition counts (each condition vs its own OFF baseline), for the
+        # effect-size histogram. Not independent: conditions share OFF trials.
+        'conditions': conditions,
     }
 
 
@@ -213,19 +223,10 @@ def _draw_stats_panel(ax_text, pop):
                                     zorder=-1, clip_on=False))
 
 
-def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=None,
-                                  algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
-                                  alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
-                                  save_path=None, show_n=True,
-                                  x_spacing=1.0, width_per_exp=1.5):
-    """
-    exclude_session_ids : optional iterable of session_ids to drop.
-    start_session_id    : only include sessions with session_id >= this value.
-    algorithm_label     : which cutoff variant to apply (matches EStimSessionCutoffs).
-    metric              : 'pct_hypothesized' or 'pct_hyp_vs_delta' trial filtering.
-    alternative         : 'greater' tests EStim ON > OFF; 'less' tests ON < OFF.
-    min_trials          : minimum trials in each group for a condition to be pooled.
-    """
+def collect_session_rows(exclude_session_ids=None, start_session_id=None,
+                         algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                         alternative='greater', min_trials=DEFAULT_MIN_TRIALS):
+    """Build each session's pooled table and run its one-sided Fisher's exact test."""
     if alternative not in ALTERNATIVES:
         raise ValueError(f"alternative must be one of {ALTERNATIVES}, got {alternative!r}")
 
@@ -249,7 +250,105 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
                      'odds_ratio': odds_ratio, 'p_value': p, **table})
         print(f"[{sid}] {table['n_conditions']} conds  ON={pct_on:.1f}% (n={table['n_on']})  "
               f"OFF={pct_off:.1f}% (n={table['n_off']})  OR={odds_ratio:.2f}  p={p:.3f}")
+    return rows
 
+
+def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=None,
+                                    algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                                    alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
+                                    bin_width=5.0, save_path=None):
+    """
+    Histogram of per-condition effect sizes (ON% - OFF%, one value per qualifying
+    condition across all sessions), with the distribution expected from chance alone.
+
+    Chance curve: under H0 (no EStim effect) a condition's ON-OFF difference is roughly
+    Normal(0, sd_c), sd_c = sqrt(p_c (1 - p_c) (1/n_on + 1/n_off)), with p_c the
+    condition's pooled choice rate. The curve is the sum of these normals scaled to
+    counts per bin, so it depends only on each condition's trial counts and baseline.
+
+    The p-value shown is the session-level Fisher's combined test, not a test on the
+    histogram: conditions share OFF trials, so they are not independent.
+    """
+    rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
+                                metric, alternative, min_trials)
+    if not rows:
+        print("No data to plot.")
+        return None
+    pop = compute_population_stats(rows, alternative=alternative)
+
+    conds = [c for d in rows for c in d['conditions']]
+    n_on  = np.array([c['n_on']  for c in conds], dtype=float)
+    n_off = np.array([c['n_off'] for c in conds], dtype=float)
+    effects = 100.0 * (np.array([c['on_yes'] for c in conds]) / n_on
+                       - np.array([c['off_yes'] for c in conds]) / n_off)
+    p_pool  = (np.array([c['on_yes'] + c['off_yes'] for c in conds])) / (n_on + n_off)
+    null_sd = 100.0 * np.sqrt(p_pool * (1 - p_pool) * (1 / n_on + 1 / n_off))
+
+    weights       = n_on + n_off
+    weighted_mean = float(np.average(effects, weights=weights))
+
+    # Bins aligned so 0 is a bin edge.
+    lo = np.floor(min(effects.min(), -3 * null_sd.max()) / bin_width) * bin_width
+    hi = np.ceil(max(effects.max(), 3 * null_sd.max()) / bin_width) * bin_width
+    edges = np.arange(lo, hi + bin_width, bin_width)
+
+    # Expected counts per unit x under H0; conditions with sd=0 (all-yes or all-no)
+    # would be a spike at 0 and are left out of the curve.
+    x = np.linspace(lo, hi, 600)
+    ok = null_sd > 0
+    null_curve = sp_stats.norm.pdf(x[:, None], 0, null_sd[ok][None, :]).sum(axis=1) * bin_width
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.hist(effects, bins=edges, color="#d9534f", alpha=0.75, edgecolor="white",
+            label=f"Observed (n={len(effects)} conditions, {len(rows)} sessions)")
+    ax.plot(x, null_curve, color="black", linewidth=1.8,
+            label="Expected from chance (no EStim effect)")
+    ax.axvline(0, color="gray", linestyle="--", linewidth=1)
+    ax.axvline(weighted_mean, color="darkred", linewidth=1.5,
+               label=f"Trial-weighted mean = {weighted_mean:+.1f}%")
+
+    h1 = "ON > OFF" if alternative == 'greater' else "ON < OFF"
+    sig_color = "darkred" if pop['p_combined'] < 0.05 else "#444444"
+    ax.text(0.02, 0.97,
+            f"Fisher's combined ({h1}), {pop['n']} sessions\n"
+            f"X² = {pop['chi2']:.1f}, df = {pop['df']}, {_fmt_p(pop['p_combined'])}",
+            transform=ax.transAxes, va="top", ha="left", fontsize=9, color=sig_color,
+            bbox=dict(facecolor="#f8f8f8", edgecolor="#cccccc", boxstyle="round,pad=0.4"))
+
+    ax.set_xlabel("EStim effect: % ON − % OFF (per condition)", fontsize=12)
+    ax.set_ylabel("Number of conditions", fontsize=12)
+    ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
+    ax.spines[['top', 'right']].set_visible(False)
+    fig.tight_layout()
+
+    print(f"\nCondition histogram: {len(effects)} conditions, "
+          f"trial-weighted mean {weighted_mean:+.2f}%, unweighted mean {effects.mean():+.2f}%")
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, bbox_inches="tight", dpi=150)
+        fig.savefig(save_path.rsplit(".", 1)[0] + ".svg", bbox_inches="tight")
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
+
+
+def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=None,
+                                  algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                                  alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
+                                  save_path=None, show_n=True,
+                                  x_spacing=1.0, width_per_exp=1.5):
+    """
+    exclude_session_ids : optional iterable of session_ids to drop.
+    start_session_id    : only include sessions with session_id >= this value.
+    algorithm_label     : which cutoff variant to apply (matches EStimSessionCutoffs).
+    metric              : 'pct_hypothesized' or 'pct_hyp_vs_delta' trial filtering.
+    alternative         : 'greater' tests EStim ON > OFF; 'less' tests ON < OFF.
+    min_trials          : minimum trials in each group for a condition to be pooled.
+    """
+    rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
+                                metric, alternative, min_trials)
     if not rows:
         print("No data to plot.")
         return None
@@ -334,18 +433,30 @@ def main():
     start_session_id = "260402_0"
     algorithm_label = 'None'
 
-    plot_avg_estim_per_experiment(
+    plot_condition_effect_histogram(
         exclude_session_ids=exclude_session_ids,
         start_session_id=start_session_id,
         algorithm_label=algorithm_label,
         metric=metric,
         alternative='greater',   # 'less' -> test whether the average effect is negative
         min_trials=10,
-        save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_per_experiment.png",
-        show_n=False,
-        x_spacing=0.75,
-        width_per_exp=1.0,
+        bin_width=5.0,           # percentage points
+        save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_condition_histogram.png",
     )
+
+    # Per-session ON/OFF dot plot (same test, one pooled pair of dots per session):
+    # plot_avg_estim_per_experiment(
+    #     exclude_session_ids=exclude_session_ids,
+    #     start_session_id=start_session_id,
+    #     algorithm_label=algorithm_label,
+    #     metric=metric,
+    #     alternative='greater',
+    #     min_trials=10,
+    #     save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_per_experiment.png",
+    #     show_n=False,
+    #     x_spacing=0.75,
+    #     width_per_exp=1.0,
+    # )
 
 
 if __name__ == "__main__":
