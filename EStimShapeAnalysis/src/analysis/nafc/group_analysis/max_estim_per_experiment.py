@@ -8,6 +8,12 @@ Max-stat p-value per session (one-tailed, positive direction):
   observed_max = max_c(T_c)           — best positive effect across conditions
   null_max[k]  = max_c(null_c[k])     — element-wise max across conditions, iteration k
   p            = fraction of k where null_max[k] >= observed_max
+
+Min-stat p-value per session (one-tailed, negative direction; see
+plot_min_stat_per_experiment):
+  observed_min = min_c(T_c)           — most negative effect across conditions
+  null_min[k]  = min_c(null_c[k])     — element-wise min across conditions, iteration k
+  p            = fraction of k where null_min[k] <= observed_min
 """
 
 import json
@@ -82,8 +88,27 @@ def _load_qualifying_conditions(session_id, algorithm_label='none', metric=METRI
     return entries
 
 
+DIRECTION_MAX = 'max'
+DIRECTION_MIN = 'min'
+
+
+def _direction_sign(direction):
+    """+1 for the max-stat test, -1 for the min-stat test.
+
+    The min-stat test is the max-stat test on negated statistics:
+    min_c(T_c) = -max_c(-T_c), so every comparison is done in "sign * value"
+    space and results are mapped back to the original units for display.
+    """
+    if direction == DIRECTION_MAX:
+        return 1.0
+    if direction == DIRECTION_MIN:
+        return -1.0
+    raise ValueError(f"direction must be {DIRECTION_MAX!r} or {DIRECTION_MIN!r}, got {direction!r}")
+
+
 def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
-                                min_trials=DEFAULT_MIN_TRIALS, studentize=False):
+                                min_trials=DEFAULT_MIN_TRIALS, studentize=False,
+                                direction=DIRECTION_MAX):
     """
     Returns dict with:
         observed_signed : signed statistic of the best positive condition
@@ -97,7 +122,14 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
     the max across conditions. This puts conditions with very different trial counts
     on a common scale so the noisiest (small-n, wide-null) conditions don't dominate
     the max. Observed/null are then in z units instead of percentage points.
+
+    ``direction``: 'max' (default) tests the most positive condition against the
+    null of element-wise maxima. 'min' tests the most negative condition against
+    the null of element-wise minima (p = fraction of null_min <= observed_min).
+    In 'min' mode ``observed_signed`` / ``max_stat_null`` hold the (negative-going)
+    minimum values; the key names are kept so downstream code is shared.
     """
+    sign = _direction_sign(direction)
     entries = _load_qualifying_conditions(session_id, algorithm_label, metric, min_trials=min_trials)
     if not entries:
         return None
@@ -124,8 +156,9 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
     if not obs_list:
         return None
 
-    # Best = largest positive (studentized) effect (directional: stim should increase choice)
-    best_idx = int(np.argmax(obs_list))
+    # Best = largest positive (studentized) effect (directional: stim should increase choice).
+    # In 'min' mode, sign=-1 so this picks the most negative effect.
+    best_idx = int(np.argmax(sign * np.asarray(obs_list)))
 
     # Element-wise max across all conditions for each permutation iteration (signed, no abs).
     # Conditions may have been permuted with different n_permutations (rows written at
@@ -133,10 +166,11 @@ def _build_max_stat_for_session(session_id, algorithm_label='none', metric=METRI
     # exceedance-count path.
     min_perms     = min(len(nl) for nl in null_list)
     null_matrix   = np.stack([np.asarray(nl)[:min_perms] for nl in null_list], axis=0)  # (n_conds, n_perms)
-    max_stat_null = null_matrix.max(axis=0)       # (n_perms,)
+    # Element-wise max (or min, for direction='min') across conditions, in original units.
+    max_stat_null = sign * (sign * null_matrix).max(axis=0)       # (n_perms,)
 
     observed_signed = float(obs_list[best_idx])
-    p_value         = float(np.mean(max_stat_null >= observed_signed))
+    p_value         = float(np.mean(sign * max_stat_null >= sign * observed_signed))
 
     return {
         'observed_signed':      observed_signed,
@@ -286,7 +320,7 @@ def make_weighting(weighting):
     raise TypeError(f"weighting must be None, str, or PopulationWeighting, got {type(weighting)}")
 
 
-def compute_population_stats(rows, weighting=None, value_label="%"):
+def compute_population_stats(rows, weighting=None, value_label="%", direction=DIRECTION_MAX):
     """
     Two convergent population tests on per-session max-stat results.
 
@@ -313,6 +347,11 @@ def compute_population_stats(rows, weighting=None, value_label="%"):
     Note: a sign test is not used here because we select the best *positive* condition per
     session — the max of C conditions from a symmetric null is positive >50% of the time,
     so a 50% baseline would be anticonservative.
+
+    ``direction='min'`` runs the mirror-image test on per-session min-stat results:
+    p_perm = fraction of k where A*[k] <= A_obs, and the reported null tail is the
+    5th percentile instead of the 95th. Stouffer's uses the per-session one-tailed
+    p-values, which are already in the matching direction.
     """
     from scipy import stats as sp_stats
 
@@ -321,6 +360,7 @@ def compute_population_stats(rows, weighting=None, value_label="%"):
         return None
 
     weighting = make_weighting(weighting)
+    sign      = _direction_sign(direction)
 
     observed = np.array([d['observed_signed'] for d in rows])
 
@@ -336,8 +376,9 @@ def compute_population_stats(rows, weighting=None, value_label="%"):
               f"truncating all to {min_perms} for the population null.")
     null_matrix = np.stack([np.asarray(d['max_stat_null'])[:min_perms] for d in rows], axis=0)  # (n_sessions, n_perms)
     pop_null    = (null_matrix * w_norm[:, None]).sum(axis=0)            # (n_perms,)
-    p_perm      = float(np.mean(pop_null >= A_obs))
-    null_95     = float(np.percentile(pop_null, 95))
+    p_perm      = float(np.mean(sign * pop_null >= sign * A_obs))
+    null_tail_pct = 95 if direction == DIRECTION_MAX else 5
+    null_95     = float(np.percentile(pop_null, null_tail_pct))
 
     p_values   = np.clip([d['p_value'] for d in rows], 1e-6, 1 - 1e-6)
     z_scores   = sp_stats.norm.ppf(1 - np.array(p_values))
@@ -357,11 +398,14 @@ def compute_population_stats(rows, weighting=None, value_label="%"):
         'n_sig':      n_sig,
         'weighting':  weighting.label,
         'value_label': value_label,
+        'direction':  direction,
+        'null_tail_pct': null_tail_pct,
     }
 
-    print(f"\nPopulation stats (n={n} sessions, weighting={weighting.label}):")
-    print(f"  Observed mean best effect:  {A_obs:+.2f}{value_label}")
-    print(f"  Null 95th percentile:       {null_95:+.2f}{value_label}")
+    effect_desc = "best" if direction == DIRECTION_MAX else "min"
+    print(f"\nPopulation stats (n={n} sessions, weighting={weighting.label}, direction={direction}):")
+    print(f"  Observed mean {effect_desc} effect:  {A_obs:+.2f}{value_label}")
+    print(f"  Null {null_tail_pct}th percentile:       {null_95:+.2f}{value_label}")
     print(f"  Permutation test:           {_fmt_p(p_perm)}")
     print(f"  Stouffer combined:          {_fmt_p(stouffer_p)}  (Z={stouffer_z:.2f})")
     print(f"  Individually significant:   {n_sig}/{n} sessions (p<0.05)")
@@ -377,15 +421,20 @@ def _draw_stats_panel(ax_text, pop, rows):
 
     sig_color = "darkred" if pop['p_perm'] < 0.05 else "#444444"
 
+    direction = pop.get('direction', DIRECTION_MAX)
+    stat_name = "max-stat" if direction == DIRECTION_MAX else "min-stat"
+    effect_desc = "best" if direction == DIRECTION_MAX else "min"
+    tail_pct = pop.get('null_tail_pct', 95)
+
     weighted = pop.get('weighting', UnweightedPopulation.label) != UnweightedPopulation.label
     if weighted:
         null_desc = ["Null = trial-weighted mean of per-",
-                     "session max-stat distributions."]
+                     f"session {stat_name} distributions."]
     else:
-        null_desc = ["Null = mean of per-session max-stat",
+        null_desc = [f"Null = mean of per-session {stat_name}",
                      "distributions, averaged across sessions."]
 
-    stat_kind = "studentized max-stat" if pop.get('value_label', '%') == 'z' else "raw max-stat"
+    stat_kind = f"studentized {stat_name}" if pop.get('value_label', '%') == 'z' else f"raw {stat_name}"
 
     lines = [
         ("Population Statistics", 1.00, 11, "bold", sig_color),
@@ -398,9 +447,9 @@ def _draw_stats_panel(ax_text, pop, rows):
         ("H₀: stimulation has no effect on choice.", 0.73, 8, "normal", "#444444"),
         (null_desc[0], 0.67, 8, "normal", "#444444"),
         (null_desc[1], 0.61, 8, "normal", "#444444"),
-        (f"  Observed mean best effect: {pop['A_obs']:+.2f}{pop.get('value_label', '%')}",
+        (f"  Observed mean {effect_desc} effect: {pop['A_obs']:+.2f}{pop.get('value_label', '%')}",
          0.54, 9, "normal", sig_color),
-        (f"  Null 95th percentile:      {pop['null_95']:+.2f}{pop.get('value_label', '%')}",
+        (f"  Null {tail_pct}th percentile:      {pop['null_95']:+.2f}{pop.get('value_label', '%')}",
          0.47, 9, "normal", "#444444"),
         (f"  {_fmt_p(pop['p_perm'])}", 0.40, 10, "bold", sig_color),
         ("", 0.34, 9, "normal", "black"),
@@ -436,7 +485,7 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
                                  save_path=None, show_n=True,
                                  x_spacing=1.0, width_per_exp=1.5,
                                  weighting=None, min_trials=DEFAULT_MIN_TRIALS,
-                                 studentize=False):
+                                 studentize=False, direction=DIRECTION_MAX):
     """
     exclude_session_ids : optional iterable of session_ids to drop; all other
                        sessions with permutation data are included.
@@ -455,7 +504,13 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
                        before taking the max (fairer across conditions with very
                        different trial counts). p-values become studentized; the ON/OFF
                        dots stay in % as descriptive context.
+    direction        : 'max' (default) picks each session's most positive condition and
+                       tests it against the null of per-iteration maxima. 'min' picks the
+                       most negative condition and tests it against the null of
+                       per-iteration minima (see plot_min_stat_per_experiment).
     """
+    _direction_sign(direction)  # validate early
+    cond_label = "best condition" if direction == DIRECTION_MAX else "min condition"
     create_permutation_test_table()  # ensures algorithm_label column exists
     session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
     if exclude_session_ids:
@@ -467,14 +522,15 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
     rows = []
     for sid in session_ids:
         result = _build_max_stat_for_session(sid, algorithm_label, metric,
-                                             min_trials=min_trials, studentize=studentize)
+                                             min_trials=min_trials, studentize=studentize,
+                                             direction=direction)
         if result is None:
             print(f"[{sid}] no permutation data or no conditions with n>={min_trials}, skipping")
             continue
         pct_on, pct_off, n_on, n_off = _get_pct_on_off(
             sid, result['best_cond_dict'], metric=metric, algorithm_label=algorithm_label)
         if pct_on is None:
-            print(f"[{sid}] no trial data for best condition, skipping")
+            print(f"[{sid}] no trial data for {cond_label}, skipping")
             continue
         rows.append({
             'session_id':      sid,
@@ -487,7 +543,7 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
             'max_stat_null':   result['max_stat_null'],
         })
         stat_unit = "z" if studentize else "%"
-        print(f"[{sid}] best stat={result['observed_signed']:+.2f}{stat_unit}  p={result['p_value']:.3f}  "
+        print(f"[{sid}] {direction} stat={result['observed_signed']:+.2f}{stat_unit}  p={result['p_value']:.3f}  "
               f"ON={pct_on:.1f}% (n={n_on})  OFF={pct_off:.1f}% (n={n_off})")
 
     if not rows:
@@ -495,7 +551,8 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
         return None
 
     pop = compute_population_stats(rows, weighting=weighting,
-                                   value_label=("z" if studentize else "%"))
+                                   value_label=("z" if studentize else "%"),
+                                   direction=direction)
 
     n_exp        = len(rows)
     plot_width   = width_per_exp * n_exp * x_spacing
@@ -555,8 +612,8 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
     ax.grid(True, alpha=0.3, axis="y")
 
     legend_handles = [
-        mpatches.Patch(color=_COLOR_OFF, label="EStim OFF (best condition)"),
-        mpatches.Patch(color=_COLOR_ON,  label="EStim ON (best condition)"),
+        mpatches.Patch(color=_COLOR_OFF, label=f"EStim OFF ({cond_label})"),
+        mpatches.Patch(color=_COLOR_ON,  label=f"EStim ON ({cond_label})"),
     ]
     ax.legend(handles=legend_handles, fontsize=9, loc="lower right", framealpha=0.85)
 
@@ -573,6 +630,34 @@ def plot_max_stat_per_experiment(exclude_session_ids=None, start_session_id=None
 
     plt.show()
     return fig
+
+
+def plot_min_stat_per_experiment(exclude_session_ids=None, start_session_id=None,
+                                 algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                                 save_path=None, show_n=True,
+                                 x_spacing=1.0, width_per_exp=1.5,
+                                 weighting=None, min_trials=DEFAULT_MIN_TRIALS,
+                                 studentize=False):
+    """
+    Mirror image of plot_max_stat_per_experiment: does the MINIMUM (most negative)
+    condition per session fall below what is expected from chance?
+
+    Per session:
+        observed_min = min_c(T_c)
+        null_min[k]  = min_c(null_c[k])
+        p            = fraction of k where null_min[k] <= observed_min
+    Population: weighted mean of observed_min vs the weighted mean of null_min
+    across sessions (lower tail), plus Stouffer's on the per-session p-values.
+
+    Same arguments as plot_max_stat_per_experiment.
+    """
+    return plot_max_stat_per_experiment(
+        exclude_session_ids=exclude_session_ids, start_session_id=start_session_id,
+        algorithm_label=algorithm_label, metric=metric,
+        save_path=save_path, show_n=show_n,
+        x_spacing=x_spacing, width_per_exp=width_per_exp,
+        weighting=weighting, min_trials=min_trials,
+        studentize=studentize, direction=DIRECTION_MIN)
 
 
 # ===========================================================================
@@ -1074,6 +1159,20 @@ def main():
         # studentize=False -> raw % effect (default); True -> standardize each
         #                     condition by its own null before taking the max
         #                     (fairer across conditions with very different n).
+        studentize=True,
+        min_trials=10
+    )
+
+    # ---- Test 1b: min-stat per experiment (is the WORST condition < chance?) ----
+    plot_min_stat_per_experiment(
+        exclude_session_ids=exclude_session_ids,
+        start_session_id=start_session_id,
+        algorithm_label=algorithm_label,
+        metric=metric,
+        save_path="/home/connorlab/Documents/plots/across_experiments/min_estim_per_experiment.png",
+        show_n=False,
+        x_spacing=0.75,
+        width_per_exp=1.0,
         studentize=True,
         min_trials=10
     )
