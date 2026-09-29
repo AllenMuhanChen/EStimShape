@@ -278,8 +278,19 @@ def collect_session_rows(exclude_session_ids=None, start_session_id=None,
     return rows
 
 
-def _condition_arrays(rows):
-    """Per-condition effect (%), chance SD (%) and trial-count weights across rows."""
+# Default histogram bin width per x-axis unit.
+DEFAULT_BIN_WIDTH_PCT = 5.0   # percentage points
+DEFAULT_BIN_WIDTH_Z   = 0.5   # standard deviations
+
+
+def _condition_arrays(rows, studentize=False):
+    """Per-condition effect, chance SD and trial-count weights across rows.
+
+    studentize=False: effect in percentage points (ON% - OFF%) and its chance SD in %.
+    studentize=True : effect divided by its chance SD (two-proportion z-score), so
+                      the chance SD is 1 for every condition. Conditions with a zero
+                      chance SD (all-yes or all-no) have no z-score and are dropped.
+    """
     conds = [c for d in rows for c in d['conditions']]
     n_on  = np.array([c['n_on']  for c in conds], dtype=float)
     n_off = np.array([c['n_off'] for c in conds], dtype=float)
@@ -287,7 +298,29 @@ def _condition_arrays(rows):
                        - np.array([c['off_yes'] for c in conds]) / n_off)
     p_pool  = (np.array([c['on_yes'] + c['off_yes'] for c in conds])) / (n_on + n_off)
     null_sd = 100.0 * np.sqrt(p_pool * (1 - p_pool) * (1 / n_on + 1 / n_off))
-    return {'effects': effects, 'null_sd': null_sd, 'weights': n_on + n_off}
+    weights = n_on + n_off
+
+    if not studentize:
+        return {'effects': effects, 'null_sd': null_sd, 'weights': weights, 'unit': '%'}
+
+    ok = null_sd > 0
+    if (~ok).any():
+        print(f"  studentize: dropping {int((~ok).sum())} condition(s) with zero chance SD "
+              f"(all choices identical)")
+    return {'effects': effects[ok] / null_sd[ok], 'null_sd': np.ones(int(ok.sum())),
+            'weights': weights[ok], 'unit': 'z'}
+
+
+def _resolve_bin_width(bin_width, studentize):
+    if bin_width is not None:
+        return bin_width
+    return DEFAULT_BIN_WIDTH_Z if studentize else DEFAULT_BIN_WIDTH_PCT
+
+
+def _effect_axis_label(studentize):
+    if studentize:
+        return "Studentized EStim effect: (% ON − % OFF) / chance SD  (z, per condition)"
+    return "EStim effect: % ON − % OFF (per condition)"
 
 
 def _histogram_edges(array_sets, bin_width):
@@ -306,7 +339,7 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
 
     ``weighted_mean``: True draws the trial-weighted mean (each condition weighted by
     n_on + n_off); False draws the raw mean (every condition counts equally)."""
-    effects, null_sd = arrays['effects'], arrays['null_sd']
+    effects, null_sd, unit = arrays['effects'], arrays['null_sd'], arrays['unit']
     bin_width = float(edges[1] - edges[0])
     trial_weighted = float(np.average(effects, weights=arrays['weights']))
     raw_mean       = float(effects.mean())
@@ -325,7 +358,7 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
             label="Expected from chance (no EStim effect)")
     ax.axvline(0, color="gray", linestyle="--", linewidth=1)
     ax.axvline(mean_value, color="darkred", linewidth=1.5,
-               label=f"{mean_label} = {mean_value:+.1f}%")
+               label=f"{mean_label} = {mean_value:+.2f}{' z' if unit == 'z' else '%'}")
 
     h1 = "ON > OFF" if alternative == 'greater' else "ON < OFF"
     sig_color = "darkred" if pop['p_combined'] < 0.05 else "#444444"
@@ -342,14 +375,15 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
     ax.spines[['top', 'right']].set_visible(False)
 
     print(f"\nCondition histogram{' [' + title + ']' if title else ''}: {len(effects)} conditions, "
-          f"trial-weighted mean {trial_weighted:+.2f}%, raw mean {raw_mean:+.2f}%")
+          f"trial-weighted mean {trial_weighted:+.2f}{unit}, raw mean {raw_mean:+.2f}{unit}")
     return mean_value
 
 
 def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=None,
                                     algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                     alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
-                                    bin_width=5.0, weighted_mean=True, save_path=None):
+                                    bin_width=None, weighted_mean=True, studentize=False,
+                                    save_path=None):
     """
     Histogram of per-condition effect sizes (ON% - OFF%, one value per qualifying
     condition across all sessions), with the distribution expected from chance alone.
@@ -364,6 +398,12 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
 
     weighted_mean : True (default) draws the trial-weighted mean line; False draws the
                     raw mean (every condition counts equally).
+    studentize    : True puts each condition's effect in z units (effect / chance SD),
+                    so the chance curve is a single standard normal and small-n
+                    conditions no longer fill the tails. z measures strength of
+                    evidence, not effect magnitude. With z the trial counts are already
+                    built in, so weighted_mean=False is the natural pairing.
+    bin_width     : None -> 5 percentage points, or 0.5 z when studentized.
     """
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
                                 metric, alternative, min_trials)
@@ -371,12 +411,13 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
         print("No data to plot.")
         return None
     pop = compute_population_stats(rows, alternative=alternative)
-    arrays = _condition_arrays(rows)
+    arrays = _condition_arrays(rows, studentize=studentize)
+    edges = _histogram_edges([arrays], _resolve_bin_width(bin_width, studentize))
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    _draw_condition_histogram(ax, rows, pop, arrays, _histogram_edges([arrays], bin_width),
+    _draw_condition_histogram(ax, rows, pop, arrays, edges,
                               alternative=alternative, weighted_mean=weighted_mean)
-    ax.set_xlabel("EStim effect: % ON − % OFF (per condition)", fontsize=12)
+    ax.set_xlabel(_effect_axis_label(studentize), fontsize=12)
     fig.tight_layout()
 
     if save_path:
@@ -457,8 +498,8 @@ def _describe_rules(rules):
 def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
-                               rules=ESTIM_RULES, bin_width=5.0, weighted_mean=True,
-                               save_path=None):
+                               rules=ESTIM_RULES, bin_width=None, weighted_mean=True,
+                               studentize=False, save_path=None):
     """
     Per-condition effect histograms split by the estim rules, stacked on a shared
     x-axis (and shared bins / y-axis) for direct comparison:
@@ -471,6 +512,8 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
 
     weighted_mean : True (default) draws the trial-weighted mean line; False draws the
                     raw mean (every condition counts equally).
+    studentize    : True puts the x-axis in z units (see plot_condition_effect_histogram).
+    bin_width     : None -> 5 percentage points, or 0.5 z when studentized.
     """
     groups = [(RULE_IN,  "Within estim rules",  "#d9534f"),
               (RULE_OUT, "Outside estim rules", "#7f7f7f")]
@@ -483,13 +526,14 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
             min_trials,
             condition_filter=lambda sid, cond, key=key: classify_estim_rule(sid, cond, rules) == key)
         pop = compute_population_stats(rows, alternative=alternative) if rows else None
-        results[key] = (rows, pop, _condition_arrays(rows) if rows else None)
+        results[key] = (rows, pop,
+                        _condition_arrays(rows, studentize=studentize) if rows else None)
 
     present = [results[k][2] for k, _, _ in groups if results[k][2] is not None]
     if not present:
         print("No conditions in either group.")
         return None
-    edges = _histogram_edges(present, bin_width)
+    edges = _histogram_edges(present, _resolve_bin_width(bin_width, studentize))
 
     fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True, sharey=True)
     for ax, (key, label, color) in zip(axes, groups):
@@ -502,7 +546,7 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
         _draw_condition_histogram(ax, rows, pop, arrays, edges, alternative=alternative,
                                   color=color, title=label, weighted_mean=weighted_mean)
 
-    axes[-1].set_xlabel("EStim effect: % ON − % OFF (per condition)", fontsize=12)
+    axes[-1].set_xlabel(_effect_axis_label(studentize), fontsize=12)
     fig.suptitle(f"Rules: {_describe_rules(rules)}", fontsize=10, color="#444444")
     fig.tight_layout()
 
@@ -622,8 +666,9 @@ def main():
         metric=metric,
         alternative='greater',   # 'less' -> test whether the average effect is negative
         min_trials=10,
-        bin_width=5.0,           # percentage points
+        bin_width=None,          # None -> 5 %-points, or 0.5 z when studentized
         weighted_mean=True,      # False -> raw mean (every condition counts equally)
+        studentize=False,        # True -> x-axis in z = effect / chance SD
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_condition_histogram.png",
     )
 
@@ -635,8 +680,9 @@ def main():
         metric=metric,
         alternative='greater',
         min_trials=10,
-        bin_width=5.0,
+        bin_width=None,
         weighted_mean=True,      # False -> raw mean (every condition counts equally)
+        studentize=False,        # True -> x-axis in z = effect / chance SD
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
     )
 
