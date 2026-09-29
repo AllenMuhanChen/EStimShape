@@ -67,17 +67,14 @@ def _get_sessions_with_effects(algorithm_label='none', metric=METRIC_PCT_HYPOTHE
     return [row[0] for row in conn.fetch_all()]
 
 
-def build_pooled_table_for_session(session_id, algorithm_label='none',
-                                   metric=METRIC_PCT_HYPOTHESIZED,
-                                   min_trials=DEFAULT_MIN_TRIALS):
+def _qualifying_conditions(session_id, algorithm_label='none',
+                           metric=METRIC_PCT_HYPOTHESIZED, min_trials=DEFAULT_MIN_TRIALS):
     """
-    Pool all qualifying conditions of a session into one ON/OFF 2x2 table.
+    Every condition of a session whose ON and OFF groups both have >= ``min_trials``
+    trials after the metric filter, as dicts with 'cond_dict', 'on_df', 'off_df'.
 
     Uses the same split (behavioral groups, estim_spec_id, gen window, cutoff) as the
-    EStimEffects pipeline. A condition qualifies when both its ON and OFF groups have
-    at least ``min_trials`` trials after the metric filter.
-
-    Returns dict with the table counts, or None if nothing qualifies.
+    EStimEffects pipeline.
     """
     data = _read_session_data_cached(session_id)
     behavioral_keys = [c for c in _DEFAULT_BEHAVIORAL_CONDITIONS if c in data.columns]
@@ -85,8 +82,7 @@ def build_pooled_table_for_session(session_id, algorithm_label='none',
 
     comparisons = split_data_by_conditions(data, behavioral_keys, _DEFAULT_ESTIM_CONDITIONS,
                                            trial_start_cutoffs=cutoffs)
-
-    on_frames, off_frames, conditions = [], [], []
+    out = []
     for comp in comparisons:
         on_df  = _filter_for_metric(comp['estim_on_data'], metric)
         off_df = _filter_for_metric(comp['estim_off_data'], metric)
@@ -94,18 +90,42 @@ def build_pooled_table_for_session(session_id, algorithm_label='none',
         off_df = off_df[off_df['is_hypothesized_choice'].notna()]
         if len(on_df) < min_trials or len(off_df) < min_trials:
             continue
-        on_frames.append(on_df)
-        off_frames.append(off_df)
-        conditions.append({
-            'cond_dict': {**comp['behavioral_conditions'], **comp['estim_conditions']},
-            'on_yes':  int(on_df['is_hypothesized_choice'].astype(bool).sum()),
-            'off_yes': int(off_df['is_hypothesized_choice'].astype(bool).sum()),
-            'n_on':  len(on_df),
-            'n_off': len(off_df),
-        })
+        out.append({'cond_dict': {**comp['behavioral_conditions'], **comp['estim_conditions']},
+                    'on_df': on_df, 'off_df': off_df})
+    return out
 
-    if not on_frames:
+
+def build_pooled_table_for_session(session_id, algorithm_label='none',
+                                   metric=METRIC_PCT_HYPOTHESIZED,
+                                   min_trials=DEFAULT_MIN_TRIALS, condition_filter=None):
+    """
+    Pool all qualifying conditions of a session into one ON/OFF 2x2 table.
+
+    ``condition_filter(session_id, cond_dict) -> bool`` optionally restricts which
+    qualifying conditions are pooled (e.g. the estim-rule split).
+
+    Returns dict with the table counts, or None if nothing qualifies.
+    """
+    qualifying = _qualifying_conditions(session_id, algorithm_label, metric, min_trials)
+    if condition_filter is not None:
+        qualifying = [q for q in qualifying if condition_filter(session_id, q['cond_dict'])]
+    return _pool_conditions(qualifying)
+
+
+def _pool_conditions(qualifying):
+    """One pooled 2x2 table from a list of _qualifying_conditions entries (or None)."""
+    if not qualifying:
         return None
+
+    on_frames  = [q['on_df'] for q in qualifying]
+    off_frames = [q['off_df'] for q in qualifying]
+    conditions = [{
+        'cond_dict': q['cond_dict'],
+        'on_yes':  int(q['on_df']['is_hypothesized_choice'].astype(bool).sum()),
+        'off_yes': int(q['off_df']['is_hypothesized_choice'].astype(bool).sum()),
+        'n_on':  len(q['on_df']),
+        'n_off': len(q['off_df']),
+    } for q in qualifying]
 
     # Trial frames keep the session frame's row index, so duplicated index = same trial.
     on  = pd.concat(on_frames)
@@ -225,8 +245,12 @@ def _draw_stats_panel(ax_text, pop):
 
 def collect_session_rows(exclude_session_ids=None, start_session_id=None,
                          algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
-                         alternative='greater', min_trials=DEFAULT_MIN_TRIALS):
-    """Build each session's pooled table and run its one-sided Fisher's exact test."""
+                         alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
+                         condition_filter=None):
+    """Build each session's pooled table and run its one-sided Fisher's exact test.
+
+    ``condition_filter(session_id, cond_dict) -> bool`` restricts which conditions
+    are pooled; sessions left with no conditions are skipped."""
     if alternative not in ALTERNATIVES:
         raise ValueError(f"alternative must be one of {ALTERNATIVES}, got {alternative!r}")
 
@@ -239,7 +263,8 @@ def collect_session_rows(exclude_session_ids=None, start_session_id=None,
 
     rows = []
     for sid in session_ids:
-        table = build_pooled_table_for_session(sid, algorithm_label, metric, min_trials=min_trials)
+        table = build_pooled_table_for_session(sid, algorithm_label, metric, min_trials=min_trials,
+                                               condition_filter=condition_filter)
         if table is None:
             print(f"[{sid}] no conditions with n>={min_trials} in each group, skipping")
             continue
@@ -251,6 +276,68 @@ def collect_session_rows(exclude_session_ids=None, start_session_id=None,
         print(f"[{sid}] {table['n_conditions']} conds  ON={pct_on:.1f}% (n={table['n_on']})  "
               f"OFF={pct_off:.1f}% (n={table['n_off']})  OR={odds_ratio:.2f}  p={p:.3f}")
     return rows
+
+
+def _condition_arrays(rows):
+    """Per-condition effect (%), chance SD (%) and trial-count weights across rows."""
+    conds = [c for d in rows for c in d['conditions']]
+    n_on  = np.array([c['n_on']  for c in conds], dtype=float)
+    n_off = np.array([c['n_off'] for c in conds], dtype=float)
+    effects = 100.0 * (np.array([c['on_yes'] for c in conds]) / n_on
+                       - np.array([c['off_yes'] for c in conds]) / n_off)
+    p_pool  = (np.array([c['on_yes'] + c['off_yes'] for c in conds])) / (n_on + n_off)
+    null_sd = 100.0 * np.sqrt(p_pool * (1 - p_pool) * (1 / n_on + 1 / n_off))
+    return {'effects': effects, 'null_sd': null_sd, 'weights': n_on + n_off}
+
+
+def _histogram_edges(array_sets, bin_width):
+    """Shared bin edges covering every set's effects and +-3 chance SDs, 0 on an edge."""
+    effects = np.concatenate([a['effects'] for a in array_sets])
+    max_sd  = max(float(a['null_sd'].max()) for a in array_sets)
+    lo = np.floor(min(effects.min(), -3 * max_sd) / bin_width) * bin_width
+    hi = np.ceil(max(effects.max(), 3 * max_sd) / bin_width) * bin_width
+    return np.arange(lo, hi + bin_width, bin_width)
+
+
+def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='greater',
+                              color="#d9534f", title=None):
+    """Draw one per-condition effect histogram, its chance curve, mean line and the
+    Fisher's combined result onto ``ax``."""
+    effects, null_sd = arrays['effects'], arrays['null_sd']
+    bin_width = float(edges[1] - edges[0])
+    weighted_mean = float(np.average(effects, weights=arrays['weights']))
+
+    # Expected counts per bin under H0; conditions with sd=0 (all-yes or all-no)
+    # would be a spike at 0 and are left out of the curve.
+    x = np.linspace(edges[0], edges[-1], 600)
+    ok = null_sd > 0
+    null_curve = sp_stats.norm.pdf(x[:, None], 0, null_sd[ok][None, :]).sum(axis=1) * bin_width
+
+    ax.hist(effects, bins=edges, color=color, alpha=0.75, edgecolor="white",
+            label=f"Observed (n={len(effects)} conditions, {len(rows)} sessions)")
+    ax.plot(x, null_curve, color="black", linewidth=1.8,
+            label="Expected from chance (no EStim effect)")
+    ax.axvline(0, color="gray", linestyle="--", linewidth=1)
+    ax.axvline(weighted_mean, color="darkred", linewidth=1.5,
+               label=f"Trial-weighted mean = {weighted_mean:+.1f}%")
+
+    h1 = "ON > OFF" if alternative == 'greater' else "ON < OFF"
+    sig_color = "darkred" if pop['p_combined'] < 0.05 else "#444444"
+    ax.text(0.02, 0.97,
+            f"Fisher's combined ({h1}), {pop['n']} sessions\n"
+            f"X² = {pop['chi2']:.1f}, df = {pop['df']}, {_fmt_p(pop['p_combined'])}",
+            transform=ax.transAxes, va="top", ha="left", fontsize=9, color=sig_color,
+            bbox=dict(facecolor="#f8f8f8", edgecolor="#cccccc", boxstyle="round,pad=0.4"))
+
+    if title:
+        ax.set_title(title, fontsize=11, loc="left", fontweight="bold")
+    ax.set_ylabel("Number of conditions", fontsize=12)
+    ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
+    ax.spines[['top', 'right']].set_visible(False)
+
+    print(f"\nCondition histogram{' [' + title + ']' if title else ''}: {len(effects)} conditions, "
+          f"trial-weighted mean {weighted_mean:+.2f}%, unweighted mean {effects.mean():+.2f}%")
+    return weighted_mean
 
 
 def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=None,
@@ -275,54 +362,136 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
         print("No data to plot.")
         return None
     pop = compute_population_stats(rows, alternative=alternative)
-
-    conds = [c for d in rows for c in d['conditions']]
-    n_on  = np.array([c['n_on']  for c in conds], dtype=float)
-    n_off = np.array([c['n_off'] for c in conds], dtype=float)
-    effects = 100.0 * (np.array([c['on_yes'] for c in conds]) / n_on
-                       - np.array([c['off_yes'] for c in conds]) / n_off)
-    p_pool  = (np.array([c['on_yes'] + c['off_yes'] for c in conds])) / (n_on + n_off)
-    null_sd = 100.0 * np.sqrt(p_pool * (1 - p_pool) * (1 / n_on + 1 / n_off))
-
-    weights       = n_on + n_off
-    weighted_mean = float(np.average(effects, weights=weights))
-
-    # Bins aligned so 0 is a bin edge.
-    lo = np.floor(min(effects.min(), -3 * null_sd.max()) / bin_width) * bin_width
-    hi = np.ceil(max(effects.max(), 3 * null_sd.max()) / bin_width) * bin_width
-    edges = np.arange(lo, hi + bin_width, bin_width)
-
-    # Expected counts per unit x under H0; conditions with sd=0 (all-yes or all-no)
-    # would be a spike at 0 and are left out of the curve.
-    x = np.linspace(lo, hi, 600)
-    ok = null_sd > 0
-    null_curve = sp_stats.norm.pdf(x[:, None], 0, null_sd[ok][None, :]).sum(axis=1) * bin_width
+    arrays = _condition_arrays(rows)
 
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.hist(effects, bins=edges, color="#d9534f", alpha=0.75, edgecolor="white",
-            label=f"Observed (n={len(effects)} conditions, {len(rows)} sessions)")
-    ax.plot(x, null_curve, color="black", linewidth=1.8,
-            label="Expected from chance (no EStim effect)")
-    ax.axvline(0, color="gray", linestyle="--", linewidth=1)
-    ax.axvline(weighted_mean, color="darkred", linewidth=1.5,
-               label=f"Trial-weighted mean = {weighted_mean:+.1f}%")
-
-    h1 = "ON > OFF" if alternative == 'greater' else "ON < OFF"
-    sig_color = "darkred" if pop['p_combined'] < 0.05 else "#444444"
-    ax.text(0.02, 0.97,
-            f"Fisher's combined ({h1}), {pop['n']} sessions\n"
-            f"X² = {pop['chi2']:.1f}, df = {pop['df']}, {_fmt_p(pop['p_combined'])}",
-            transform=ax.transAxes, va="top", ha="left", fontsize=9, color=sig_color,
-            bbox=dict(facecolor="#f8f8f8", edgecolor="#cccccc", boxstyle="round,pad=0.4"))
-
+    _draw_condition_histogram(ax, rows, pop, arrays, _histogram_edges([arrays], bin_width),
+                              alternative=alternative)
     ax.set_xlabel("EStim effect: % ON − % OFF (per condition)", fontsize=12)
-    ax.set_ylabel("Number of conditions", fontsize=12)
-    ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
-    ax.spines[['top', 'right']].set_visible(False)
     fig.tight_layout()
 
-    print(f"\nCondition histogram: {len(effects)} conditions, "
-          f"trial-weighted mean {weighted_mean:+.2f}%, unweighted mean {effects.mean():+.2f}%")
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, bbox_inches="tight", dpi=150)
+        fig.savefig(save_path.rsplit(".", 1)[0] + ".svg", bbox_inches="tight")
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Estim rules from the current : half-distance regressions
+# ---------------------------------------------------------------------------
+#
+# ratio = current_per_second / corr half-distance  ((µA·Hz)/µm), per estim spec,
+# computed exactly as in plot_current_spread_vs_tuning (same half-distance defaults).
+# A condition is "within the rules" when its trial type has a rule and its spec's
+# ratio falls in that range (inclusive). Trial types without a rule (Removed Trial,
+# Coherence, ...) are left out of BOTH histograms, as are conditions whose spec has
+# no ratio (missing current or half-distance).
+ESTIM_RULES = {
+    'Hypothesized Shape': (2.0, 4.0),
+    'Delta Shape':        (0.0, 4.0),
+}
+
+RULE_IN  = 'in'
+RULE_OUT = 'out'
+
+_SPEC_RATIO_CACHE = {}
+
+
+def get_spec_ratios(session_id):
+    """{estim_spec_id: current_per_second / corr half-distance} for one session
+    (None where either piece is missing). Cached per session."""
+    if session_id in _SPEC_RATIO_CACHE:
+        return _SPEC_RATIO_CACHE[session_id]
+
+    # Heavy modules (probe geometry, tuning metrics) — import only when needed.
+    from src.analysis.nafc.group_analysis.analyze_estim_isolation_effect import (
+        _fetch_current_per_second)
+    from src.analysis.nafc.group_analysis.plot_current_spread_vs_tuning import (
+        compute_session_half_distance)
+
+    half_dist = compute_session_half_distance(session_id)
+    cps = _fetch_current_per_second([(session_id, spec) for spec in half_dist])
+    ratios = {}
+    for spec, hd in half_dist.items():
+        c = cps.get((session_id, int(spec)))
+        ok = (hd is not None and c is not None and np.isfinite(hd) and np.isfinite(c)
+              and hd > 0)
+        ratios[int(spec)] = float(c) / float(hd) if ok else None
+    _SPEC_RATIO_CACHE[session_id] = ratios
+    return ratios
+
+
+def classify_estim_rule(session_id, cond_dict, rules=ESTIM_RULES):
+    """RULE_IN / RULE_OUT for a condition, or None if it is excluded from both
+    (trial type has no rule, or the spec has no ratio)."""
+    rng = rules.get(cond_dict.get('trial_type'))
+    if rng is None:
+        return None
+    spec = cond_dict.get('estim_spec_id')
+    if spec is None or (isinstance(spec, float) and np.isnan(spec)):
+        return None
+    ratio = get_spec_ratios(session_id).get(int(spec))
+    if ratio is None:
+        return None
+    lo, hi = rng
+    return RULE_IN if lo <= ratio <= hi else RULE_OUT
+
+
+def _describe_rules(rules):
+    return "; ".join(f"{tt}: ratio in [{lo:g}, {hi:g}]" for tt, (lo, hi) in rules.items())
+
+
+def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
+                               algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                               alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
+                               rules=ESTIM_RULES, bin_width=5.0, save_path=None):
+    """
+    Per-condition effect histograms split by the estim rules, stacked on a shared
+    x-axis (and shared bins / y-axis) for direct comparison:
+        top    = conditions within the rules
+        bottom = conditions outside the rules (same trial types, ratio out of range)
+
+    Each panel has its own chance curve, trial-weighted mean and session-level
+    Fisher's combined test (each session's within-rule / outside-rule conditions
+    pooled into their own 2x2 table).
+    """
+    groups = [(RULE_IN,  "Within estim rules",  "#d9534f"),
+              (RULE_OUT, "Outside estim rules", "#7f7f7f")]
+
+    results = {}
+    for key, label, _ in groups:
+        print(f"\n===== {label} =====")
+        rows = collect_session_rows(
+            exclude_session_ids, start_session_id, algorithm_label, metric, alternative,
+            min_trials,
+            condition_filter=lambda sid, cond, key=key: classify_estim_rule(sid, cond, rules) == key)
+        pop = compute_population_stats(rows, alternative=alternative) if rows else None
+        results[key] = (rows, pop, _condition_arrays(rows) if rows else None)
+
+    present = [results[k][2] for k, _, _ in groups if results[k][2] is not None]
+    if not present:
+        print("No conditions in either group.")
+        return None
+    edges = _histogram_edges(present, bin_width)
+
+    fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True, sharey=True)
+    for ax, (key, label, color) in zip(axes, groups):
+        rows, pop, arrays = results[key]
+        if arrays is None:
+            ax.text(0.5, 0.5, "no conditions", transform=ax.transAxes,
+                    ha="center", va="center", color="gray")
+            ax.set_title(label, fontsize=11, loc="left", fontweight="bold")
+            continue
+        _draw_condition_histogram(ax, rows, pop, arrays, edges, alternative=alternative,
+                                  color=color, title=label)
+
+    axes[-1].set_xlabel("EStim effect: % ON − % OFF (per condition)", fontsize=12)
+    fig.suptitle(f"Rules: {_describe_rules(rules)}", fontsize=10, color="#444444")
+    fig.tight_layout()
 
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -442,6 +611,18 @@ def main():
         min_trials=10,
         bin_width=5.0,           # percentage points
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_condition_histogram.png",
+    )
+
+    # Same histogram, split by the current : half-distance estim rules (ESTIM_RULES).
+    plot_estim_rule_histograms(
+        exclude_session_ids=exclude_session_ids,
+        start_session_id=start_session_id,
+        algorithm_label=algorithm_label,
+        metric=metric,
+        alternative='greater',
+        min_trials=10,
+        bin_width=5.0,
+        save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
     )
 
     # Per-session ON/OFF dot plot (same test, one pooled pair of dots per session):
