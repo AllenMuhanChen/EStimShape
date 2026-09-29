@@ -11,7 +11,8 @@ permutation test (two-sided / one-sided "above" / off) and kernel bandwidth. Als
     "Fit only inside x-range" drops them from the fit / curve as well.
   - log x: analyse X on a log10 scale (fit, smoothing and tests all in log
     units; ticks labelled in the original units; specs with X <= 0 dropped).
-The figure redraws in place; the toolbar zooms, pans and saves.
+The figure redraws in place; the toolbar zooms, pans and saves. RIGHT-CLICK a
+panel to copy just that panel (or the whole figure) to the clipboard as an image.
 
 The data table is built ONCE at start-up (same COMPARISON_* config and cache as
 plot_current_spread_vs_tuning.main_effect_vs_spread); every drawn figure is cached
@@ -22,6 +23,7 @@ while exploring.
 Run this file, or call main_viewer().
 """
 
+import io
 import sys
 import time
 import traceback
@@ -30,15 +32,19 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from PyQt5.QtCore import Qt
 import pandas as pd
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor, QImage
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
-                             QFormLayout, QHBoxLayout, QLabel, QMainWindow,
+                             QFormLayout, QHBoxLayout, QLabel, QMainWindow, QMenu,
                              QSpinBox, QVBoxLayout, QWidget)
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 from src.analysis.nafc.group_analysis import plot_current_spread_vs_tuning as cs
+
+# Resolution of images copied to the clipboard.
+CLIPBOARD_DPI = 200
 
 # Combo-box entries: (label shown, key). Y keys map to an EFFECT_PLOTS key per
 # method; a missing method means that Y isn't available for it.
@@ -388,7 +394,91 @@ class EffectVsSpreadViewer(QMainWindow):
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.plot_area.addWidget(self.toolbar)
         self.plot_area.addWidget(self.canvas, 1)
+        self.canvas.mpl_connect('button_press_event', self._on_click)
         self.canvas.draw_idle()
+
+    # -- copy to clipboard -----------------------------------------------------
+    def _on_click(self, event):
+        """Right-click (outside the toolbar's pan/zoom modes) -> copy menu."""
+        if event.button != 3 or getattr(self.toolbar.mode, 'value', self.toolbar.mode):
+            return
+        ax = event.inaxes
+        panel = ax if ax is not None and ax.get_label() != '<colorbar>' else None
+        menu = QMenu(self)
+        copy_panel = menu.addAction("Copy this panel")
+        copy_panel.setEnabled(panel is not None)
+        copy_all = menu.addAction("Copy whole figure")
+        chosen = menu.exec_(QCursor.pos())
+        if chosen is copy_panel and panel is not None:
+            self.copy_panel(panel)
+        elif chosen is copy_all:
+            self.copy_figure()
+
+    @staticmethod
+    def _to_clipboard(png_bytes):
+        QApplication.clipboard().setImage(QImage.fromData(png_bytes, 'PNG'))
+
+    def copy_figure(self):
+        fig = self.canvas.figure
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', dpi=CLIPBOARD_DPI, bbox_inches='tight')
+        self._to_clipboard(buf.getvalue())
+        self.status.setText(self.status.text().split("\nCopied")[0]
+                            + "\nCopied the whole figure to the clipboard.")
+
+    def copy_panel(self, ax):
+        """Copy one panel — its titles, ticks, axis labels and any edge arrows —
+        as a PNG. In the grid only the top row names the trial type and only the
+        left column / bottom row carry axis labels, so the copy borrows those
+        temporarily for any other panel, making it self-explanatory on its own."""
+        fig = ax.figure
+        panels = [a for a in fig.axes if a.get_label() != '<colorbar>']
+        xlab = next((a.get_xlabel() for a in panels if a.get_xlabel()), '')
+        ylab = next((a.get_ylabel() for a in panels if a.get_ylabel()), '')
+        # the top panel of this column carries the column (trial type) label
+        x0 = ax.get_position().x0
+        column = [a for a in panels if abs(a.get_position().x0 - x0) < 1e-3]
+        top = max(column, key=lambda a: a.get_position().y0)
+        old = (ax.get_xlabel(), ax.get_ylabel(), ax.get_title())
+        if top is not ax:
+            ax.set_title(top.get_title().split("\n")[0] + "\n" + old[2],
+                         fontsize=ax.title.get_fontsize())
+        ax.set_xlabel(old[0] or xlab, fontsize=8)
+        ax.set_ylabel(old[1] or ylab, fontsize=8)
+        # freeze the layout: constrained_layout would otherwise re-run while saving,
+        # see only this panel, and move it out from under the crop box
+        self.canvas.draw()
+        engine = fig.get_layout_engine()
+        fig.set_layout_engine('none')
+        # hide every other panel (and the colourbar / suptitle) so neighbours that
+        # overlap the crop box don't bleed into the copy
+        others = [a for a in fig.axes if a is not ax and a.get_visible()]
+        sup = fig._suptitle if fig._suptitle is not None and fig._suptitle.get_visible() else None
+        for a in others:
+            a.set_visible(False)
+        if sup is not None:
+            sup.set_visible(False)
+        try:
+            # with everything else hidden, a 'tight' save crops to exactly this
+            # panel, measured at the copy's own dpi (text widths differ by dpi)
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', dpi=CLIPBOARD_DPI, bbox_inches='tight',
+                        pad_inches=0.08)
+            title = " / ".join(t for t in ax.get_title().split("\n")[:2] if t)
+        finally:
+            fig.set_layout_engine(engine)
+            for a in others:
+                a.set_visible(True)
+            if sup is not None:
+                sup.set_visible(True)
+            ax.set_xlabel(old[0])
+            ax.set_ylabel(old[1])
+            ax.set_title(old[2], fontsize=ax.title.get_fontsize())
+            self.canvas.draw_idle()
+        self._to_clipboard(buf.getvalue())
+        self.status.setText(self.status.text().split("\nCopied")[0]
+                            + f"\nCopied panel '{title}' to the clipboard.")
+        return buf.getvalue()
 
 
 def main_viewer():
