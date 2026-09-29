@@ -9,6 +9,8 @@ permutation test (two-sided / one-sided "above" / off) and kernel bandwidth. Als
     trials (one threshold for both).
   - X range: fixed axis limits (or auto); specs outside are drawn at the edge.
     "Fit only inside x-range" drops them from the fit / curve as well.
+  - log x: analyse X on a log10 scale (fit, smoothing and tests all in log
+    units; ticks labelled in the original units; specs with X <= 0 dropped).
 The figure redraws in place; the toolbar zooms, pans and saves.
 
 The data table is built ONCE at start-up (same COMPARISON_* config and cache as
@@ -99,6 +101,11 @@ class EffectVsSpreadViewer(QMainWindow):
         for w in (self.xmin_box, self.xmax_box):
             w.setRange(-1e7, 1e7)
             w.setDecimals(2)
+        self.xlog_box = QCheckBox("log x")
+        self.xlog_box.setToolTip("Analyse X on a log10 scale: the fit, smoothing "
+                                 "bandwidth and tests all work in log units. X range "
+                                 "stays in the original units; specs with X <= 0 "
+                                 "are dropped.")
         self.xrestrict_box = QCheckBox("fit only inside x-range")
         self.xrestrict_box.setToolTip("Drop specs outside the x-range from the fit / "
                                       "smoothed curve too (otherwise they are fitted "
@@ -122,7 +129,10 @@ class EffectVsSpreadViewer(QMainWindow):
         xrange_row.addWidget(self.xmax_box)
         xrange_row.addWidget(self.xauto_box)
         controls.addRow("X range", xrange_row)
-        controls.addRow("", self.xrestrict_box)
+        xopts_row = QHBoxLayout()
+        xopts_row.addWidget(self.xlog_box)
+        xopts_row.addWidget(self.xrestrict_box)
+        controls.addRow("", xopts_row)
         self.status = QLabel()
         self.status.setWordWrap(True)
         # the figure's long legend-style title lives here instead of above the plot
@@ -137,7 +147,7 @@ class EffectVsSpreadViewer(QMainWindow):
         side.addStretch(1)
         side_widget = QWidget()
         side_widget.setLayout(side)
-        side_widget.setFixedWidth(400)
+        side_widget.setFixedWidth(460)
 
         self.plot_area = QVBoxLayout()
         self.canvas = None
@@ -153,12 +163,14 @@ class EffectVsSpreadViewer(QMainWindow):
         self.setCentralWidget(central)
 
         self.x_box.currentIndexChanged.connect(self._reset_xrange)
+        self.xlog_box.stateChanged.connect(self._reset_xrange)
         for box in (self.x_box, self.y_box, self.method_box, self.test_box):
             box.currentIndexChanged.connect(self.redraw)
         for box in (self.bw_box, self.perm_box, self.trials_box, self.xmin_box,
                     self.xmax_box):
             box.valueChanged.connect(self.redraw)
-        for box in (self.polarity_box, self.xauto_box, self.xrestrict_box):
+        for box in (self.polarity_box, self.xauto_box, self.xrestrict_box,
+                    self.xlog_box):
             box.stateChanged.connect(self.redraw)
         self.xauto_box.stateChanged.connect(self._sync_xrange_enabled)
         self._reset_xrange()
@@ -197,12 +209,22 @@ class EffectVsSpreadViewer(QMainWindow):
         return cs.EFFECT_X_AXES[X_CHOICES[self.x_box.currentIndex()][1]]['col']
 
     def _reset_xrange(self, *_):
-        """On an X-axis switch, load that axis's default limits: its fixed xlim
-        (e.g. RATIO_XLIM) if it has one, else 'auto' with the boxes pre-filled from
-        the data's robust range as a starting point for editing."""
+        """On an X-axis (or log) switch, load that axis's default limits: its
+        fixed xlim (e.g. RATIO_XLIM) if it has one — unless log x is on and it
+        starts at <= 0 — else 'auto' with the boxes pre-filled from the data's
+        range as a starting point for editing."""
         x_key = X_CHOICES[self.x_box.currentIndex()][1]
         default = cs.EFFECT_X_AXES[x_key]['xlim']
-        lims = default or cs._robust_limits(self.points[self._x_col()]) or (0.0, 1.0)
+        x = pd.to_numeric(self.points[self._x_col()], errors='coerce')
+        if self.xlog_box.isChecked():
+            x = x[x > 0]
+            if default and default[0] <= 0:
+                default = None
+            data_lims = ((float(x.quantile(0.01)), float(x.quantile(0.99)))
+                         if len(x) else None)
+        else:
+            data_lims = cs._robust_limits(x)
+        lims = default or data_lims or (0.0, 1.0)
         for w in (self.xmin_box, self.xmax_box, self.xauto_box):
             w.blockSignals(True)  # one redraw for the whole reset, not three
         self.xmin_box.setValue(lims[0])
@@ -273,8 +295,13 @@ class EffectVsSpreadViewer(QMainWindow):
         if xlim == 'bad':
             self.status.setText("X range: the minimum must be below the maximum.")
             return
+        log_x = self.xlog_box.isChecked()
+        if log_x and xlim is not None and xlim[0] <= 0:
+            self.status.setText("log x: the X-range minimum must be above 0 "
+                                "(or tick 'auto').")
+            return
         restrict = self.xrestrict_box.isChecked() and xlim is not None
-        shared = (x_key, plot_key, by_polarity, min_trials, xlim, restrict)
+        shared = (x_key, plot_key, by_polarity, min_trials, xlim, restrict, log_x)
         # regression figures don't depend on the smoothing-only settings
         key = (shared + (perm_test, alternative, bw, n_perm)) if smooth else shared
 
@@ -300,7 +327,7 @@ class EffectVsSpreadViewer(QMainWindow):
                     pts, x_key, plot_key, trial_types=self.trial_types,
                     onoff_null=onoff_null, onoff_null_z=onoff_null_z,
                     by_polarity=by_polarity, bw_frac=bw, perm_test=perm_test,
-                    n_perm=n_perm, alternative=alternative, xlim=xlim)
+                    n_perm=n_perm, alternative=alternative, xlim=xlim, log_x=log_x)
             except Exception as exc:  # keep the viewer alive; show what failed
                 QApplication.restoreOverrideCursor()
                 traceback.print_exc()
@@ -313,21 +340,25 @@ class EffectVsSpreadViewer(QMainWindow):
             plt.close(fig)  # the viewer owns it now, not pyplot
             self._fit_to_window(fig)
             fig._viewer_n = len(pts)
+            x_all = pd.to_numeric(pts[self._x_col()], errors='coerce')
+            fig._viewer_dropped = int((x_all <= 0).sum()) if log_x else 0
             self._fig_cache[key] = fig
             self.status.setText(f"Drew {self._describe(plot_key, x_key, smooth, perm_test, alternative)}"
                                 f" in {time.time() - t0:.1f}s.")
         else:
             self.status.setText(f"{self._describe(plot_key, x_key, smooth, perm_test, alternative)}"
                                 " (cached).")
+        dropped = (f" ({fig._viewer_dropped} with X <= 0 left out of the log plot)"
+                   if fig._viewer_dropped else "")
         self.status.setText(self.status.text() + f"\n{fig._viewer_n} of "
-                            f"{len(self.points)} specs pass the filters.")
+                            f"{len(self.points)} specs pass the filters{dropped}.")
         self.legend.setText(fig._viewer_legend)
         self._show_figure(fig)
 
-    @staticmethod
-    def _describe(plot_key, x_key, smooth, perm_test, alternative):
+    def _describe(self, plot_key, x_key, smooth, perm_test, alternative):
         test = ((f", {alternative} test" if perm_test else ", no test") if smooth else "")
-        return f"{plot_key} vs {x_key}{test}"
+        log = "log " if self.xlog_box.isChecked() else ""
+        return f"{plot_key} vs {log}{x_key}{test}"
 
     @staticmethod
     def _fit_to_window(fig):

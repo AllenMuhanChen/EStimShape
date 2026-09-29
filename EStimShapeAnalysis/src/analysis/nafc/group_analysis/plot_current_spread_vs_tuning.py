@@ -3144,6 +3144,42 @@ def prepare_effect_points(trial_types=None, *, start_session_id=None,
     return trial_types, df, points
 
 
+def _log10_x(points, col):
+    """(points copy with a log10(col) column, that column's name). Non-positive or
+    missing x become NaN, so those specs drop out of a log-x plot."""
+    log_col = f"log10__{col}"
+    x = pd.to_numeric(points[col], errors='coerce').to_numpy(dtype=float)
+    out = points.copy()
+    with np.errstate(divide='ignore', invalid='ignore'):
+        out[log_col] = np.where(x > 0, np.log10(x), np.nan)
+    return out, log_col
+
+
+def _label_log_ticks(fig):
+    """On log10-transformed x-axes, put ticks at 1-2-5 × 10^k and label them in the
+    ORIGINAL units, so the axis reads like a log-scale axis."""
+    for ax in fig.axes:
+        if not getattr(ax, '_log10_x', False):
+            continue
+        lo, hi = ax.get_xlim()
+        decades = range(int(np.floor(lo)) - 1, int(np.ceil(hi)) + 1)
+        vals = [m * 10.0 ** k for k in decades for m in (1, 2, 5)]
+        ticks = [np.log10(v) for v in vals if lo <= np.log10(v) <= hi]
+        if len(ticks) > 9:  # crowded: keep only the decades
+            ticks = [t for t in ticks if abs(t - round(t)) < 1e-9] or ticks
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([f"{10 ** t:g}" for t in ticks])
+        ax.set_xlim(lo, hi)
+
+
+def _save_figure(fig, output_path):
+    if output_path:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        fig.savefig(output_path, dpi=150, bbox_inches='tight')
+        fig.savefig(output_path.rsplit('.', 1)[0] + '.svg', bbox_inches='tight')
+        print(f"Saved plot to {output_path}")
+
+
 def draw_effect_vs_spread(points, x_key, plot_key, *, trial_types, onoff_null=None,
                           onoff_null_z=None, by_polarity=True, aggregate_by='spec',
                           add_margins=RATIO_ADD_COMBINED, bw_frac=DEFAULT_RATIO_BW_FRAC,
@@ -3154,23 +3190,36 @@ def draw_effect_vs_spread(points, x_key, plot_key, *, trial_types, onoff_null=No
                           show_null_band=RATIO_RATE_SHOW_NULL_BAND,
                           bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
                           boot_cluster=RATIO_RATE_BOOT_CLUSTER, alternative=None,
-                          xlim='default', output_path=None):
+                          xlim='default', log_x=False, output_path=None):
     """Draw ONE (X-axis, plot) figure — keys of EFFECT_X_AXES / EFFECT_PLOTS — from a
     prepare_effect_points table and return it (not shown). onoff_null /
     onoff_null_z are the raw-effect / z-scale ON/OFF null draws a smoothed plot's
     permutation test needs (None skips the ON/OFF test). alternative overrides the
     plot's own two-sided/'greater' setting for smoothed plots. xlim='default' uses
-    the axis's EFFECT_X_AXES limits; None auto-fits; (lo, hi) fixes them."""
+    the axis's EFFECT_X_AXES limits; None auto-fits; (lo, hi) fixes them — always
+    in the ORIGINAL x units.
+
+    log_x=True analyses x on a log10 scale: the fit, the smoothing (bandwidth in
+    log units) and the tests all use log10(x), ticks are labelled in the original
+    units, and specs with x <= 0 are dropped. A limit <= 0 falls back to auto."""
     ax_cfg = dict(EFFECT_X_AXES[x_key])
     if xlim != 'default':
         ax_cfg['xlim'] = xlim
+    if log_x:
+        points, ax_cfg['col'] = _log10_x(points, ax_cfg['col'])
+        lim = ax_cfg['xlim']
+        ax_cfg['xlim'] = ((np.log10(lim[0]), np.log10(lim[1]))
+                          if lim and lim[0] > 0 and lim[1] > lim[0] else None)
+        ax_cfg['label'] = f"{ax_cfg['label']}  [log scale]"
+        ax_cfg['title'] = f"log {ax_cfg['title']}"
+        ax_cfg['short'] = f"log {ax_cfg['short']}"
     family, mode, extra = EFFECT_PLOTS[plot_key]
     common = dict(trial_types=trial_types, by_polarity=by_polarity,
                   point_noun=aggregate_by, add_margins=add_margins, show=False,
-                  output_path=output_path)
+                  output_path=None)  # saved below, after any log-tick relabelling
     if family == 'smooth':
         extra = dict(extra, **({'alternative': alternative} if alternative else {}))
-        return plot_smoothed_effect_by_trialtype(
+        fig = plot_smoothed_effect_by_trialtype(
             points, x_col=ax_cfg['col'], x_label=ax_cfg['label'],
             x_desc=ax_cfg['title'], x_short=ax_cfg['short'], xlim=ax_cfg['xlim'],
             split_mode=mode, bw_frac=bw_frac, perm_test=perm_test, n_perm=n_perm,
@@ -3179,18 +3228,29 @@ def draw_effect_vs_spread(points, x_key, plot_key, *, trial_types, onoff_null=No
             effect_threshold=effect_threshold, show_null_band=show_null_band,
             bootstrap=bootstrap, n_boot=n_boot, boot_cluster=boot_cluster,
             **extra, **common)
-    if mode == 'rate':
-        return plot_rate_regression_by_trialtype(
+    elif mode == 'rate':
+        fig = plot_rate_regression_by_trialtype(
             points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
             effect_threshold=effect_threshold, **common)
-    if mode == 'effect':
-        return plot_effect_regression_by_trialtype(
+    elif mode == 'effect':
+        fig = plot_effect_regression_by_trialtype(
             points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
             **common)
-    return plot_effect_regression_by_trialtype(  # 'z'
-        points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
-        y_col=EFFECT_Z_COL, y_label='effect z  (Φ⁻¹(1 − p), H1: effect > 0)',
-        y_desc='Estim effect z-score', ref_lines=EFFECT_Z_REF_LINES, **common)
+    else:  # 'z'
+        fig = plot_effect_regression_by_trialtype(
+            points, ax_cfg['col'], x_label=ax_cfg['label'], xlim=ax_cfg['xlim'],
+            y_col=EFFECT_Z_COL, y_label='effect z  (Φ⁻¹(1 − p), H1: effect > 0)',
+            y_desc='Estim effect z-score', ref_lines=EFFECT_Z_REF_LINES, **common)
+    if fig is None:
+        return None
+    if log_x:
+        for ax in fig.axes:
+            # panel axes carry the x label on the bottom row only; mark all panels
+            # (every axes but the colourbar has data on x)
+            ax._log10_x = ax.get_label() != '<colorbar>'
+        _label_log_ticks(fig)
+    _save_figure(fig, output_path)
+    return fig
 
 
 def run_effect_vs_spread(x_axes=EFFECT_X_SELECTION, plots=EFFECT_PLOT_SELECTION,
@@ -3208,7 +3268,7 @@ def run_effect_vs_spread(x_axes=EFFECT_X_SELECTION, plots=EFFECT_PLOT_SELECTION,
                          effect_threshold=RATIO_RATE_THRESHOLD,
                          show_null_band=RATIO_RATE_SHOW_NULL_BAND,
                          bootstrap=RATIO_RATE_BOOTSTRAP, n_boot=RATIO_RATE_N_BOOT,
-                         boot_cluster=RATIO_RATE_BOOT_CLUSTER,
+                         boot_cluster=RATIO_RATE_BOOT_CLUSTER, log_x=False,
                          save_dir=None, show=True):
     """Draw every (X-axis in x_axes) × (plot in plots) figure — keys of
     EFFECT_X_AXES / EFFECT_PLOTS — from ONE points table. The ON/OFF null draws
@@ -3256,8 +3316,10 @@ def run_effect_vs_spread(x_axes=EFFECT_X_SELECTION, plots=EFFECT_PLOT_SELECTION,
             draw_effect_vs_spread(
                 points, x_key, plot_key, onoff_null=onoff_null,
                 onoff_null_z=onoff_null_z,
-                output_path=(os.path.join(save_dir, f"{plot_key}_vs_{x_key}.png")
-                             if save_dir else None),
+                log_x=log_x,
+                output_path=(os.path.join(
+                    save_dir, f"{plot_key}_vs_{'log_' if log_x else ''}{x_key}.png")
+                    if save_dir else None),
                 **settings)
     if show:
         plt.show()  # every figure pops up together
