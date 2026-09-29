@@ -2085,6 +2085,47 @@ def _attach_ratio(points, *, x_col='current_per_second', hd_col=HALFDIST_COL,
     return points
 
 
+def _off_axis_mask(x, xlim):
+    """Boolean mask of points whose x falls outside a fixed xlim (all False if
+    xlim is None)."""
+    x = np.asarray(x, dtype=float)
+    if not xlim or not len(x):
+        return np.zeros(len(x), dtype=bool)
+    return (x < xlim[0]) | (x > xlim[1])
+
+
+def _off_axis_note(x, xlim):
+    """Short panel-title note counting points beyond a fixed xlim ('' if none).
+    Those points still enter every fit / smoothed curve, so the plot must say so."""
+    k = int(_off_axis_mask(x, xlim).sum())
+    return f"  ({k} off-axis, shown at edge)" if k else ""
+
+
+def _draw_off_axis(ax, x, y, xlim, **scatter_kw):
+    """Draw points beyond a fixed xlim as ◀ / ▶ pinned to that edge at their true
+    y, so specs that pull on the fit are never invisible. scatter_kw colours them
+    (e.g. c=, cmap=, vmin=, vmax=) — pass values already masked-aligned to x."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    if not xlim or not len(x):
+        return
+    c = scatter_kw.pop('c', None)
+    for mask, edge, marker in ((x < xlim[0], xlim[0], '<'), (x > xlim[1], xlim[1], '>')):
+        if not mask.any():
+            continue
+        kw = dict(scatter_kw)
+        if c is not None:
+            kw['c'] = np.asarray(c)[mask]
+        ax.scatter(np.full(int(mask.sum()), edge), y[mask], marker=marker, s=60,
+                   edgecolors='black', linewidths=0.5, alpha=0.9, zorder=5,
+                   clip_on=False, **kw)
+
+
+def _clip_to_xlim(x, xlim):
+    """x pinned into xlim (for rug ticks), unchanged if xlim is None."""
+    return np.clip(x, xlim[0], xlim[1]) if xlim else x
+
+
 def _robust_limits(series, *, qlo=1, qhi=99, pad=0.05):
     """Percentile-based (lo, hi) limits — robust to a few ratio outliers that would
     otherwise squash the x-axis — or None."""
@@ -2418,12 +2459,13 @@ def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
         ax.axhline(0.5, color='#888888', lw=0.8, ls='--', zorder=1)
         # rug: specs above the threshold as red ticks near the top, at/below as blue.
         above = effv > effect_threshold
+        xr = _clip_to_xlim(xv, xlim)  # off-axis specs pile up at the edge
         if above.any():
-            ax.plot(xv[above], np.full(int(above.sum()), 1.0), '|',
-                    color=SIGN_POS_COLOR, ms=7, alpha=0.5, zorder=2)
+            ax.plot(xr[above], np.full(int(above.sum()), 1.0), '|',
+                    color=SIGN_POS_COLOR, ms=7, alpha=0.5, zorder=2, clip_on=False)
         if (~above).any():
-            ax.plot(xv[~above], np.full(int((~above).sum()), 0.0), '|',
-                    color=SIGN_NEG_COLOR, ms=7, alpha=0.5, zorder=2)
+            ax.plot(xr[~above], np.full(int((~above).sum()), 0.0), '|',
+                    color=SIGN_NEG_COLOR, ms=7, alpha=0.5, zorder=2, clip_on=False)
 
         yb = above.astype(float)
         sm = _kernel_smooth_1d(xv, yb, bw_frac=bw_frac, xrange=xlim)
@@ -2570,6 +2612,8 @@ def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
                                     s=42, alpha=0.85, edgecolors='black',
                                     linewidths=0.4, zorder=2)
                     scatter_ref = sc
+                    _draw_off_axis(ax, x, yv, xlim, c=eff, cmap='RdBu_r',
+                                   vmin=-vmax, vmax=vmax)
                 if split_mode in ('abs', 'signed_split'):
                     # two lines: positive-effect points and negative-effect points
                     # ('abs' folds both to |effect|; 'signed_split' keeps the sign).
@@ -2589,7 +2633,7 @@ def plot_smoothed_effect_by_trialtype(points, *, trial_types, x_col=RATIO_COL,
                 lines.append(col_label)
             if row_label:
                 lines.append(row_label)
-            n_line = f"n={len(x)} {point_noun}s"
+            n_line = f"n={len(x)} {point_noun}s{_off_axis_note(x, xlim)}"
             if perm_test and split_mode in (None, 'rate', 'mag', 'z'):
                 if test_res is not None:
                     pval, n_var_sess, n_var_specs = test_res
@@ -2762,12 +2806,13 @@ def plot_rate_regression_by_trialtype(points, x_col, *, trial_types, x_label,
             ax.axhline(0.5, color='#888888', lw=0.8, ls='--', zorder=1)
             # rug: positive specs at the top (red), the rest at the bottom (blue)
             pos = y > 0
+            xr = _clip_to_xlim(x, xlim)  # off-axis specs pile up at the edge
             if pos.any():
-                ax.plot(x[pos], np.full(int(pos.sum()), 1.0), '|',
-                        color=SIGN_POS_COLOR, ms=7, alpha=0.5, zorder=2)
+                ax.plot(xr[pos], np.full(int(pos.sum()), 1.0), '|',
+                        color=SIGN_POS_COLOR, ms=7, alpha=0.5, zorder=2, clip_on=False)
             if (~pos).any():
-                ax.plot(x[~pos], np.full(int((~pos).sum()), 0.0), '|',
-                        color=SIGN_NEG_COLOR, ms=7, alpha=0.5, zorder=2)
+                ax.plot(xr[~pos], np.full(int((~pos).sum()), 0.0), '|',
+                        color=SIGN_NEG_COLOR, ms=7, alpha=0.5, zorder=2, clip_on=False)
 
             # binned empirical proportions (quantile bins) as a visual check
             if len(x) >= 2 * n_bins:
@@ -2801,7 +2846,8 @@ def plot_rate_regression_by_trialtype(points, x_col, *, trial_types, x_label,
                 lines.append(col_label)
             if row_label:
                 lines.append(row_label)
-            lines.append(f"n={len(x)} {point_noun}s ({int(y.sum())} pos)   {stat_line}")
+            lines.append(f"n={len(x)} {point_noun}s ({int(y.sum())} pos)"
+                         f"{_off_axis_note(x, xlim)}   {stat_line}")
             ax.set_title("\n".join(lines), fontsize=10)
             if xlim:
                 ax.set_xlim(xlim)
@@ -2975,6 +3021,8 @@ def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
                 scatter_ref = ax.scatter(x, eff, c=eff, cmap='RdBu_r', vmin=-vmax,
                                          vmax=vmax, s=42, alpha=0.85,
                                          edgecolors='black', linewidths=0.4, zorder=2)
+                _draw_off_axis(ax, x, eff, xlim, c=eff, cmap='RdBu_r',
+                               vmin=-vmax, vmax=vmax)
 
             fit = _fit_linear_1d(x, eff)
             stat_line = "linear fit n/a"
@@ -3000,7 +3048,7 @@ def plot_effect_regression_by_trialtype(points, x_col, *, trial_types, x_label,
                 lines.append(col_label)
             if row_label:
                 lines.append(row_label)
-            lines.append(f"n={len(x)} {point_noun}s   {stat_line}")
+            lines.append(f"n={len(x)} {point_noun}s{_off_axis_note(x, xlim)}   {stat_line}")
             ax.set_title("\n".join(lines), fontsize=10)
             if xlim:
                 ax.set_xlim(xlim)
