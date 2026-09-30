@@ -515,6 +515,20 @@ ESTIM_RULES = {
     'Delta Shape':        (0.0, 4.0),
 }
 
+# Alternative, cutoff-free rule ('closest' mode): for each trial type, rank every
+# qualifying condition (pooled across sessions, after all other filters) by its
+# distance |ratio - center| and call the closest DISTANCE_RULE_FRACTION of them
+# "within the rules". Trial types without a center are left out, as in 'range' mode.
+ESTIM_DISTANCE_CENTERS = {
+    'Hypothesized Shape': 4.0,
+    'Delta Shape':        0.0,
+}
+DISTANCE_RULE_FRACTION = 0.5
+
+RULE_MODE_RANGE   = 'range'     # ESTIM_RULES hard ranges
+RULE_MODE_CLOSEST = 'closest'   # closest fraction to ESTIM_DISTANCE_CENTERS
+RULE_MODES = (RULE_MODE_RANGE, RULE_MODE_CLOSEST)
+
 RULE_IN  = 'in'
 RULE_OUT = 'out'
 
@@ -545,20 +559,78 @@ def get_spec_ratios(session_id):
     return ratios
 
 
+def _condition_ratio(session_id, cond_dict):
+    """The condition's spec ratio, or None (no spec, or missing current / half-distance)."""
+    spec = cond_dict.get('estim_spec_id')
+    if spec is None or (isinstance(spec, float) and np.isnan(spec)):
+        return None
+    return get_spec_ratios(session_id).get(int(spec))
+
+
 def classify_estim_rule(session_id, cond_dict, rules=ESTIM_RULES):
     """RULE_IN / RULE_OUT for a condition, or None if it is excluded from both
     (trial type has no rule, or the spec has no ratio)."""
     rng = rules.get(cond_dict.get('trial_type'))
     if rng is None:
         return None
-    spec = cond_dict.get('estim_spec_id')
-    if spec is None or (isinstance(spec, float) and np.isnan(spec)):
-        return None
-    ratio = get_spec_ratios(session_id).get(int(spec))
+    ratio = _condition_ratio(session_id, cond_dict)
     if ratio is None:
         return None
     lo, hi = rng
     return RULE_IN if lo <= ratio <= hi else RULE_OUT
+
+
+def compute_closest_thresholds(centers=ESTIM_DISTANCE_CENTERS, fraction=DISTANCE_RULE_FRACTION,
+                               **collect_kwargs):
+    """
+    {trial_type: max |ratio - center| of the closest ``fraction`` of conditions}.
+
+    Ranks every condition the plot would use (collect_kwargs = the same session /
+    trial-type / ratio-exclusion / min_trials filters as collect_session_rows),
+    pooled across sessions, per trial type. The closest ceil(fraction * n) set the
+    threshold; conditions tied at the threshold are all kept, so ties can push the
+    group slightly above ``fraction``.
+    """
+    if not 0 < fraction <= 1:
+        raise ValueError(f"fraction must be in (0, 1], got {fraction}")
+
+    def has_center_and_ratio(sid, cond):
+        return (cond.get('trial_type') in centers
+                and _condition_ratio(sid, cond) is not None)
+
+    print("\n===== Ranking conditions by distance from center =====")
+    rows = collect_session_rows(condition_filter=has_center_and_ratio, **collect_kwargs)
+
+    distances = {tt: [] for tt in centers}
+    for d in rows:
+        for c in d['conditions']:
+            tt = c['cond_dict']['trial_type']
+            ratio = _condition_ratio(d['session_id'], c['cond_dict'])
+            distances[tt].append(abs(ratio - centers[tt]))
+
+    thresholds = {}
+    for tt, dist in distances.items():
+        if not dist:
+            print(f"  {tt}: no conditions with a ratio")
+            continue
+        dist = np.sort(dist)
+        k = int(np.ceil(fraction * len(dist)))
+        thresholds[tt] = float(dist[k - 1])
+        print(f"  {tt}: center {centers[tt]:g}, {len(dist)} conditions -> closest {k} have "
+              f"|ratio - center| <= {thresholds[tt]:.3g}")
+    return thresholds
+
+
+def classify_closest(session_id, cond_dict, centers, thresholds):
+    """RULE_IN if the condition is within its trial type's closest-fraction distance,
+    RULE_OUT otherwise, None if it has no center / threshold / ratio."""
+    tt = cond_dict.get('trial_type')
+    if tt not in centers or tt not in thresholds:
+        return None
+    ratio = _condition_ratio(session_id, cond_dict)
+    if ratio is None:
+        return None
+    return RULE_IN if abs(ratio - centers[tt]) <= thresholds[tt] else RULE_OUT
 
 
 def _describe_rules(rules):
@@ -570,15 +642,23 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                rules=ESTIM_RULES, bin_width=None,
                                studentize=False, trial_types=None,
-                               exclude_ratio_ranges=None, save_path=None):
+                               exclude_ratio_ranges=None, rule_mode=RULE_MODE_RANGE,
+                               centers=ESTIM_DISTANCE_CENTERS,
+                               fraction=DISTANCE_RULE_FRACTION, save_path=None):
     """
     Per-condition effect histograms split by the estim rules, stacked on a shared
     x-axis (and shared bins / y-axis) for direct comparison:
         top    = conditions within the rules
         bottom = conditions outside the rules (same trial types, ratio out of range)
 
-    Each panel has its own session-level Fisher's combined test (each session's within-rule / outside-rule conditions
-    pooled into their own 2x2 table).
+    Each panel has its own session-level Fisher's combined test (each session's
+    within-rule / outside-rule conditions pooled into their own 2x2 table).
+
+    rule_mode     : 'range' (default) — within = ratio inside ESTIM_RULES[trial_type].
+                    'closest' — within = the closest ``fraction`` of conditions to
+                    centers[trial_type] by |ratio - center|, ranked per trial type
+                    across all sessions (no hard cutoff). Adds __closest<NN> to the
+                    filename.
 
     studentize    : True puts the x-axis in z units (see plot_condition_effect_histogram).
     bin_width     : None -> 5 percentage points, or 0.5 z when studentized.
@@ -587,17 +667,40 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
     exclude_ratio_ranges : None or [(lo, hi), ...] ratio ranges to drop (inclusive;
                     None for an open end), applied before the rule split.
     """
-    groups = [(RULE_IN,  "Within estim rules",  "#d9534f"),
-              (RULE_OUT, "Outside estim rules", "#7f7f7f")]
+    if rule_mode not in RULE_MODES:
+        raise ValueError(f"rule_mode must be one of {RULE_MODES}, got {rule_mode!r}")
+
+    common = dict(exclude_session_ids=exclude_session_ids, start_session_id=start_session_id,
+                  algorithm_label=algorithm_label, metric=metric, alternative=alternative,
+                  min_trials=min_trials, trial_types=trial_types,
+                  exclude_ratio_ranges=exclude_ratio_ranges)
+
+    if rule_mode == RULE_MODE_CLOSEST:
+        thresholds = compute_closest_thresholds(centers, fraction, **common)
+        pct = f"{100 * fraction:g}%"
+
+        def classify(sid, cond):
+            return classify_closest(sid, cond, centers, thresholds)
+        groups = [(RULE_IN,  f"Closest {pct} to center",        "#d9534f"),
+                  (RULE_OUT, f"Farther from center (other {100 - 100 * fraction:g}%)", "#7f7f7f")]
+        rule_text = (f"Closest {pct} by |ratio − center|: " + "; ".join(
+            f"{tt}: center {c:g}" + (f" (≤ {thresholds[tt]:.2g})" if tt in thresholds else "")
+            for tt, c in centers.items()))
+        if save_path:
+            root, ext = os.path.splitext(save_path)
+            save_path = f"{root}__closest{100 * fraction:g}{ext}"
+    else:
+        def classify(sid, cond):
+            return classify_estim_rule(sid, cond, rules)
+        groups = [(RULE_IN,  "Within estim rules",  "#d9534f"),
+                  (RULE_OUT, "Outside estim rules", "#7f7f7f")]
+        rule_text = f"Rules: {_describe_rules(rules)}"
 
     results = {}
     for key, label, _ in groups:
         print(f"\n===== {label} =====")
         rows = collect_session_rows(
-            exclude_session_ids, start_session_id, algorithm_label, metric, alternative,
-            min_trials,
-            condition_filter=lambda sid, cond, key=key: classify_estim_rule(sid, cond, rules) == key,
-            trial_types=trial_types, exclude_ratio_ranges=exclude_ratio_ranges)
+            condition_filter=lambda sid, cond, key=key: classify(sid, cond) == key, **common)
         pop = compute_population_stats(rows, alternative=alternative) if rows else None
         results[key] = (rows, pop,
                         _condition_arrays(rows, studentize=studentize) if rows else None)
@@ -620,8 +723,7 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                   color=color, title=label)
 
     axes[-1].set_xlabel(_effect_axis_label(studentize), fontsize=12)
-    fig.suptitle(f"{_filter_label(trial_types)}  ·  "
-                 f"Rules: {_describe_rules(rules)}",
+    fig.suptitle(f"{_filter_label(trial_types)}  ·  {rule_text}",
                  fontsize=10, color="#444444")
     fig.tight_layout()
 
@@ -768,6 +870,10 @@ def main():
         studentize=False,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
         exclude_ratio_ranges=exclude_ratio_ranges,
+        # 'range'   -> hard ranges in ESTIM_RULES
+        # 'closest' -> closest DISTANCE_RULE_FRACTION of conditions to
+        #              ESTIM_DISTANCE_CENTERS (Hypothesized 4, Delta 0), no hard cutoff
+        rule_mode='range',
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
     )
 
