@@ -892,26 +892,34 @@ def main():
     # to each saved filename, e.g. ..._histogram__HypothesizedShape.png
     trial_types = None
     # trial_types = ['Hypothesized Shape']
-    # trial_types = ['Hypothesized Shape', 'Delta Shape']
+    trial_types = ['Hypothesized Shape', 'Delta Shape']
+    # trial_types = ['Delta Shape']
     # current : half-distance ratio ranges to drop from EVERY plot (inclusive; None =
     # open end); also appended to each filename, e.g. ..._histogram__xratio8-inf.png
-    exclude_ratio_ranges = None
+    exclude_ratio_ranges = [(8, None)]
     # exclude_ratio_ranges = [(8, None)]          # drop ratio >= 8
     # exclude_ratio_ranges = [(None, 0.5), (8, None)]
     # True -> one histogram value per (session, trial type, spec), averaging the spec's
     # behavioral groups (noise, coherence, ...); False -> one per condition. Adds
     # __perspec to the histogram filenames.
-    merge_behavioral = False
+    merge_behavioral = True
 
+    rule_mode = 'closest'
+    # 'range'   -> hard ranges in ESTIM_RULES
+    # 'closest' -> closest DISTANCE_RULE_FRACTION of conditions to
+    #              ESTIM_DISTANCE_CENTERS (Hypothesized 4, Delta 0), no hard cutoff
+
+    studentize = False
+    min_trials = 10
     plot_condition_effect_histogram(
         exclude_session_ids=exclude_session_ids,
         start_session_id=start_session_id,
         algorithm_label=algorithm_label,
         metric=metric,
         alternative='greater',   # 'less' -> test whether the average effect is negative
-        min_trials=10,
+        min_trials=min_trials,
         bin_width=None,          # None -> 5 %-points, or 0.5 z when studentized
-        studentize=False,        # True -> x-axis in z = effect / chance SD
+        studentize=studentize,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
         exclude_ratio_ranges=exclude_ratio_ranges,
         merge_behavioral=merge_behavioral,
@@ -919,21 +927,20 @@ def main():
     )
 
     # Same histogram, split by the current : half-distance estim rules (ESTIM_RULES).
+
     plot_estim_rule_histograms(
         exclude_session_ids=exclude_session_ids,
         start_session_id=start_session_id,
         algorithm_label=algorithm_label,
         metric=metric,
         alternative='greater',
-        min_trials=10,
-        bin_width=None,
-        studentize=False,        # True -> x-axis in z = effect / chance SD
+        min_trials=min_trials,
+        bin_width=10,
+        # False -> raw mean (every condition counts equally)
+        studentize=studentize,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
         exclude_ratio_ranges=exclude_ratio_ranges,
-        # 'range'   -> hard ranges in ESTIM_RULES
-        # 'closest' -> closest DISTANCE_RULE_FRACTION of conditions to
-        #              ESTIM_DISTANCE_CENTERS (Hypothesized 4, Delta 0), no hard cutoff
-        rule_mode='range',
+        rule_mode=rule_mode,
         merge_behavioral=merge_behavioral,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
     )

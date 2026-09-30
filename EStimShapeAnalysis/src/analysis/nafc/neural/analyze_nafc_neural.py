@@ -50,7 +50,7 @@ SINCE_DATE      = time_util.from_date_to_now(2024, 4, 26)
 # Flip this to switch between the spike.dat parser and the new
 # artifact-removal parser. Both produce NafcTrialEvents with the same shape,
 # so everything downstream works unchanged.
-USE_ARTIFACT_REMOVAL_PARSER = True
+USE_ARTIFACT_REMOVAL_PARSER = False
 
 # Artifact-removal parser config (only used when USE_ARTIFACT_REMOVAL_PARSER).
 # Matches tests/analysis/nafc/neural/test_nafc_artifact_removal_parser.py.
