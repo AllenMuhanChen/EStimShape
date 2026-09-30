@@ -252,27 +252,72 @@ def _normalize_trial_types(trial_types):
     return tuple(trial_types)
 
 
-def _trial_type_label(trial_types):
-    trial_types = _normalize_trial_types(trial_types)
-    return "all trial types" if trial_types is None else " + ".join(trial_types)
+def _normalize_ratio_ranges(ranges):
+    """None or a tuple of (lo, hi) ratio ranges to exclude. Either end may be None for
+    an open end, e.g. (8, None) = ratio >= 8. A single (lo, hi) pair is accepted too."""
+    if ranges is None:
+        return None
+    ranges = list(ranges)
+    if len(ranges) == 2 and all(v is None or np.isscalar(v) for v in ranges):
+        ranges = [tuple(ranges)]   # a single (lo, hi) pair
+    out = []
+    for lo, hi in ranges:
+        lo = -np.inf if lo is None else float(lo)
+        hi = np.inf if hi is None else float(hi)
+        if lo > hi:
+            raise ValueError(f"exclude_ratio_ranges: lo > hi in ({lo}, {hi})")
+        out.append((lo, hi))
+    return tuple(out) or None
 
 
-def _with_trial_type_suffix(save_path, trial_types):
-    """Append the trial-type filter to a filename, e.g.
-    avg_estim.png -> avg_estim__HypothesizedShape+DeltaShape.png (unchanged for None)."""
+def _fmt_bound(v):
+    return ("∞" if v > 0 else "-∞") if np.isinf(v) else f"{v:g}"
+
+
+def _filter_label(trial_types, exclude_ratio_ranges=None):
+    """Figure-title text describing the active filters."""
     trial_types = _normalize_trial_types(trial_types)
-    if trial_types is None:
-        return save_path
-    slug = "+".join("".join(ch for ch in tt if ch.isalnum()) for tt in trial_types)
+    label = "all trial types" if trial_types is None else " + ".join(trial_types)
+    ranges = _normalize_ratio_ranges(exclude_ratio_ranges)
+    if ranges:
+        label += "  ·  excl. ratio " + ", ".join(
+            f"[{_fmt_bound(lo)}, {_fmt_bound(hi)}]" for lo, hi in ranges)
+    return label
+
+
+def _with_filter_suffix(save_path, trial_types, exclude_ratio_ranges=None):
+    """Append the active filters to a filename, e.g.
+    avg_estim.png -> avg_estim__HypothesizedShape+DeltaShape__xratio8-inf.png
+    (unchanged when no filter is set)."""
     root, ext = os.path.splitext(save_path)
-    return f"{root}__{slug}{ext}"
+    trial_types = _normalize_trial_types(trial_types)
+    if trial_types is not None:
+        root += "__" + "+".join("".join(ch for ch in tt if ch.isalnum()) for tt in trial_types)
+    ranges = _normalize_ratio_ranges(exclude_ratio_ranges)
+    if ranges:
+        def b(v):
+            return ("inf" if v > 0 else "-inf") if np.isinf(v) else f"{v:g}"
+        root += "__xratio" + "_".join(f"{b(lo)}-{b(hi)}" for lo, hi in ranges)
+    return root + ext
 
 
-def _save_figure(fig, save_path, trial_types=None):
-    """Save fig as PNG + SVG, with the trial-type filter in the filename."""
+def _in_excluded_ratio(session_id, cond_dict, ranges):
+    """True if the condition's spec ratio falls in any excluded range (inclusive).
+    Conditions without a ratio (no spec, or missing current / half-distance) are kept."""
+    spec = cond_dict.get('estim_spec_id')
+    if spec is None or (isinstance(spec, float) and np.isnan(spec)):
+        return False
+    ratio = get_spec_ratios(session_id).get(int(spec))
+    if ratio is None:
+        return False
+    return any(lo <= ratio <= hi for lo, hi in ranges)
+
+
+def _save_figure(fig, save_path, trial_types=None, exclude_ratio_ranges=None):
+    """Save fig as PNG + SVG, with the active filters in the filename."""
     if not save_path:
         return
-    save_path = _with_trial_type_suffix(save_path, trial_types)
+    save_path = _with_filter_suffix(save_path, trial_types, exclude_ratio_ranges)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     fig.savefig(save_path, bbox_inches="tight", dpi=150)
     fig.savefig(os.path.splitext(save_path)[0] + ".svg", bbox_inches="tight")
@@ -282,22 +327,29 @@ def _save_figure(fig, save_path, trial_types=None):
 def collect_session_rows(exclude_session_ids=None, start_session_id=None,
                          algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                          alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
-                         condition_filter=None, trial_types=None):
+                         condition_filter=None, trial_types=None,
+                         exclude_ratio_ranges=None):
     """Build each session's pooled table and run its one-sided Fisher's exact test.
 
     ``condition_filter(session_id, cond_dict) -> bool`` restricts which conditions
     are pooled; sessions left with no conditions are skipped.
     ``trial_types``: None (all) or trial-type names to keep, e.g.
-    ('Hypothesized Shape', 'Delta Shape'). Applied on top of condition_filter."""
+    ('Hypothesized Shape', 'Delta Shape').
+    ``exclude_ratio_ranges``: None or [(lo, hi), ...] — drop conditions whose spec's
+    current : half-distance ratio lies in any range (inclusive; None = open end).
+    Both are applied on top of condition_filter."""
     if alternative not in ALTERNATIVES:
         raise ValueError(f"alternative must be one of {ALTERNATIVES}, got {alternative!r}")
 
     trial_types = _normalize_trial_types(trial_types)
-    if trial_types is not None:
+    ranges      = _normalize_ratio_ranges(exclude_ratio_ranges)
+    if trial_types is not None or ranges is not None:
         base_filter = condition_filter
 
         def condition_filter(sid, cond):
-            if cond.get('trial_type') not in trial_types:
+            if trial_types is not None and cond.get('trial_type') not in trial_types:
+                return False
+            if ranges is not None and _in_excluded_ratio(sid, cond, ranges):
                 return False
             return base_filter is None or base_filter(sid, cond)
 
@@ -414,7 +466,8 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
                                     algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                     alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                     bin_width=None, studentize=False,
-                                    trial_types=None, save_path=None):
+                                    trial_types=None, exclude_ratio_ranges=None,
+                                    save_path=None):
     """
     Histogram of per-condition effect sizes (ON% - OFF%, one value per qualifying
     condition across all sessions).
@@ -427,9 +480,13 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
                     of evidence, not effect magnitude.
     bin_width     : None -> 5 percentage points, or 0.5 z when studentized.
     trial_types   : None (all) or trial-type names to keep; added to the filename.
+    exclude_ratio_ranges : None or [(lo, hi), ...] — drop conditions whose spec's
+                    current : half-distance ratio lies in any range (inclusive; None
+                    for an open end). Added to the filename.
     """
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
-                                metric, alternative, min_trials, trial_types=trial_types)
+                                metric, alternative, min_trials, trial_types=trial_types,
+                                exclude_ratio_ranges=exclude_ratio_ranges)
     if not rows:
         print("No data to plot.")
         return None
@@ -441,10 +498,11 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
     _draw_condition_histogram(ax, rows, pop, arrays, edges,
                               alternative=alternative)
     ax.set_xlabel(_effect_axis_label(studentize), fontsize=12)
-    ax.set_title(_trial_type_label(trial_types), fontsize=11, loc="left", fontweight="bold")
+    ax.set_title(_filter_label(trial_types, exclude_ratio_ranges), fontsize=11, loc="left",
+                 fontweight="bold")
     fig.tight_layout()
 
-    _save_figure(fig, save_path, trial_types)
+    _save_figure(fig, save_path, trial_types, exclude_ratio_ranges)
 
     plt.show()
     return fig
@@ -519,7 +577,8 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                rules=ESTIM_RULES, bin_width=None,
-                               studentize=False, trial_types=None, save_path=None):
+                               studentize=False, trial_types=None,
+                               exclude_ratio_ranges=None, save_path=None):
     """
     Per-condition effect histograms split by the estim rules, stacked on a shared
     x-axis (and shared bins / y-axis) for direct comparison:
@@ -533,6 +592,8 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
     bin_width     : None -> 5 percentage points, or 0.5 z when studentized.
     trial_types   : None (all) or trial-type names to keep; added to the filename.
                     Trial types without a rule are excluded regardless.
+    exclude_ratio_ranges : None or [(lo, hi), ...] ratio ranges to drop (inclusive;
+                    None for an open end), applied before the rule split.
     """
     groups = [(RULE_IN,  "Within estim rules",  "#d9534f"),
               (RULE_OUT, "Outside estim rules", "#7f7f7f")]
@@ -544,7 +605,7 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
             exclude_session_ids, start_session_id, algorithm_label, metric, alternative,
             min_trials,
             condition_filter=lambda sid, cond, key=key: classify_estim_rule(sid, cond, rules) == key,
-            trial_types=trial_types)
+            trial_types=trial_types, exclude_ratio_ranges=exclude_ratio_ranges)
         pop = compute_population_stats(rows, alternative=alternative) if rows else None
         results[key] = (rows, pop,
                         _condition_arrays(rows, studentize=studentize) if rows else None)
@@ -567,11 +628,12 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                   color=color, title=label)
 
     axes[-1].set_xlabel(_effect_axis_label(studentize), fontsize=12)
-    fig.suptitle(f"{_trial_type_label(trial_types)}  ·  Rules: {_describe_rules(rules)}",
+    fig.suptitle(f"{_filter_label(trial_types, exclude_ratio_ranges)}  ·  "
+                 f"Rules: {_describe_rules(rules)}",
                  fontsize=10, color="#444444")
     fig.tight_layout()
 
-    _save_figure(fig, save_path, trial_types)
+    _save_figure(fig, save_path, trial_types, exclude_ratio_ranges)
 
     plt.show()
     return fig
@@ -581,7 +643,8 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
                                   algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                   alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                   save_path=None, show_n=True,
-                                  x_spacing=1.0, width_per_exp=1.5, trial_types=None):
+                                  x_spacing=1.0, width_per_exp=1.5, trial_types=None,
+                                  exclude_ratio_ranges=None):
     """
     exclude_session_ids : optional iterable of session_ids to drop.
     start_session_id    : only include sessions with session_id >= this value.
@@ -590,9 +653,12 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
     alternative         : 'greater' tests EStim ON > OFF; 'less' tests ON < OFF.
     min_trials          : minimum trials in each group for a condition to be pooled.
     trial_types         : None (all) or trial-type names to keep; added to the filename.
+    exclude_ratio_ranges: None or [(lo, hi), ...] ratio ranges to drop (inclusive;
+                          None for an open end); added to the filename.
     """
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
-                                metric, alternative, min_trials, trial_types=trial_types)
+                                metric, alternative, min_trials, trial_types=trial_types,
+                                exclude_ratio_ranges=exclude_ratio_ranges)
     if not rows:
         print("No data to plot.")
         return None
@@ -649,7 +715,8 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
     ax.set_xlim([-x_margin, (n_exp - 1) * x_spacing + x_margin])
     ax.invert_xaxis()
     ax.grid(True, alpha=0.3, axis="y")
-    ax.set_title(_trial_type_label(trial_types), fontsize=11, loc="left", fontweight="bold")
+    ax.set_title(_filter_label(trial_types, exclude_ratio_ranges), fontsize=11, loc="left",
+                 fontweight="bold")
 
     legend_handles = [
         mpatches.Patch(color=_COLOR_OFF, label="EStim OFF (all conditions pooled)"),
@@ -661,7 +728,7 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
 
     fig.tight_layout()
 
-    _save_figure(fig, save_path, trial_types)
+    _save_figure(fig, save_path, trial_types, exclude_ratio_ranges)
 
     plt.show()
     return fig
@@ -677,6 +744,11 @@ def main():
     trial_types = None
     # trial_types = ['Hypothesized Shape']
     # trial_types = ['Hypothesized Shape', 'Delta Shape']
+    # current : half-distance ratio ranges to drop from EVERY plot (inclusive; None =
+    # open end); also appended to each filename, e.g. ..._histogram__xratio8-inf.png
+    exclude_ratio_ranges = None
+    # exclude_ratio_ranges = [(8, None)]          # drop ratio >= 8
+    # exclude_ratio_ranges = [(None, 0.5), (8, None)]
 
     plot_condition_effect_histogram(
         exclude_session_ids=exclude_session_ids,
@@ -688,6 +760,7 @@ def main():
         bin_width=None,          # None -> 5 %-points, or 0.5 z when studentized
         studentize=False,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
+        exclude_ratio_ranges=exclude_ratio_ranges,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_condition_histogram.png",
     )
 
@@ -702,6 +775,7 @@ def main():
         bin_width=None,
         studentize=False,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
+        exclude_ratio_ranges=exclude_ratio_ranges,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
     )
 
@@ -718,6 +792,7 @@ def main():
     #     x_spacing=0.75,
     #     width_per_exp=1.0,
     #     trial_types=trial_types,
+    #     exclude_ratio_ranges=exclude_ratio_ranges,
     # )
 
 
