@@ -277,7 +277,8 @@ def _filter_label(trial_types):
     return "all trial types" if trial_types is None else " + ".join(trial_types)
 
 
-def _with_filter_suffix(save_path, trial_types, exclude_ratio_ranges=None):
+def _with_filter_suffix(save_path, trial_types, exclude_ratio_ranges=None,
+                        merge_behavioral=False):
     """Append the active filters to a filename, e.g.
     avg_estim.png -> avg_estim__HypothesizedShape+DeltaShape__xratio8-inf.png
     (unchanged when no filter is set)."""
@@ -290,6 +291,8 @@ def _with_filter_suffix(save_path, trial_types, exclude_ratio_ranges=None):
         def b(v):
             return ("inf" if v > 0 else "-inf") if np.isinf(v) else f"{v:g}"
         root += "__xratio" + "_".join(f"{b(lo)}-{b(hi)}" for lo, hi in ranges)
+    if merge_behavioral:
+        root += "__perspec"
     return root + ext
 
 
@@ -305,11 +308,13 @@ def _in_excluded_ratio(session_id, cond_dict, ranges):
     return any(lo <= ratio <= hi for lo, hi in ranges)
 
 
-def _save_figure(fig, save_path, trial_types=None, exclude_ratio_ranges=None):
+def _save_figure(fig, save_path, trial_types=None, exclude_ratio_ranges=None,
+                 merge_behavioral=False):
     """Save fig as PNG + SVG, with the active filters in the filename."""
     if not save_path:
         return
-    save_path = _with_filter_suffix(save_path, trial_types, exclude_ratio_ranges)
+    save_path = _with_filter_suffix(save_path, trial_types, exclude_ratio_ranges,
+                                    merge_behavioral)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     fig.savefig(save_path, bbox_inches="tight", dpi=150)
     fig.savefig(os.path.splitext(save_path)[0] + ".svg", bbox_inches="tight")
@@ -374,32 +379,61 @@ DEFAULT_BIN_WIDTH_PCT = 5.0   # percentage points
 DEFAULT_BIN_WIDTH_Z   = 0.5   # standard deviations
 
 
-def _condition_arrays(rows, studentize=False):
-    """Per-condition effect and trial-count weights across rows.
+def _unit_noun(merge_behavioral):
+    return "specs" if merge_behavioral else "conditions"
+
+
+def _spec_unit_key(session_id, cond_dict):
+    """One histogram unit per (session, trial type, estim spec) when merging."""
+    return (session_id, cond_dict.get('trial_type'), cond_dict.get('estim_spec_id'))
+
+
+def _condition_arrays(rows, studentize=False, merge_behavioral=False):
+    """Per-unit effect and trial-count weights across rows.
+
+    A unit is one condition, or with merge_behavioral=True one (session, trial type,
+    estim spec): that spec's behavioral groups (noise, coherence, sample length, ...)
+    are combined by a trial-weighted average of their per-group effects, each group
+    still compared against its own OFF baseline:
+        effect = sum(w_g * e_g) / W,   chance var = sum(w_g^2 * var_g) / W^2,
+        w_g = n_on_g + n_off_g,        W = sum(w_g).
 
     studentize=False: effect in percentage points (ON% - OFF%).
-    studentize=True : effect divided by its chance SD, sqrt(p(1-p)(1/n_on + 1/n_off))
-                      with p the condition's pooled choice rate (two-proportion
-                      z-score). Conditions with a zero chance SD (all-yes or all-no)
-                      have no z-score and are dropped.
+    studentize=True : effect divided by its chance SD (per condition
+                      sqrt(p(1-p)(1/n_on + 1/n_off)), p = pooled choice rate — a
+                      two-proportion z-score). Units with a zero chance SD (all
+                      choices identical) have no z-score and are dropped.
     """
-    conds = [c for d in rows for c in d['conditions']]
-    n_on  = np.array([c['n_on']  for c in conds], dtype=float)
-    n_off = np.array([c['n_off'] for c in conds], dtype=float)
-    effects = 100.0 * (np.array([c['on_yes'] for c in conds]) / n_on
-                       - np.array([c['off_yes'] for c in conds]) / n_off)
-    p_pool  = (np.array([c['on_yes'] + c['off_yes'] for c in conds])) / (n_on + n_off)
-    null_sd = 100.0 * np.sqrt(p_pool * (1 - p_pool) * (1 / n_on + 1 / n_off))
+    units = [(d['session_id'], c) for d in rows for c in d['conditions']]
+    n_on  = np.array([c['n_on']  for _, c in units], dtype=float)
+    n_off = np.array([c['n_off'] for _, c in units], dtype=float)
+    effects = 100.0 * (np.array([c['on_yes'] for _, c in units]) / n_on
+                       - np.array([c['off_yes'] for _, c in units]) / n_off)
+    p_pool  = (np.array([c['on_yes'] + c['off_yes'] for _, c in units])) / (n_on + n_off)
+    null_var = 1e4 * p_pool * (1 - p_pool) * (1 / n_on + 1 / n_off)
     weights = n_on + n_off
 
-    if not studentize:
-        return {'effects': effects, 'weights': weights, 'unit': '%'}
+    if merge_behavioral:
+        groups = {}
+        for i, (sid, c) in enumerate(units):
+            groups.setdefault(_spec_unit_key(sid, c['cond_dict']), []).append(i)
+        idx = list(groups.values())
+        W        = np.array([weights[g].sum() for g in idx])
+        effects  = np.array([np.dot(weights[g], effects[g]) for g in idx]) / W
+        null_var = np.array([np.dot(weights[g] ** 2, null_var[g]) for g in idx]) / W ** 2
+        weights  = W
 
+    noun = _unit_noun(merge_behavioral)
+    if not studentize:
+        return {'effects': effects, 'weights': weights, 'unit': '%', 'noun': noun}
+
+    null_sd = np.sqrt(null_var)
     ok = null_sd > 0
     if (~ok).any():
-        print(f"  studentize: dropping {int((~ok).sum())} condition(s) with zero chance SD "
+        print(f"  studentize: dropping {int((~ok).sum())} {noun} with zero chance SD "
               f"(all choices identical)")
-    return {'effects': effects[ok] / null_sd[ok], 'weights': weights[ok], 'unit': 'z'}
+    return {'effects': effects[ok] / null_sd[ok], 'weights': weights[ok], 'unit': 'z',
+            'noun': noun}
 
 
 def _resolve_bin_width(bin_width, studentize):
@@ -408,10 +442,11 @@ def _resolve_bin_width(bin_width, studentize):
     return DEFAULT_BIN_WIDTH_Z if studentize else DEFAULT_BIN_WIDTH_PCT
 
 
-def _effect_axis_label(studentize):
+def _effect_axis_label(studentize, merge_behavioral=False):
+    per = "per spec" if merge_behavioral else "per condition"
     if studentize:
-        return "Studentized EStim effect: (% ON − % OFF) / chance SD  (z, per condition)"
-    return "EStim effect: % ON − % OFF (per condition)"
+        return f"Studentized EStim effect: (% ON − % OFF) / chance SD  (z, {per})"
+    return f"EStim effect: % ON − % OFF ({per})"
 
 
 def _histogram_edges(array_sets, bin_width):
@@ -428,12 +463,12 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
                               color="#d9534f", title=None):
     """Draw one per-condition effect histogram, a reference line at 0 and the
     Fisher's combined result onto ``ax``."""
-    effects, unit = arrays['effects'], arrays['unit']
+    effects, unit, noun = arrays['effects'], arrays['unit'], arrays['noun']
     trial_weighted = float(np.average(effects, weights=arrays['weights']))
     raw_mean       = float(effects.mean())
 
     ax.hist(effects, bins=edges, color=color, alpha=0.75, edgecolor="white",
-            label=f"n={len(effects)} conditions, {len(rows)} sessions")
+            label=f"n={len(effects)} {noun}, {len(rows)} sessions")
     ax.axvline(0, color="gray", linestyle="--", linewidth=1)
 
     h1 = "ON > OFF" if alternative == 'greater' else "ON < OFF"
@@ -446,11 +481,11 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
 
     if title:
         ax.set_title(title, fontsize=11, loc="left", fontweight="bold")
-    ax.set_ylabel("Number of conditions", fontsize=12)
+    ax.set_ylabel(f"Number of {noun}", fontsize=12)
     ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
     ax.spines[['top', 'right']].set_visible(False)
 
-    print(f"\nCondition histogram{' [' + title + ']' if title else ''}: {len(effects)} conditions, "
+    print(f"\nEffect histogram{' [' + title + ']' if title else ''}: {len(effects)} {noun}, "
           f"trial-weighted mean {trial_weighted:+.2f}{unit}, raw mean {raw_mean:+.2f}{unit}")
 
 
@@ -459,7 +494,7 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
                                     alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                     bin_width=None, studentize=False,
                                     trial_types=None, exclude_ratio_ranges=None,
-                                    save_path=None):
+                                    merge_behavioral=False, save_path=None):
     """
     Histogram of per-condition effect sizes (ON% - OFF%, one value per qualifying
     condition across all sessions).
@@ -475,6 +510,10 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
     exclude_ratio_ranges : None or [(lo, hi), ...] — drop conditions whose spec's
                     current : half-distance ratio lies in any range (inclusive; None
                     for an open end). Added to the filename.
+    merge_behavioral : True -> one histogram value per (session, trial type, spec),
+                    averaging that spec's behavioral groups (see _condition_arrays)
+                    instead of one per condition. Adds __perspec to the filename.
+                    The Fisher's combined test is unaffected (same trials).
     """
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
                                 metric, alternative, min_trials, trial_types=trial_types,
@@ -483,18 +522,18 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
         print("No data to plot.")
         return None
     pop = compute_population_stats(rows, alternative=alternative)
-    arrays = _condition_arrays(rows, studentize=studentize)
+    arrays = _condition_arrays(rows, studentize=studentize, merge_behavioral=merge_behavioral)
     edges = _histogram_edges([arrays], _resolve_bin_width(bin_width, studentize))
 
     fig, ax = plt.subplots(figsize=(8, 5))
     _draw_condition_histogram(ax, rows, pop, arrays, edges,
                               alternative=alternative)
-    ax.set_xlabel(_effect_axis_label(studentize), fontsize=12)
+    ax.set_xlabel(_effect_axis_label(studentize, merge_behavioral), fontsize=12)
     ax.set_title(_filter_label(trial_types), fontsize=11, loc="left",
                  fontweight="bold")
     fig.tight_layout()
 
-    _save_figure(fig, save_path, trial_types, exclude_ratio_ranges)
+    _save_figure(fig, save_path, trial_types, exclude_ratio_ranges, merge_behavioral)
 
     plt.show()
     return fig
@@ -581,15 +620,17 @@ def classify_estim_rule(session_id, cond_dict, rules=ESTIM_RULES):
 
 
 def compute_closest_thresholds(centers=ESTIM_DISTANCE_CENTERS, fraction=DISTANCE_RULE_FRACTION,
-                               **collect_kwargs):
+                               merge_behavioral=False, **collect_kwargs):
     """
-    {trial_type: max |ratio - center| of the closest ``fraction`` of conditions}.
+    {trial_type: max |ratio - center| of the closest ``fraction`` of units}.
 
-    Ranks every condition the plot would use (collect_kwargs = the same session /
+    Ranks every unit the plot would use (collect_kwargs = the same session /
     trial-type / ratio-exclusion / min_trials filters as collect_session_rows),
-    pooled across sessions, per trial type. The closest ceil(fraction * n) set the
-    threshold; conditions tied at the threshold are all kept, so ties can push the
-    group slightly above ``fraction``.
+    pooled across sessions, per trial type. A unit is a condition, or with
+    merge_behavioral=True one (session, trial type, spec) — the spec's behavioral
+    groups share one ratio, so they are ranked once instead of as a tied block. The
+    closest ceil(fraction * n) set the threshold; units tied at the threshold are
+    all kept, so ties can push the group slightly above ``fraction``.
     """
     if not 0 < fraction <= 1:
         raise ValueError(f"fraction must be in (0, 1], got {fraction}")
@@ -602,22 +643,30 @@ def compute_closest_thresholds(centers=ESTIM_DISTANCE_CENTERS, fraction=DISTANCE
     rows = collect_session_rows(condition_filter=has_center_and_ratio, **collect_kwargs)
 
     distances = {tt: [] for tt in centers}
+    seen = set()
     for d in rows:
         for c in d['conditions']:
+            if merge_behavioral:
+                key = _spec_unit_key(d['session_id'], c['cond_dict'])
+                if key in seen:
+                    continue
+                seen.add(key)
             tt = c['cond_dict']['trial_type']
             ratio = _condition_ratio(d['session_id'], c['cond_dict'])
             distances[tt].append(abs(ratio - centers[tt]))
+    noun = _unit_noun(merge_behavioral)
 
     thresholds = {}
     for tt, dist in distances.items():
         if not dist:
-            print(f"  {tt}: no conditions with a ratio")
+            print(f"  {tt}: no {noun} with a ratio")
             continue
         dist = np.sort(dist)
         k = int(np.ceil(fraction * len(dist)))
         thresholds[tt] = float(dist[k - 1])
-        print(f"  {tt}: center {centers[tt]:g}, {len(dist)} conditions -> closest {k} have "
-              f"|ratio - center| <= {thresholds[tt]:.3g}")
+        n_in = int(np.sum(dist <= thresholds[tt]))
+        print(f"  {tt}: center {centers[tt]:g}, {len(dist)} {noun} -> closest {n_in} "
+              f"(target {k}) have |ratio - center| <= {thresholds[tt]:.3g}")
     return thresholds
 
 
@@ -644,7 +693,8 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                studentize=False, trial_types=None,
                                exclude_ratio_ranges=None, rule_mode=RULE_MODE_RANGE,
                                centers=ESTIM_DISTANCE_CENTERS,
-                               fraction=DISTANCE_RULE_FRACTION, save_path=None):
+                               fraction=DISTANCE_RULE_FRACTION, merge_behavioral=False,
+                               save_path=None):
     """
     Per-condition effect histograms split by the estim rules, stacked on a shared
     x-axis (and shared bins / y-axis) for direct comparison:
@@ -666,6 +716,9 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                     Trial types without a rule are excluded regardless.
     exclude_ratio_ranges : None or [(lo, hi), ...] ratio ranges to drop (inclusive;
                     None for an open end), applied before the rule split.
+    merge_behavioral : True -> one value per (session, trial type, spec), averaging
+                    the spec's behavioral groups; in 'closest' mode specs (not
+                    conditions) are ranked. Adds __perspec to the filename.
     """
     if rule_mode not in RULE_MODES:
         raise ValueError(f"rule_mode must be one of {RULE_MODES}, got {rule_mode!r}")
@@ -676,7 +729,8 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                   exclude_ratio_ranges=exclude_ratio_ranges)
 
     if rule_mode == RULE_MODE_CLOSEST:
-        thresholds = compute_closest_thresholds(centers, fraction, **common)
+        thresholds = compute_closest_thresholds(centers, fraction,
+                                                merge_behavioral=merge_behavioral, **common)
         pct = f"{100 * fraction:g}%"
 
         def classify(sid, cond):
@@ -703,7 +757,8 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
             condition_filter=lambda sid, cond, key=key: classify(sid, cond) == key, **common)
         pop = compute_population_stats(rows, alternative=alternative) if rows else None
         results[key] = (rows, pop,
-                        _condition_arrays(rows, studentize=studentize) if rows else None)
+                        _condition_arrays(rows, studentize=studentize,
+                                          merge_behavioral=merge_behavioral) if rows else None)
 
     present = [results[k][2] for k, _, _ in groups if results[k][2] is not None]
     if not present:
@@ -722,12 +777,12 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
         _draw_condition_histogram(ax, rows, pop, arrays, edges, alternative=alternative,
                                   color=color, title=label)
 
-    axes[-1].set_xlabel(_effect_axis_label(studentize), fontsize=12)
+    axes[-1].set_xlabel(_effect_axis_label(studentize, merge_behavioral), fontsize=12)
     fig.suptitle(f"{_filter_label(trial_types)}  ·  {rule_text}",
                  fontsize=10, color="#444444")
     fig.tight_layout()
 
-    _save_figure(fig, save_path, trial_types, exclude_ratio_ranges)
+    _save_figure(fig, save_path, trial_types, exclude_ratio_ranges, merge_behavioral)
 
     plt.show()
     return fig
@@ -843,6 +898,10 @@ def main():
     exclude_ratio_ranges = None
     # exclude_ratio_ranges = [(8, None)]          # drop ratio >= 8
     # exclude_ratio_ranges = [(None, 0.5), (8, None)]
+    # True -> one histogram value per (session, trial type, spec), averaging the spec's
+    # behavioral groups (noise, coherence, ...); False -> one per condition. Adds
+    # __perspec to the histogram filenames.
+    merge_behavioral = False
 
     plot_condition_effect_histogram(
         exclude_session_ids=exclude_session_ids,
@@ -855,6 +914,7 @@ def main():
         studentize=False,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
         exclude_ratio_ranges=exclude_ratio_ranges,
+        merge_behavioral=merge_behavioral,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_condition_histogram.png",
     )
 
@@ -874,6 +934,7 @@ def main():
         # 'closest' -> closest DISTANCE_RULE_FRACTION of conditions to
         #              ESTIM_DISTANCE_CENTERS (Hypothesized 4, Delta 0), no hard cutoff
         rule_mode='range',
+        merge_behavioral=merge_behavioral,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
     )
 
