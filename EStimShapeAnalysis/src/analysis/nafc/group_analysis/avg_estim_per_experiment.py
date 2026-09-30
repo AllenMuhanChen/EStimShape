@@ -270,19 +270,11 @@ def _normalize_ratio_ranges(ranges):
     return tuple(out) or None
 
 
-def _fmt_bound(v):
-    return ("∞" if v > 0 else "-∞") if np.isinf(v) else f"{v:g}"
-
-
-def _filter_label(trial_types, exclude_ratio_ranges=None):
-    """Figure-title text describing the active filters."""
+def _filter_label(trial_types):
+    """Figure-title text naming the trial types shown. (Ratio exclusions are recorded
+    in the filename only.)"""
     trial_types = _normalize_trial_types(trial_types)
-    label = "all trial types" if trial_types is None else " + ".join(trial_types)
-    ranges = _normalize_ratio_ranges(exclude_ratio_ranges)
-    if ranges:
-        label += "  ·  excl. ratio " + ", ".join(
-            f"[{_fmt_bound(lo)}, {_fmt_bound(hi)}]" for lo, hi in ranges)
-    return label
+    return "all trial types" if trial_types is None else " + ".join(trial_types)
 
 
 def _with_filter_suffix(save_path, trial_types, exclude_ratio_ranges=None):
@@ -498,7 +490,7 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
     _draw_condition_histogram(ax, rows, pop, arrays, edges,
                               alternative=alternative)
     ax.set_xlabel(_effect_axis_label(studentize), fontsize=12)
-    ax.set_title(_filter_label(trial_types, exclude_ratio_ranges), fontsize=11, loc="left",
+    ax.set_title(_filter_label(trial_types), fontsize=11, loc="left",
                  fontweight="bold")
     fig.tight_layout()
 
@@ -628,7 +620,7 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                   color=color, title=label)
 
     axes[-1].set_xlabel(_effect_axis_label(studentize), fontsize=12)
-    fig.suptitle(f"{_filter_label(trial_types, exclude_ratio_ranges)}  ·  "
+    fig.suptitle(f"{_filter_label(trial_types)}  ·  "
                  f"Rules: {_describe_rules(rules)}",
                  fontsize=10, color="#444444")
     fig.tight_layout()
@@ -715,7 +707,7 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
     ax.set_xlim([-x_margin, (n_exp - 1) * x_spacing + x_margin])
     ax.invert_xaxis()
     ax.grid(True, alpha=0.3, axis="y")
-    ax.set_title(_filter_label(trial_types, exclude_ratio_ranges), fontsize=11, loc="left",
+    ax.set_title(_filter_label(trial_types), fontsize=11, loc="left",
                  fontweight="bold")
 
     legend_handles = [
