@@ -243,16 +243,63 @@ def _draw_stats_panel(ax_text, pop):
                                     zorder=-1, clip_on=False))
 
 
+def _normalize_trial_types(trial_types):
+    """None (all trial types) or a tuple of trial-type names; a bare string is one type."""
+    if trial_types is None:
+        return None
+    if isinstance(trial_types, str):
+        return (trial_types,)
+    return tuple(trial_types)
+
+
+def _trial_type_label(trial_types):
+    trial_types = _normalize_trial_types(trial_types)
+    return "all trial types" if trial_types is None else " + ".join(trial_types)
+
+
+def _with_trial_type_suffix(save_path, trial_types):
+    """Append the trial-type filter to a filename, e.g.
+    avg_estim.png -> avg_estim__HypothesizedShape+DeltaShape.png (unchanged for None)."""
+    trial_types = _normalize_trial_types(trial_types)
+    if trial_types is None:
+        return save_path
+    slug = "+".join("".join(ch for ch in tt if ch.isalnum()) for tt in trial_types)
+    root, ext = os.path.splitext(save_path)
+    return f"{root}__{slug}{ext}"
+
+
+def _save_figure(fig, save_path, trial_types=None):
+    """Save fig as PNG + SVG, with the trial-type filter in the filename."""
+    if not save_path:
+        return
+    save_path = _with_trial_type_suffix(save_path, trial_types)
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    fig.savefig(save_path, bbox_inches="tight", dpi=150)
+    fig.savefig(os.path.splitext(save_path)[0] + ".svg", bbox_inches="tight")
+    print(f"Saved to {save_path}")
+
+
 def collect_session_rows(exclude_session_ids=None, start_session_id=None,
                          algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                          alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
-                         condition_filter=None):
+                         condition_filter=None, trial_types=None):
     """Build each session's pooled table and run its one-sided Fisher's exact test.
 
     ``condition_filter(session_id, cond_dict) -> bool`` restricts which conditions
-    are pooled; sessions left with no conditions are skipped."""
+    are pooled; sessions left with no conditions are skipped.
+    ``trial_types``: None (all) or trial-type names to keep, e.g.
+    ('Hypothesized Shape', 'Delta Shape'). Applied on top of condition_filter."""
     if alternative not in ALTERNATIVES:
         raise ValueError(f"alternative must be one of {ALTERNATIVES}, got {alternative!r}")
+
+    trial_types = _normalize_trial_types(trial_types)
+    if trial_types is not None:
+        base_filter = condition_filter
+
+        def condition_filter(sid, cond):
+            if cond.get('trial_type') not in trial_types:
+                return False
+            return base_filter is None or base_filter(sid, cond)
 
     session_ids = _get_sessions_with_effects(algorithm_label, metric)
     if exclude_session_ids:
@@ -383,7 +430,7 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
                                     algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                     alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                     bin_width=None, weighted_mean=True, studentize=False,
-                                    save_path=None):
+                                    trial_types=None, save_path=None):
     """
     Histogram of per-condition effect sizes (ON% - OFF%, one value per qualifying
     condition across all sessions), with the distribution expected from chance alone.
@@ -404,9 +451,10 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
                     evidence, not effect magnitude. With z the trial counts are already
                     built in, so weighted_mean=False is the natural pairing.
     bin_width     : None -> 5 percentage points, or 0.5 z when studentized.
+    trial_types   : None (all) or trial-type names to keep; added to the filename.
     """
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
-                                metric, alternative, min_trials)
+                                metric, alternative, min_trials, trial_types=trial_types)
     if not rows:
         print("No data to plot.")
         return None
@@ -418,13 +466,10 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
     _draw_condition_histogram(ax, rows, pop, arrays, edges,
                               alternative=alternative, weighted_mean=weighted_mean)
     ax.set_xlabel(_effect_axis_label(studentize), fontsize=12)
+    ax.set_title(_trial_type_label(trial_types), fontsize=11, loc="left", fontweight="bold")
     fig.tight_layout()
 
-    if save_path:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        fig.savefig(save_path.rsplit(".", 1)[0] + ".svg", bbox_inches="tight")
-        print(f"Saved to {save_path}")
+    _save_figure(fig, save_path, trial_types)
 
     plt.show()
     return fig
@@ -499,7 +544,7 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                rules=ESTIM_RULES, bin_width=None, weighted_mean=True,
-                               studentize=False, save_path=None):
+                               studentize=False, trial_types=None, save_path=None):
     """
     Per-condition effect histograms split by the estim rules, stacked on a shared
     x-axis (and shared bins / y-axis) for direct comparison:
@@ -514,6 +559,8 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                     raw mean (every condition counts equally).
     studentize    : True puts the x-axis in z units (see plot_condition_effect_histogram).
     bin_width     : None -> 5 percentage points, or 0.5 z when studentized.
+    trial_types   : None (all) or trial-type names to keep; added to the filename.
+                    Trial types without a rule are excluded regardless.
     """
     groups = [(RULE_IN,  "Within estim rules",  "#d9534f"),
               (RULE_OUT, "Outside estim rules", "#7f7f7f")]
@@ -524,7 +571,8 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
         rows = collect_session_rows(
             exclude_session_ids, start_session_id, algorithm_label, metric, alternative,
             min_trials,
-            condition_filter=lambda sid, cond, key=key: classify_estim_rule(sid, cond, rules) == key)
+            condition_filter=lambda sid, cond, key=key: classify_estim_rule(sid, cond, rules) == key,
+            trial_types=trial_types)
         pop = compute_population_stats(rows, alternative=alternative) if rows else None
         results[key] = (rows, pop,
                         _condition_arrays(rows, studentize=studentize) if rows else None)
@@ -547,14 +595,11 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                   color=color, title=label, weighted_mean=weighted_mean)
 
     axes[-1].set_xlabel(_effect_axis_label(studentize), fontsize=12)
-    fig.suptitle(f"Rules: {_describe_rules(rules)}", fontsize=10, color="#444444")
+    fig.suptitle(f"{_trial_type_label(trial_types)}  ·  Rules: {_describe_rules(rules)}",
+                 fontsize=10, color="#444444")
     fig.tight_layout()
 
-    if save_path:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        fig.savefig(save_path.rsplit(".", 1)[0] + ".svg", bbox_inches="tight")
-        print(f"Saved to {save_path}")
+    _save_figure(fig, save_path, trial_types)
 
     plt.show()
     return fig
@@ -564,7 +609,7 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
                                   algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                   alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                   save_path=None, show_n=True,
-                                  x_spacing=1.0, width_per_exp=1.5):
+                                  x_spacing=1.0, width_per_exp=1.5, trial_types=None):
     """
     exclude_session_ids : optional iterable of session_ids to drop.
     start_session_id    : only include sessions with session_id >= this value.
@@ -572,9 +617,10 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
     metric              : 'pct_hypothesized' or 'pct_hyp_vs_delta' trial filtering.
     alternative         : 'greater' tests EStim ON > OFF; 'less' tests ON < OFF.
     min_trials          : minimum trials in each group for a condition to be pooled.
+    trial_types         : None (all) or trial-type names to keep; added to the filename.
     """
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
-                                metric, alternative, min_trials)
+                                metric, alternative, min_trials, trial_types=trial_types)
     if not rows:
         print("No data to plot.")
         return None
@@ -631,6 +677,7 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
     ax.set_xlim([-x_margin, (n_exp - 1) * x_spacing + x_margin])
     ax.invert_xaxis()
     ax.grid(True, alpha=0.3, axis="y")
+    ax.set_title(_trial_type_label(trial_types), fontsize=11, loc="left", fontweight="bold")
 
     legend_handles = [
         mpatches.Patch(color=_COLOR_OFF, label="EStim OFF (all conditions pooled)"),
@@ -642,12 +689,7 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
 
     fig.tight_layout()
 
-    if save_path:
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
-        fig.savefig(save_path, bbox_inches="tight", dpi=150)
-        svg_path = save_path.rsplit(".", 1)[0] + ".svg"
-        fig.savefig(svg_path, bbox_inches="tight")
-        print(f"Saved to {save_path}")
+    _save_figure(fig, save_path, trial_types)
 
     plt.show()
     return fig
@@ -658,6 +700,11 @@ def main():
     exclude_session_ids = ["260421_0", "260410_0"]
     start_session_id = "260402_0"
     algorithm_label = 'None'
+    # Trial types to include in EVERY plot below; None = all. The filter is appended
+    # to each saved filename, e.g. ..._histogram__HypothesizedShape.png
+    trial_types = None
+    # trial_types = ['Hypothesized Shape']
+    # trial_types = ['Hypothesized Shape', 'Delta Shape']
 
     plot_condition_effect_histogram(
         exclude_session_ids=exclude_session_ids,
@@ -669,6 +716,7 @@ def main():
         bin_width=None,          # None -> 5 %-points, or 0.5 z when studentized
         weighted_mean=True,      # False -> raw mean (every condition counts equally)
         studentize=False,        # True -> x-axis in z = effect / chance SD
+        trial_types=trial_types,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_condition_histogram.png",
     )
 
@@ -683,6 +731,7 @@ def main():
         bin_width=None,
         weighted_mean=True,      # False -> raw mean (every condition counts equally)
         studentize=False,        # True -> x-axis in z = effect / chance SD
+        trial_types=trial_types,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
     )
 
@@ -698,6 +747,7 @@ def main():
     #     show_n=False,
     #     x_spacing=0.75,
     #     width_per_exp=1.0,
+    #     trial_types=trial_types,
     # )
 
 
