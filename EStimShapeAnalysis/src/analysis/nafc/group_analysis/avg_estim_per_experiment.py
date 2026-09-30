@@ -331,12 +331,13 @@ DEFAULT_BIN_WIDTH_Z   = 0.5   # standard deviations
 
 
 def _condition_arrays(rows, studentize=False):
-    """Per-condition effect, chance SD and trial-count weights across rows.
+    """Per-condition effect and trial-count weights across rows.
 
-    studentize=False: effect in percentage points (ON% - OFF%) and its chance SD in %.
-    studentize=True : effect divided by its chance SD (two-proportion z-score), so
-                      the chance SD is 1 for every condition. Conditions with a zero
-                      chance SD (all-yes or all-no) have no z-score and are dropped.
+    studentize=False: effect in percentage points (ON% - OFF%).
+    studentize=True : effect divided by its chance SD, sqrt(p(1-p)(1/n_on + 1/n_off))
+                      with p the condition's pooled choice rate (two-proportion
+                      z-score). Conditions with a zero chance SD (all-yes or all-no)
+                      have no z-score and are dropped.
     """
     conds = [c for d in rows for c in d['conditions']]
     n_on  = np.array([c['n_on']  for c in conds], dtype=float)
@@ -348,14 +349,13 @@ def _condition_arrays(rows, studentize=False):
     weights = n_on + n_off
 
     if not studentize:
-        return {'effects': effects, 'null_sd': null_sd, 'weights': weights, 'unit': '%'}
+        return {'effects': effects, 'weights': weights, 'unit': '%'}
 
     ok = null_sd > 0
     if (~ok).any():
         print(f"  studentize: dropping {int((~ok).sum())} condition(s) with zero chance SD "
               f"(all choices identical)")
-    return {'effects': effects[ok] / null_sd[ok], 'null_sd': np.ones(int(ok.sum())),
-            'weights': weights[ok], 'unit': 'z'}
+    return {'effects': effects[ok] / null_sd[ok], 'weights': weights[ok], 'unit': 'z'}
 
 
 def _resolve_bin_width(bin_width, studentize):
@@ -371,41 +371,26 @@ def _effect_axis_label(studentize):
 
 
 def _histogram_edges(array_sets, bin_width):
-    """Shared bin edges covering every set's effects and +-3 chance SDs, 0 on an edge."""
+    """Shared bin edges covering every set's effects (and 0), with 0 on an edge."""
     effects = np.concatenate([a['effects'] for a in array_sets])
-    max_sd  = max(float(a['null_sd'].max()) for a in array_sets)
-    lo = np.floor(min(effects.min(), -3 * max_sd) / bin_width) * bin_width
-    hi = np.ceil(max(effects.max(), 3 * max_sd) / bin_width) * bin_width
+    lo = np.floor(min(effects.min(), 0.0) / bin_width) * bin_width
+    hi = np.ceil(max(effects.max(), 0.0) / bin_width) * bin_width
+    if hi <= lo:
+        hi = lo + bin_width
     return np.arange(lo, hi + bin_width, bin_width)
 
 
 def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='greater',
-                              color="#d9534f", title=None, weighted_mean=True):
-    """Draw one per-condition effect histogram, its chance curve, mean line and the
-    Fisher's combined result onto ``ax``.
-
-    ``weighted_mean``: True draws the trial-weighted mean (each condition weighted by
-    n_on + n_off); False draws the raw mean (every condition counts equally)."""
-    effects, null_sd, unit = arrays['effects'], arrays['null_sd'], arrays['unit']
-    bin_width = float(edges[1] - edges[0])
+                              color="#d9534f", title=None):
+    """Draw one per-condition effect histogram, a reference line at 0 and the
+    Fisher's combined result onto ``ax``."""
+    effects, unit = arrays['effects'], arrays['unit']
     trial_weighted = float(np.average(effects, weights=arrays['weights']))
     raw_mean       = float(effects.mean())
-    mean_value = trial_weighted if weighted_mean else raw_mean
-    mean_label = "Trial-weighted mean" if weighted_mean else "Mean"
-
-    # Expected counts per bin under H0; conditions with sd=0 (all-yes or all-no)
-    # would be a spike at 0 and are left out of the curve.
-    x = np.linspace(edges[0], edges[-1], 600)
-    ok = null_sd > 0
-    null_curve = sp_stats.norm.pdf(x[:, None], 0, null_sd[ok][None, :]).sum(axis=1) * bin_width
 
     ax.hist(effects, bins=edges, color=color, alpha=0.75, edgecolor="white",
-            label=f"Observed (n={len(effects)} conditions, {len(rows)} sessions)")
-    ax.plot(x, null_curve, color="black", linewidth=1.8,
-            label="Expected from chance (no EStim effect)")
+            label=f"n={len(effects)} conditions, {len(rows)} sessions")
     ax.axvline(0, color="gray", linestyle="--", linewidth=1)
-    ax.axvline(mean_value, color="darkred", linewidth=1.5,
-               label=f"{mean_label} = {mean_value:+.2f}{' z' if unit == 'z' else '%'}")
 
     h1 = "ON > OFF" if alternative == 'greater' else "ON < OFF"
     sig_color = "darkred" if pop['p_combined'] < 0.05 else "#444444"
@@ -423,33 +408,23 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
 
     print(f"\nCondition histogram{' [' + title + ']' if title else ''}: {len(effects)} conditions, "
           f"trial-weighted mean {trial_weighted:+.2f}{unit}, raw mean {raw_mean:+.2f}{unit}")
-    return mean_value
 
 
 def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=None,
                                     algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                     alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
-                                    bin_width=None, weighted_mean=True, studentize=False,
+                                    bin_width=None, studentize=False,
                                     trial_types=None, save_path=None):
     """
     Histogram of per-condition effect sizes (ON% - OFF%, one value per qualifying
-    condition across all sessions), with the distribution expected from chance alone.
-
-    Chance curve: under H0 (no EStim effect) a condition's ON-OFF difference is roughly
-    Normal(0, sd_c), sd_c = sqrt(p_c (1 - p_c) (1/n_on + 1/n_off)), with p_c the
-    condition's pooled choice rate. The curve is the sum of these normals scaled to
-    counts per bin, so it depends only on each condition's trial counts and baseline.
+    condition across all sessions).
 
     The p-value shown is the session-level Fisher's combined test, not a test on the
     histogram: conditions share OFF trials, so they are not independent.
 
-    weighted_mean : True (default) draws the trial-weighted mean line; False draws the
-                    raw mean (every condition counts equally).
     studentize    : True puts each condition's effect in z units (effect / chance SD),
-                    so the chance curve is a single standard normal and small-n
-                    conditions no longer fill the tails. z measures strength of
-                    evidence, not effect magnitude. With z the trial counts are already
-                    built in, so weighted_mean=False is the natural pairing.
+                    so small-n conditions no longer fill the tails. z measures strength
+                    of evidence, not effect magnitude.
     bin_width     : None -> 5 percentage points, or 0.5 z when studentized.
     trial_types   : None (all) or trial-type names to keep; added to the filename.
     """
@@ -464,7 +439,7 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
 
     fig, ax = plt.subplots(figsize=(8, 5))
     _draw_condition_histogram(ax, rows, pop, arrays, edges,
-                              alternative=alternative, weighted_mean=weighted_mean)
+                              alternative=alternative)
     ax.set_xlabel(_effect_axis_label(studentize), fontsize=12)
     ax.set_title(_trial_type_label(trial_types), fontsize=11, loc="left", fontweight="bold")
     fig.tight_layout()
@@ -543,7 +518,7 @@ def _describe_rules(rules):
 def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
                                alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
-                               rules=ESTIM_RULES, bin_width=None, weighted_mean=True,
+                               rules=ESTIM_RULES, bin_width=None,
                                studentize=False, trial_types=None, save_path=None):
     """
     Per-condition effect histograms split by the estim rules, stacked on a shared
@@ -551,12 +526,9 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
         top    = conditions within the rules
         bottom = conditions outside the rules (same trial types, ratio out of range)
 
-    Each panel has its own chance curve, trial-weighted mean and session-level
-    Fisher's combined test (each session's within-rule / outside-rule conditions
+    Each panel has its own session-level Fisher's combined test (each session's within-rule / outside-rule conditions
     pooled into their own 2x2 table).
 
-    weighted_mean : True (default) draws the trial-weighted mean line; False draws the
-                    raw mean (every condition counts equally).
     studentize    : True puts the x-axis in z units (see plot_condition_effect_histogram).
     bin_width     : None -> 5 percentage points, or 0.5 z when studentized.
     trial_types   : None (all) or trial-type names to keep; added to the filename.
@@ -592,7 +564,7 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
             ax.set_title(label, fontsize=11, loc="left", fontweight="bold")
             continue
         _draw_condition_histogram(ax, rows, pop, arrays, edges, alternative=alternative,
-                                  color=color, title=label, weighted_mean=weighted_mean)
+                                  color=color, title=label)
 
     axes[-1].set_xlabel(_effect_axis_label(studentize), fontsize=12)
     fig.suptitle(f"{_trial_type_label(trial_types)}  ·  Rules: {_describe_rules(rules)}",
@@ -714,7 +686,6 @@ def main():
         alternative='greater',   # 'less' -> test whether the average effect is negative
         min_trials=10,
         bin_width=None,          # None -> 5 %-points, or 0.5 z when studentized
-        weighted_mean=True,      # False -> raw mean (every condition counts equally)
         studentize=False,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_condition_histogram.png",
@@ -729,7 +700,6 @@ def main():
         alternative='greater',
         min_trials=10,
         bin_width=None,
-        weighted_mean=True,      # False -> raw mean (every condition counts equally)
         studentize=False,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
