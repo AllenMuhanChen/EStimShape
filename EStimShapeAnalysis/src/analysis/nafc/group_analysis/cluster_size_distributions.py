@@ -64,7 +64,7 @@ def plot_cluster_size_distributions(bin_width=50, save_path=None):
     ax.axvline(np.median(values), color='k', ls='--', lw=1,
                label=f'median = {np.median(values):.0f} µm')
     ax.set_xlabel('Cluster size: correlation half-distance (µm)')
-    ax.set_ylabel('# estim specs')
+    ax.set_ylabel('# conditions')
     ax.set_title(f'Cluster sizes tested (n = {len(values)} specs, '
                  f'{n_sessions} sessions)')
     ax.legend(frameon=False)
