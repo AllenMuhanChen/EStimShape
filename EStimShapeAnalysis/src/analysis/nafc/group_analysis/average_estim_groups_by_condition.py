@@ -15,7 +15,7 @@ def main():
     filter_conditions = {
         # 'noise_chance': [0.9, 1.0],
         # 'num_channels': [1,2, 3, 9],
-        # 'trial_type': ["Hypothesized Shape", "Delta Shape"],
+        'trial_type': ["Delta Shape"],
         # 'polarity': ["PositiveFirst", "NegativeFirst"],
         # 'shape': ['Biphasic', 'BiphasicWithInterphaseDelay'],
         # 'a1' : [2.5, 3.5]

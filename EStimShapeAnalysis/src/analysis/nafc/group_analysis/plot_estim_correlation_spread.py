@@ -115,8 +115,9 @@ def _plot_spread(ax, dists, rhos, prof, pitch):
     ax.set_title('Correlation vs distance', fontsize=11, fontweight='bold')
     # headroom above the data so the top-right legend doesn't sit on the curve
     y_lo, y_hi = ax.get_ylim()
-    ax.set_ylim(y_lo, y_hi + 0.3 * (y_hi - y_lo))
-    ax.legend(frameon=False, fontsize=8, loc='upper right')
+    # ax.set_ylim(y_lo, y_hi + 0.3 * (y_hi - y_lo))
+    ax.set_ylim([y_lo,1])
+    ax.legend(frameon=False, fontsize=8, loc='lower left')
     ax.spines[['top', 'right']].set_visible(False)
 
 
@@ -192,7 +193,7 @@ def plot_estim_correlation_spread(session_id, estim_spec_id=None, save_dir=None)
 
 
 def main():
-    session_id = "260402_0"
+    session_id = "260702_0"
     plot_estim_correlation_spread(
         session_id,
         estim_spec_id=None,  # None -> one figure per distinct estim channel set
