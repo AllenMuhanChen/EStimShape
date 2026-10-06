@@ -109,7 +109,7 @@ def flatten_for_csv(table: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([base, included, excluded], axis=1)
 
 
-def plot_histogram(table: pd.DataFrame, n_bins, excluded_type_tokens):
+def plot_histogram(table: pd.DataFrame, n_bins):
     counts = table["n_included"].to_numpy()
     median = float(np.median(counts))
 
@@ -122,8 +122,6 @@ def plot_histogram(table: pd.DataFrame, n_bins, excluded_type_tokens):
     ax.set_title(f"GA stimuli per experiment (n = {len(counts)} experiments)")
     ax.yaxis.get_major_locator().set_params(integer=True)
     ax.legend(frameon=False, loc="upper right")
-    ax.text(0.99, 0.84, "excluded: " + ", ".join(excluded_type_tokens),
-            transform=ax.transAxes, ha="right", va="top", fontsize=11, color="#555555")
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
     return fig
@@ -200,7 +198,7 @@ def main():
           f"mean {counts.mean():.1f}, range {counts.min()}-{counts.max()}")
     print(f"Saved to {out_dir}")
 
-    save_figure(plot_histogram(table, n_bins, excluded_type_tokens), out_dir,
+    save_figure(plot_histogram(table, n_bins), out_dir,
                 "ga_stim_count_histogram")
     save_figure(plot_per_experiment(table), out_dir, "ga_stim_count_per_experiment")
     if show_plots:
