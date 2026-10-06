@@ -112,7 +112,10 @@ def _plot_spread(ax, dists, rhos, prof, pitch):
                   '(pairs pooled over all estim channels)')
     ax.set_ylabel('Spearman ρ (GA response)')
     ax.set_title('Correlation vs distance', fontsize=11, fontweight='bold')
-    ax.legend(frameon=False, fontsize=8, loc='center right')
+    # headroom above the data so the top-right legend doesn't sit on the curve
+    y_lo, y_hi = ax.get_ylim()
+    ax.set_ylim(y_lo, y_hi + 0.3 * (y_hi - y_lo))
+    ax.legend(frameon=False, fontsize=8, loc='upper right')
     ax.spines[['top', 'right']].set_visible(False)
 
 
