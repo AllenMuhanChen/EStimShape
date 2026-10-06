@@ -7,10 +7,10 @@ EStimEffects rows are keyed by a JSON condition dict that (since conditions were
 keyed by estim_spec_id) only holds the behavioural conditions + estim_spec_id. This
 expands that dict into columns and joins on, per (session, estim spec):
   - estim parameters from EStimParameters over the active channels (a1 > 0):
-    num_channels, polarity, shape, a1, d1, d2, dp, a2, pulse_repetition,
-    num_repetitions, pulse_train_period, trigger_edge_or_level,
-    enable_charge_recovery, enable_amp_settle (uniform across a spec's active
-    channels under the current paradigm; MIN is taken, and a1 is the MAX)
+    num_channels plus every parameter column (waveform, pulse train incl.
+    post_trigger_delay / refractory period, amp settle, charge recovery) — see
+    SPEC_PARAM_COLUMNS. Uniform across a spec's active channels under the current
+    paradigm; MIN is taken, and a1 is the MAX
   - current spread (optional, slower): current_per_second, the correlation
     half-distance and their ratio, computed exactly as in
     plot_current_spread_vs_tuning / avg_estim_per_experiment
@@ -47,9 +47,15 @@ N_ON_COL, N_OFF_COL = 'n_on', 'n_off'
 CORE_COLUMNS = ('session_id', 'conditions', EFFECT_COL, ON_COL, OFF_COL,
                 N_ON_COL, N_OFF_COL)
 
-SPEC_PARAM_COLUMNS = ('shape', 'polarity', 'd1', 'd2', 'dp', 'a2', 'pulse_repetition',
-                      'num_repetitions', 'pulse_train_period', 'trigger_edge_or_level',
-                      'enable_charge_recovery', 'enable_amp_settle')
+# every EStimParameters column except a1 (taken as MAX) and the keys / channel
+SPEC_PARAM_COLUMNS = ('shape', 'polarity', 'd1', 'd2', 'dp', 'a2',
+                      'pulse_repetition', 'num_repetitions', 'pulse_train_period',
+                      'post_stim_refractory_period', 'trigger_edge_or_level',
+                      'post_trigger_delay',
+                      'enable_amp_settle', 'pre_stim_amp_settle', 'post_stim_amp_settle',
+                      'maintain_amp_settle_during_pulse_train',
+                      'enable_charge_recovery', 'post_stim_charge_recovery_on',
+                      'post_stim_charge_recovery_off')
 SPREAD_COLUMNS = ('current_per_second', 'corr_half_distance_um', 'ratio')
 SESSION_METRIC_COLUMNS = ('lineage_score', 'avg_distance_scaled_correlation')
 
@@ -230,7 +236,7 @@ def summarize_groups(df, group_cols, nulls=None, alternative='two-sided'):
     totals, and the permutation p-value (None without nulls). group_cols may be []
     (one group of everything)."""
     group_cols = list(group_cols)
-    groups = df.groupby(group_cols, dropna=False, sort=True) if group_cols else [((), df)]
+    groups = df.groupby(group_cols, dropna=False, sort=True, observed=True) if group_cols else [((), df)]
     rows = []
     for key, gdf in groups:
         key = key if isinstance(key, tuple) else (key,)

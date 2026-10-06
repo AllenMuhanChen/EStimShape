@@ -617,8 +617,10 @@ class EstimConditionExplorer(QMainWindow):
         for name, role in (('__x', self.x_role), ('__color', self.color_role),
                            ('__panel', self.panel_role)):
             labels, order = role.labels(df)
-            df[name] = labels if labels is not None else ''
             orders[name] = order or ['']
+            # ordered categories, so the summary table sorts like the plot
+            df[name] = pd.Categorical(labels if labels is not None else [''] * len(df),
+                                      categories=orders[name], ordered=True)
         alternative = TEST_CHOICES[self.test_box.currentIndex()][1]
         summary = ect.summarize_groups(df, ['__panel', '__x', '__color'],
                                        nulls=self._nulls.get(self._data_key()),
