@@ -108,7 +108,8 @@ def _plot_spread(ax, dists, rhos, prof, pitch):
         ax.plot(d, h, 'o', color='k', ms=6, zorder=10)
         ax.set_xlim(left=x_lo)
         ax.set_ylim(bottom=y_lo)
-    ax.set_xlabel('Distance along probe from estim channel (µm)')
+    ax.set_xlabel('Distance along probe from each estim channel (µm)\n'
+                  '(pairs pooled over all estim channels)')
     ax.set_ylabel('Spearman ρ (GA response)')
     ax.set_title('Correlation vs distance', fontsize=11, fontweight='bold')
     ax.legend(frameon=False, fontsize=8, loc='center right')
