@@ -11,6 +11,9 @@ expands that dict into columns and joins on, per (session, estim spec):
     post_trigger_delay / refractory period, amp settle, charge recovery) — see
     SPEC_PARAM_COLUMNS. Uniform across a spec's active channels under the current
     paradigm; MIN is taken, and a1 is the MAX
+  - pulse timing: pulse_period_us / pulse_rate_hz (true time between pulses: level
+    trigger -> refractory + trigger delay, edge trigger -> pulse train period) and
+    total_current_per_pulse (a1 × num_channels)
   - current spread (optional, slower): current_per_second, the correlation
     half-distance and their ratio, computed exactly as in
     plot_current_spread_vs_tuning / avg_estim_per_experiment
@@ -179,7 +182,38 @@ def load_condition_table(algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
         if with_spread:
             print("Computing current spread (half-distance) per session…")
             df = _join_fill(df, _fetch_spread(sessions), ['session_id', 'estim_spec_id'])
+        df = _add_pulse_timing(df)
     df = _join_fill(df, _fetch_session_metrics(), ['session_id'])
+    return df
+
+
+def _add_pulse_timing(df):
+    """pulse_period_us / pulse_rate_hz (the TRUE time between pulses) and
+    total_current_per_pulse, from the joined estim parameters — computed with
+    estim_hyperparameters.pulse_rate_hz, the same rule current_per_second uses:
+      Level trigger (held, re-triggering single pulses):
+          period = post_stim_refractory_period + post_trigger_delay
+      Edge trigger (one specified train):  period = pulse_train_period
+    current_per_second is filled from these too where the spread step didn't
+    provide it (e.g. with_spread=False)."""
+    from src.analysis.nafc.estim_hyperparameters import pulse_rate_hz
+
+    def col(name):
+        return df[name] if name in df.columns else pd.Series([None] * len(df), index=df.index)
+
+    rates = [pulse_rate_hz(trig, train, refr, delay) for trig, train, refr, delay in
+             zip(col('trigger_edge_or_level'), col('pulse_train_period'),
+                 col('post_stim_refractory_period'), col('post_trigger_delay'))]
+    df['pulse_rate_hz'] = pd.to_numeric(pd.Series(rates, index=df.index), errors='coerce')
+    df['pulse_period_us'] = 1e6 / df['pulse_rate_hz']
+    df['total_current_per_pulse'] = (pd.to_numeric(col('a1'), errors='coerce')
+                                     * pd.to_numeric(col('num_channels'), errors='coerce'))
+    derived_cps = df['total_current_per_pulse'] * df['pulse_rate_hz']
+    if 'current_per_second' in df.columns:
+        df['current_per_second'] = pd.to_numeric(df['current_per_second'], errors='coerce')
+        df['current_per_second'] = df['current_per_second'].fillna(derived_cps)
+    else:
+        df['current_per_second'] = derived_cps
     return df
 
 
