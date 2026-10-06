@@ -167,7 +167,7 @@ def main():
     # Stim types containing any of these (case-insensitive) are not counted.
     # "SHUFFLE" covers SHUFFLE_PIXEL / SHUFFLE_PHASE / SHUFFLE_MAGNITUDE / ...
     # Add "LIGHTING" here to also drop the lighting side test.
-    excluded_type_tokens = ["CATCH", "BASELINE", "SHUFFLE"]
+    excluded_type_tokens = ["CATCH", "BASELINE", "SHUFFLE", "LIGHTING"]
     n_bins = 20
     output_root = "/home/connorlab/Documents/plots/across_experiments/ga_stim_count_distribution"
     show_plots = True
