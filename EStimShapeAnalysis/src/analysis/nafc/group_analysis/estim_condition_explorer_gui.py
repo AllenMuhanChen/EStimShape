@@ -64,6 +64,10 @@ HIDDEN_COLUMNS = {'conditions', ect.EFFECT_COL, ect.ON_COL, ect.OFF_COL}
 TEST_CHOICES = (('two-sided', 'two-sided'), ('one-sided: ON > OFF', 'greater'),
                 ('one-sided: ON < OFF', 'less'), ('off', None))
 PLOT_CHOICES = (('effect bars (ON − OFF)', 'bars'), ('ON vs OFF dots', 'dots'))
+# individual points over each bar: (label, unit) — None = off
+POINT_CHOICES = (('none', None), ('one per session', 'session'),
+                 ('one per condition', 'condition'))
+POINT_COLOR = '#222222'
 NONE_LABEL = '(none)'
 BAR_COLOR = '#4C72B0'
 ON_COLOR, OFF_COLOR = '#D32F2F', '#333333'
@@ -392,9 +396,14 @@ class EstimConditionExplorer(QMainWindow):
         self.plot_box.addItems([c[0] for c in PLOT_CHOICES])
         self.test_box = _compact(QComboBox())
         self.test_box.addItems([c[0] for c in TEST_CHOICES])
+        self.points_box = _compact(QComboBox())
+        self.points_box.addItems([c[0] for c in POINT_CHOICES])
+        self.points_box.setToolTip("Overlay individual data points: each session's mean "
+                                   "(what the bar and its SEM summarise) or each "
+                                   "condition")
         self.n_box = QCheckBox("show n (conditions / sessions)")
         self.n_box.setChecked(True)
-        for w in (self.plot_box, self.test_box):
+        for w in (self.plot_box, self.test_box, self.points_box):
             w.currentIndexChanged.connect(self.schedule_redraw)
         self.n_box.stateChanged.connect(self.schedule_redraw)
         copy_table = QPushButton("Copy summary table")
@@ -417,6 +426,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow(QLabel("<b>Plot</b>"))
         form.addRow("Plot", self.plot_box)
         form.addRow("Test", self.test_box)
+        form.addRow("Points", self.points_box)
         form.addRow("", self.n_box)
         form.addRow(copy_table)
         self.status = QLabel()
@@ -624,7 +634,8 @@ class EstimConditionExplorer(QMainWindow):
         colors = self._colors(orders['__color'])
         mode = PLOT_CHOICES[self.plot_box.currentIndex()][1]
         for ax, panel in zip(axes.flat, panels):
-            self._draw_panel(ax, summary[summary['__panel'] == panel], orders, colors, mode)
+            self._draw_panel(ax, summary[summary['__panel'] == panel],
+                             df[df['__panel'] == panel], orders, colors, mode)
             if self.panel_role.column():
                 ax.set_title(f"{self.panel_role.column()} = {panel}", fontsize=10,
                              fontweight='bold')
@@ -667,7 +678,22 @@ class EstimConditionExplorer(QMainWindow):
                                label='EStim OFF')]
         return handles
 
-    def _draw_panel(self, ax, summary, orders, colors, mode):
+    def _points(self, gdf):
+        """Individual points of one bar: per-session means or per-condition rows
+        (columns effect / on / off), or None when points are off."""
+        unit = POINT_CHOICES[self.points_box.currentIndex()][1]
+        cols = [ect.EFFECT_COL, ect.ON_COL, ect.OFF_COL]
+        if unit is None or len(gdf) == 0:
+            return None
+        pts = gdf.groupby('session_id')[cols].mean() if unit == 'session' else gdf[cols]
+        return pts.rename(columns={ect.EFFECT_COL: 'effect', ect.ON_COL: 'on',
+                                   ect.OFF_COL: 'off'})
+
+    @staticmethod
+    def _jitter(n, half_width, seed):
+        return np.random.default_rng(seed).uniform(-half_width, half_width, n)
+
+    def _draw_panel(self, ax, summary, panel_df, orders, colors, mode):
         x_order = [x for x in orders['__x'] if (summary['__x'] == x).any()]
         c_order = [c for c in orders['__color'] if (summary['__color'] == c).any()]
         width = 0.8 / max(len(c_order), 1)
@@ -680,6 +706,8 @@ class EstimConditionExplorer(QMainWindow):
                 r = row.iloc[0]
                 pos = xi - 0.4 + width * (ci + 0.5)
                 color = colors.get(c, BAR_COLOR)
+                pts = self._points(panel_df[(panel_df['__x'] == x)
+                                            & (panel_df['__color'] == c)])
                 if mode == 'bars':
                     ax.bar(pos, r['effect'], width * 0.9, color=color, alpha=0.85,
                            edgecolor='black', linewidth=0.5)
@@ -687,6 +715,12 @@ class EstimConditionExplorer(QMainWindow):
                                 capsize=3, lw=1)
                     top = r['effect'] + (r['effect_sem'] if np.isfinite(r['effect_sem']) else 0)
                     bottom = r['effect'] - (r['effect_sem'] if np.isfinite(r['effect_sem']) else 0)
+                    if pts is not None:
+                        jit = self._jitter(len(pts), width * 0.25, (xi, ci))
+                        ax.scatter(pos + jit, pts['effect'], s=10, color=POINT_COLOR,
+                                   alpha=0.6, lw=0, zorder=3)
+                        top = max(top, pts['effect'].max())
+                        bottom = min(bottom, pts['effect'].min())
                     star_y = top if r['effect'] >= 0 else bottom
                     va = 'bottom' if r['effect'] >= 0 else 'top'
                 else:
@@ -698,6 +732,17 @@ class EstimConditionExplorer(QMainWindow):
                                 capsize=2, ms=5)
                     star_y = max(r['on'] + np.nan_to_num(r['on_sem']),
                                  r['off'] + np.nan_to_num(r['off_sem']))
+                    if pts is not None:
+                        # each unit's OFF -> ON pair, joined by a faint line
+                        jit = self._jitter(len(pts), width * 0.06, (xi, ci))
+                        for (_, p), j in zip(pts.iterrows(), jit):
+                            ax.plot([off_x + j, on_x + j], [p['off'], p['on']],
+                                    color=color, lw=0.6, alpha=0.4, zorder=1)
+                        ax.scatter(off_x + jit, pts['off'], s=9, facecolor='white',
+                                   edgecolor=OFF_COLOR, lw=0.6, alpha=0.7, zorder=2)
+                        ax.scatter(on_x + jit, pts['on'], s=9, color=ON_COLOR,
+                                   alpha=0.6, lw=0, zorder=2)
+                        star_y = max(star_y, pts['on'].max(), pts['off'].max())
                     va = 'bottom'
                 marker = ect.significance_marker(r['p'])
                 if marker:
