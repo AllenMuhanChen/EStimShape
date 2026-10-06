@@ -695,16 +695,18 @@ class EstimConditionExplorer(QMainWindow):
 
     def _draw_panel(self, ax, summary, panel_df, orders, colors, mode):
         x_order = [x for x in orders['__x'] if (summary['__x'] == x).any()]
-        c_order = [c for c in orders['__color'] if (summary['__color'] == c).any()]
-        width = 0.8 / max(len(c_order), 1)
         show_n = self.n_box.isChecked()
+        # one bar width for the panel (set by the most crowded x), so a lone bar
+        # isn't drawn wider than its neighbours
+        width = 0.8 / max(summary.groupby('__x')['__color'].nunique().max(), 1)
         for xi, x in enumerate(x_order):
+            # only the colours present at this x share its slot, so the bars stay
+            # centred on the tick (colour, not position, identifies the value)
+            at_x = summary[summary['__x'] == x]
+            c_order = [c for c in orders['__color'] if (at_x['__color'] == c).any()]
             for ci, c in enumerate(c_order):
-                row = summary[(summary['__x'] == x) & (summary['__color'] == c)]
-                if len(row) == 0:
-                    continue
-                r = row.iloc[0]
-                pos = xi - 0.4 + width * (ci + 0.5)
+                r = at_x[at_x['__color'] == c].iloc[0]
+                pos = xi + width * (ci - (len(c_order) - 1) / 2)
                 color = colors.get(c, BAR_COLOR)
                 pts = self._points(panel_df[(panel_df['__x'] == x)
                                             & (panel_df['__color'] == c)])
