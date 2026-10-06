@@ -99,7 +99,8 @@ def _plot_spread(ax, dists, rhos, prof, pitch):
         ax.axhline(prof['near_level'], color='tab:green', lw=1, ls='--',
                    label=f"near-field = {prof['near_level']:.2f}")
         ax.axhline(prof['baseline'], color='tab:purple', lw=1, ls='--',
-                   label=f"far-field baseline = {prof['baseline']:.2f}")
+                   label=f"far-field baseline = {prof['baseline']:.2f}\n"
+                         f"(mean of farthest {cs.DEFAULT_FAR_FRACTION:.0%} of bins)")
         d, h = prof['d_half'], prof['half_level']
         x_lo, y_lo = ax.get_xlim()[0], ax.get_ylim()[0]
         ax.plot([x_lo, d], [h, h], ':', color='k', lw=1.5)
