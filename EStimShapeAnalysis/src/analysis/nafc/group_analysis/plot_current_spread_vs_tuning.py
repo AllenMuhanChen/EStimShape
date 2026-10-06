@@ -696,6 +696,20 @@ def _half_distance_for_spec(corr_metric, estim_channels, channels_with_data, coo
       'none' — raw first crossing.
     If it never crosses within the probe, the probe's max distance is returned
     (spread >= probe). None if near_level <= baseline (no decay) or too few points."""
+    dists, rhos = pooled_distance_rho_pairs(corr_metric, estim_channels,
+                                            channels_with_data, coords,
+                                            exclude_other_estim=exclude_other_estim)
+    prof = half_distance_profile(dists, rhos, pitch=pitch, far_fraction=far_fraction,
+                                 near_bins=near_bins, bin_agg=bin_agg,
+                                 smoothing=smoothing)
+    return prof['d_half'] if prof is not None else None
+
+
+def pooled_distance_rho_pairs(corr_metric, estim_channels, channels_with_data, coords,
+                              *, exclude_other_estim=True):
+    """(distances µm, rhos) pooled over every estim channel -> other probe channel
+    pair with a finite ρ. With exclude_other_estim, the spec's other estim channels
+    are skipped as targets."""
     estim_set = set(estim_channels)
     exclude = estim_set if exclude_other_estim else set()
 
@@ -713,6 +727,17 @@ def _half_distance_for_spec(corr_metric, estim_channels, channels_with_data, coo
                 continue
             dists.append(float(np.linalg.norm(coords[c] - e_xy)))
             rhos.append(float(rho))
+    return dists, rhos
+
+
+def half_distance_profile(dists, rhos, *, pitch=1.0,
+                          far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
+                          bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING):
+    """The ρ-vs-distance profile behind the half-distance, from pooled (distance µm,
+    ρ) pairs. Returns None if there are too few points / bins or no decay
+    (near_level <= baseline); otherwise a dict with 'centers' and 'profile' (the
+    valid bins, after any isotonic fit), 'near_level', 'baseline', 'half_level' and
+    'd_half' (µm). See _half_distance_for_spec for the rules."""
     if len(dists) < 3:
         return None
     dists = np.asarray(dists, dtype=float)
@@ -745,6 +770,8 @@ def _half_distance_for_spec(corr_metric, estim_channels, channels_with_data, coo
         return None
 
     half_level = baseline + 0.5 * (near_level - baseline)
+    out = {'centers': centers_v, 'profile': prof_v, 'near_level': near_level,
+           'baseline': baseline, 'half_level': half_level}
     below = prof_v <= half_level
     n = len(prof_v)
 
@@ -758,17 +785,19 @@ def _half_distance_for_spec(corr_metric, estim_channels, channels_with_data, coo
         cross = int(nz[0]) if nz.size else None
 
     if cross is None:
-        return float(centers_v[-1])  # never sustained-crosses within the probe
+        out['d_half'] = float(centers_v[-1])  # never sustained-crosses within the probe
+        return out
     # Interpolate between the last bin above half and the crossing bin.
     above = np.where(prof_v[:cross] > half_level)[0]
     if above.size == 0:
-        return float(centers_v[cross])
+        out['d_half'] = float(centers_v[cross])
+        return out
     a = int(above[-1])
     x0, x1 = centers_v[a], centers_v[cross]
     y0, y1 = prof_v[a], prof_v[cross]
-    if y0 == y1:
-        return float(x1)
-    return float(x0 + (half_level - y0) * (x1 - x0) / (y1 - y0))
+    out['d_half'] = (float(x1) if y0 == y1
+                     else float(x0 + (half_level - y0) * (x1 - x0) / (y1 - y0)))
+    return out
 
 
 def compute_session_half_distance(session_id, *, exclude_other_estim=True,
