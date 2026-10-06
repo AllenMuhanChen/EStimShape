@@ -135,7 +135,7 @@ def plot_category_pie(table: pd.DataFrame):
     )
     for t in pct_texts:
         t.set_color("white")
-    ax.set_title(f"EStim sessions by base stimulus texture (n = {sum(sizes)})")
+    ax.set_title(f"EStim sessions by test stimulus type (n = {sum(sizes)})")
     ax.axis("equal")
     fig.tight_layout()
     return fig
