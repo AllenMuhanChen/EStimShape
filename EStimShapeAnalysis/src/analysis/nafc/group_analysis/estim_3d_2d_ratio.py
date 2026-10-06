@@ -11,7 +11,10 @@ left out of the ratio. ratio_3d_2d is NaN when a session has no 2D base stimuli.
 The GA database name comes from ExperimentManager (same naming as
 ``apply_session_context``), but the global context is not switched.
 
-Prints one row per session: n_3d, n_2d, n_unknown, ratio_3d_2d, frac_3d.
+Prints one row per session: n_3d, n_2d, n_unknown, ratio_3d_2d, frac_3d, category.
+Each session is categorized as "3D" when it has more 3D than 2D base stimuli, otherwise
+"2D" (a 50/50 split counts as 2D). Sessions with no 2D or 3D base stimuli at all are
+"unknown". A pie chart shows how many sessions fall in each category.
 """
 
 from __future__ import annotations
@@ -19,12 +22,15 @@ from __future__ import annotations
 import traceback
 
 import pandas as pd
+from matplotlib import pyplot as plt
 from clat.util.connection import Connection
 
 from src.pga.stim_types import THREE_D_TEXTURES
 from src.startup.startup_system import ExperimentManager
 
 TWO_D_TEXTURE = "2D"
+
+CATEGORY_COLORS = {"3D": "#2a78d6", "2D": "#eb6834", "unknown": "#a9a9a9"}
 
 
 def all_estim_session_ids(repo_conn) -> list[str]:
@@ -80,6 +86,13 @@ def summarize(n_3d: int, n_2d: int, n_unknown: int) -> dict:
     }
 
 
+def categorize(n_3d: int, n_2d: int) -> str:
+    """Predominately 3D or 2D; ties count as 2D."""
+    if n_3d + n_2d == 0:
+        return "unknown"
+    return "3D" if n_3d > n_2d else "2D"
+
+
 def compute_ratio_table(session_ids=None) -> pd.DataFrame:
     """One row per session. Sessions whose GA database can't be read are reported and skipped."""
     repo_conn = Connection("allen_data_repository")
@@ -96,9 +109,36 @@ def compute_ratio_table(session_ids=None) -> pd.DataFrame:
             print(f"[3d/2d] failed for session {sid}:")
             traceback.print_exc()
             continue
-        rows.append({"session_id": sid, **count_textures(stim_ids, textures)})
+        counts = count_textures(stim_ids, textures)
+        counts["category"] = categorize(counts["n_3d"], counts["n_2d"])
+        rows.append({"session_id": sid, **counts})
 
     return pd.DataFrame(rows)
+
+
+def plot_category_pie(table: pd.DataFrame):
+    """Pie of how many sessions are predominately 3D vs 2D."""
+    counts = table["category"].value_counts()
+    labels = [c for c in ("3D", "2D", "unknown") if counts.get(c, 0)]
+    sizes = [counts[c] for c in labels]
+
+    fig, ax = plt.subplots(figsize=(5, 5))
+    _, _, pct_texts = ax.pie(
+        sizes,
+        labels=[f"Predominately {c}" if c != "unknown" else "No texture data" for c in labels],
+        colors=[CATEGORY_COLORS[c] for c in labels],
+        autopct=lambda pct: f"{round(pct * sum(sizes) / 100)} ({pct:.0f}%)",
+        startangle=90,
+        counterclock=False,
+        wedgeprops={"edgecolor": "white", "linewidth": 2},
+        textprops={"color": "#222222"},
+    )
+    for t in pct_texts:
+        t.set_color("white")
+    ax.set_title(f"EStim sessions by base stimulus texture (n = {sum(sizes)})")
+    ax.axis("equal")
+    fig.tight_layout()
+    return fig
 
 
 def main():
@@ -112,10 +152,16 @@ def main():
 
     # Pooled row: sums the per-session counts (a stimulus id is only unique within its GA db).
     total = summarize(*(int(table[c].sum()) for c in ("n_3d", "n_2d", "n_unknown")))
-    table = pd.concat([table, pd.DataFrame([{"session_id": "ALL", **total}])], ignore_index=True)
+    total["category"] = ""
+    printed = pd.concat([table, pd.DataFrame([{"session_id": "ALL", **total}])], ignore_index=True)
 
     with pd.option_context("display.max_rows", None, "display.width", 120):
-        print(table.to_string(index=False, float_format=lambda x: f"{x:.2f}"))
+        print(printed.to_string(index=False, float_format=lambda x: f"{x:.2f}"))
+    print()
+    print(table["category"].value_counts().to_string())
+
+    plot_category_pie(table)
+    plt.show()
 
 
 if __name__ == '__main__':
