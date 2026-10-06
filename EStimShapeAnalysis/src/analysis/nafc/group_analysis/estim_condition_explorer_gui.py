@@ -423,9 +423,10 @@ class RoleRow(QWidget):
             return labels, [o for o in order if o in present]
         num = self._numeric_column()
         if num is not None:
-            # unbinned numbers: 4 significant figures (123.457 -> 123.5), so values
-            # differing only by float noise share a group
-            labels = [MISSING if pd.isna(v) else f"{v:.4g}"
+            # unbinned numbers: whole numbers in full (spec ids), others to 4
+            # significant figures (123.457 -> 123.5), so float noise shares a group
+            labels = [MISSING if pd.isna(v) else
+                      str(int(v)) if float(v).is_integer() else f"{v:.4g}"
                       for v in pd.to_numeric(df[column], errors='coerce')]
         else:
             labels = [MISSING if pd.isna(v) else _fmt(v) for v in df[column]]
