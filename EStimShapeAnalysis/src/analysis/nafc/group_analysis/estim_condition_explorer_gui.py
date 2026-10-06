@@ -316,7 +316,8 @@ class FilterRow(QFrame):
 # ---------------------------------------------------------------------------
 
 class RoleRow(QWidget):
-    """Column dropdown + bin-edges box (shown for many-valued numeric columns)."""
+    """Column dropdown, a 'bin' tick-box for numeric columns (on by default when
+    the column has many values) and, when binning, the bin-edges box."""
 
     def __init__(self, allow_none, on_change):
         super().__init__()
@@ -324,6 +325,9 @@ class RoleRow(QWidget):
         self.on_change = on_change
         self.df = None
         self.combo = _compact(QComboBox(), 16)
+        self.bin_box = QCheckBox("bin")
+        self.bin_box.setToolTip("Group this numeric column into bins (edges below) "
+                                "instead of one group per distinct value")
         self.edges = QLineEdit()
         self.edges.setPlaceholderText("bin edges")
         self.edges.setToolTip("Comma-separated bin edges for a numeric column, e.g. "
@@ -331,13 +335,19 @@ class RoleRow(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
-        layout.addWidget(self.combo)
+        top = QHBoxLayout()
+        top.addWidget(self.combo, 1)
+        top.addWidget(self.bin_box)
+        layout.addLayout(top)
         layout.addWidget(self.edges)
         self.combo.currentIndexChanged.connect(self._column_changed)
+        self.bin_box.stateChanged.connect(self._bin_toggled)
         self.edges.editingFinished.connect(on_change)
 
     def set_columns(self, df, columns, current=None):
-        keep_edges = self.edges.text() if current == self.column() else None
+        same = current == self.column()
+        keep_edges = self.edges.text() if same else None
+        keep_bin = self.bin_box.isChecked() if same else None
         self.df = df
         self.combo.blockSignals(True)
         self.combo.clear()
@@ -348,23 +358,49 @@ class RoleRow(QWidget):
             self.combo.setCurrentIndex(self.combo.findText(current))
         self.combo.blockSignals(False)
         self._column_changed(redraw=False)
-        if keep_edges and self.edges.isEnabled():
-            self.edges.setText(keep_edges)
+        if keep_bin is not None:
+            self.set_binning(keep_bin, keep_edges)
+
+    def set_binning(self, on, edges=None):
+        """Turn binning on / off (numeric columns only), optionally with edges."""
+        if self._numeric_column() is None:
+            return
+        self.bin_box.blockSignals(True)
+        self.bin_box.setChecked(bool(on))
+        self.bin_box.blockSignals(False)
+        self._bin_toggled(redraw=False)
+        if on and edges:
+            self.edges.setText(edges)
 
     def column(self):
         text = self.combo.currentText()
         return None if text in ('', NONE_LABEL) else text
 
+    def _numeric_column(self):
+        """The current column as floats if it is numeric with >= 2 values."""
+        column = self.column()
+        num = _numeric(self.df[column]) if column and self.df is not None else None
+        return num if num is not None and num.nunique() >= 2 else None
+
     def _binnable(self, column):
-        num = _numeric(self.df[column]) if column else None
-        return num if num is not None and num.nunique() > MAX_CATEGORIES else None
+        num = self._numeric_column() if column == self.column() else None
+        return num if num is not None and self.bin_box.isChecked() else None
 
     def _column_changed(self, *_, redraw=True):
+        num = self._numeric_column()
+        self.bin_box.setVisible(num is not None)
+        self.bin_box.blockSignals(True)
+        self.bin_box.setChecked(num is not None and num.nunique() > MAX_CATEGORIES)
+        self.bin_box.blockSignals(False)
+        self.edges.setText("")
+        self._bin_toggled(redraw=redraw)
+
+    def _bin_toggled(self, *_, redraw=True):
         num = self._binnable(self.column())
         self.edges.setEnabled(num is not None)
         self.edges.setVisible(num is not None)
-        self.edges.setText(", ".join(f"{e:g}" for e in _default_edges(num.dropna()))
-                           if num is not None and num.notna().any() else "")
+        if num is not None and not self.edges.text() and num.notna().any():
+            self.edges.setText(", ".join(f"{e:g}" for e in _default_edges(num.dropna())))
         if redraw:
             self.on_change()
 
@@ -385,7 +421,14 @@ class RoleRow(QWidget):
             present = set(labels)
             order = order + [x for x in (OUTSIDE, MISSING) if x in present]
             return labels, [o for o in order if o in present]
-        labels = [MISSING if pd.isna(v) else _fmt(v) for v in df[column]]
+        num = self._numeric_column()
+        if num is not None:
+            # unbinned numbers: 4 significant figures (123.457 -> 123.5), so values
+            # differing only by float noise share a group
+            labels = [MISSING if pd.isna(v) else f"{v:.4g}"
+                      for v in pd.to_numeric(df[column], errors='coerce')]
+        else:
+            labels = [MISSING if pd.isna(v) else _fmt(v) for v in df[column]]
         return labels, sorted(set(labels), key=_sort_key)
 
 
@@ -660,9 +703,11 @@ class EstimConditionExplorer(QMainWindow):
         for name, role in (('x', self.x_role), ('colour', self.color_role),
                            ('panels', self.panel_role)):
             if spec is not None and name in spec_layout:
-                role.set_columns(self.df, columns, spec_layout[name].get('column'))
-                if spec_layout[name].get('edges') and role.edges.isEnabled():
-                    role.edges.setText(spec_layout[name]['edges'])
+                saved = spec_layout[name]
+                role.set_columns(self.df, columns, saved.get('column'))
+                # older specs have no 'bin': binned exactly when they stored edges
+                role.set_binning(saved.get('bin', bool(saved.get('edges'))),
+                                 saved.get('edges'))
             else:
                 current = defaults[role] if first else role.column()
                 role.set_columns(self.df, columns, current)
@@ -1036,7 +1081,7 @@ class EstimConditionExplorer(QMainWindow):
     def get_spec(self):
         """The whole current setup as a JSON-serialisable dict."""
         def role(r):
-            return {'column': r.column(),
+            return {'column': r.column(), 'bin': r.bin_box.isChecked(),
                     'edges': r.edges.text() if r.edges.isEnabled() else None}
         return {
             'version': SPEC_VERSION,
