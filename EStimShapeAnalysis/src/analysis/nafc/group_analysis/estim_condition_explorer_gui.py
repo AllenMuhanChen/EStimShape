@@ -20,6 +20,10 @@ Left panel:
     ON vs OFF dots, with the permutation test against the stored
     EStimPermutationTests nulls (two-sided / greater / less / off).
   - Copy summary table: the numbers behind the plot, tab-separated, to the clipboard.
+  - Style: font sizes and x-label rotation. "Save as default" stores them in
+    ~/.estim_condition_explorer/style_defaults.json, used at every start-up.
+  - Save spec… / Load spec…: the whole setup (metric, algorithm label, sessions,
+    min trials, filters, layout incl. bin edges, plot options, style) as a JSON file.
 The figure redraws in place; the toolbar zooms, pans and saves. RIGHT-CLICK a panel
 to copy just that panel (or the whole figure) to the clipboard as an image.
 
@@ -27,6 +31,7 @@ Run this file, or call main_gui().
 """
 
 import io
+import json
 import math
 import sys
 import traceback
@@ -46,8 +51,9 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QCursor, QImage
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
                              QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit,
-                             QListWidget, QListWidgetItem, QMainWindow, QMenu,
-                             QPushButton, QScrollArea, QSpinBox, QVBoxLayout, QWidget)
+                             QFileDialog, QListWidget, QListWidgetItem, QMainWindow,
+                             QMenu, QPushButton, QScrollArea, QSpinBox, QVBoxLayout,
+                             QWidget)
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
@@ -81,6 +87,44 @@ PAIR_TEST_CHOICES = (('permutation (within / between sessions)',
 NONE_LABEL = '(none)'
 BAR_COLOR = '#4C72B0'
 ON_COLOR, OFF_COLOR = '#D32F2F', '#333333'
+
+# user settings: saved style defaults and a default folder for specs
+SETTINGS_DIR = Path.home() / '.estim_condition_explorer'
+STYLE_DEFAULTS_FILE = SETTINGS_DIR / 'style_defaults.json'
+SPEC_VERSION = 1
+# (key, label) of the font-size settings, in points
+STYLE_FONTS = (('tick', 'Tick labels'), ('axis_label', 'Axis labels'),
+               ('title', 'Panel titles'), ('legend', 'Legend'),
+               ('stars', 'Stars / brackets'), ('n_label', 'n labels'))
+ROTATION_CHOICES = ('auto', '0', '30', '45', '90')
+BUILTIN_STYLE = {'tick': 14, 'axis_label': 16, 'title': 16, 'legend': 13,
+                 'stars': 15, 'n_label': 11, 'xtick_rotation': 'auto'}
+
+
+def _load_style_defaults():
+    """Built-in style, overridden by any saved defaults."""
+    style = dict(BUILTIN_STYLE)
+    try:
+        saved = json.loads(STYLE_DEFAULTS_FILE.read_text())
+        style.update({k: v for k, v in saved.items() if k in BUILTIN_STYLE})
+    except (OSError, ValueError):
+        pass
+    return style
+
+
+def _set_combo_text(box, text):
+    """Select the entry with this text (editable boxes take any text); False if
+    a non-editable box has no such entry."""
+    if text is None:
+        return False
+    i = box.findText(str(text))
+    if i >= 0:
+        box.setCurrentIndex(i)
+        return True
+    if box.isEditable():
+        box.setCurrentText(str(text))
+        return True
+    return False
 
 
 def _compact(combo, chars=14):
@@ -433,7 +477,38 @@ class EstimConditionExplorer(QMainWindow):
         copy_table = QPushButton("Copy summary table")
         copy_table.clicked.connect(self.copy_summary)
 
+        # -- style --
+        self.style_boxes = {}
+        for key, _ in STYLE_FONTS:
+            box = QSpinBox()
+            box.setRange(4, 60)
+            box.setSuffix(" pt")
+            box.setKeyboardTracking(False)
+            box.valueChanged.connect(self.schedule_redraw)
+            self.style_boxes[key] = box
+        self.rotation_box = _compact(QComboBox(), 6)
+        self.rotation_box.addItems(ROTATION_CHOICES)
+        self.rotation_box.setToolTip("x tick-label rotation (auto: 30° when there "
+                                     "are more than 4 labels)")
+        self.rotation_box.currentIndexChanged.connect(self.schedule_redraw)
+        self.set_plot_style(_load_style_defaults(), redraw=False)
+        style_buttons = QHBoxLayout()
+        for label, fn in (("Save as default", self.save_style_default),
+                          ("Built-in", lambda: self.set_plot_style(BUILTIN_STYLE))):
+            b = QPushButton(label)
+            b.clicked.connect(fn)
+            style_buttons.addWidget(b)
+
+        # -- specs --
+        spec_buttons = QHBoxLayout()
+        for label, fn in (("Save spec…", self.save_spec_dialog),
+                          ("Load spec…", self.load_spec_dialog)):
+            b = QPushButton(label)
+            b.clicked.connect(fn)
+            spec_buttons.addWidget(b)
+
         form = QFormLayout()
+        form.addRow(spec_buttons)
         form.addRow("Metric", self.metric_box)
         form.addRow("Algorithm label", self.algo_box)
         form.addRow(QLabel("<b>Sessions</b>"))
@@ -454,6 +529,11 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Compare pairs", self.compare_box)
         form.addRow("Pairwise test", self.pair_test_box)
         form.addRow("", self.n_box)
+        form.addRow(QLabel("<b>Style</b>"))
+        for key, label in STYLE_FONTS:
+            form.addRow(label, self.style_boxes[key])
+        form.addRow("x-label rotation", self.rotation_box)
+        form.addRow(style_buttons)
         form.addRow(copy_table)
         self.status = QLabel()
         self.status.setWordWrap(True)
@@ -492,7 +572,17 @@ class EstimConditionExplorer(QMainWindow):
         return self.algo_box.currentText(), self.metric_box.currentText()
 
     def reload(self, *_, first=False):
-        key = self._data_key()
+        if not self._ensure_loaded(self._data_key()):
+            return
+        self.df = self._tables[self._data_key()]
+        if len(self.df) == 0:
+            self.status.setText(f"No EStimEffects rows for {self._data_key()}.")
+            return
+        self._populate(first)
+
+    def _ensure_loaded(self, key):
+        """Load (and cache) the table + nulls for (algorithm label, metric);
+        False if loading failed."""
         if key not in self._tables:
             self.status.setText(f"Loading {key}… (first load computes half-distances)")
             QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -505,25 +595,25 @@ class EstimConditionExplorer(QMainWindow):
             except Exception as exc:
                 traceback.print_exc()
                 self.status.setText(f"Load failed: {type(exc).__name__}: {exc}")
-                return
+                return False
             finally:
                 QApplication.restoreOverrideCursor()
-        self.df = self._tables[key]
-        if len(self.df) == 0:
-            self.status.setText(f"No EStimEffects rows for {key}.")
-            return
-        self._populate(first)
+        return True
 
     def _columns(self):
         cols = [c for c in self.df.columns if c not in HIDDEN_COLUMNS]
         return ['session_id'] + sorted(c for c in cols if c != 'session_id')
 
-    def _populate(self, first):
+    def _populate(self, first, spec=None):
         """Fill the session list, filter choices and role dropdowns from self.df,
-        keeping the current selections where they still apply."""
-        prev_sessions = None if first else {
-            self.session_list.item(i).text() for i in range(self.session_list.count())
-            if self.session_list.item(i).checkState() == Qt.Checked}
+        keeping the current selections where they still apply — or taking them
+        from spec (a dict from get_spec / a spec file)."""
+        if spec is not None:
+            prev_sessions = set(spec['sessions']) if 'sessions' in spec else None
+        else:
+            prev_sessions = None if first else {
+                self.session_list.item(i).text() for i in range(self.session_list.count())
+                if self.session_list.item(i).checkState() == Qt.Checked}
         self.session_list.blockSignals(True)
         self.session_list.clear()
         for sid in sorted(self.df['session_id'].unique()):
@@ -544,16 +634,20 @@ class EstimConditionExplorer(QMainWindow):
         self.add_filter_box.addItems(columns)
         self.add_filter_box.blockSignals(False)
 
-        states = ([{'column': 'trial_type', 'checked': ['Hypothesized Shape', 'Delta Shape']},
-                   {'column': 'ratio', 'lo': -1e9, 'hi': 8.0, 'keep_missing': True}]
-                  if first else [r.state() for r in self.filter_rows])
+        if spec is not None:
+            states = spec.get('filters', [])
+        elif first:
+            states = [{'column': 'trial_type', 'checked': ['Hypothesized Shape', 'Delta Shape']},
+                      {'column': 'ratio', 'lo': -1e9, 'hi': 8.0, 'keep_missing': True}]
+        else:
+            states = [r.state() for r in self.filter_rows]
         for row in list(self.filter_rows):
             self._remove_filter(row, redraw=False)
         for state in states:
             if state['column'] not in self.df.columns:
                 continue
-            if 'checked' in state and not (set(state['checked'])
-                                           & set(self.df[state['column']].dropna().map(_fmt))):
+            if first and 'checked' in state and not (
+                    set(state['checked']) & set(self.df[state['column']].dropna().map(_fmt))):
                 continue  # none of the default values exist here
             row = self._add_filter(state['column'], redraw=False)
             if first and 'lo' in state and row.lo is not None:
@@ -562,9 +656,16 @@ class EstimConditionExplorer(QMainWindow):
 
         defaults = {self.x_role: 'trial_type', self.color_role: 'polarity',
                     self.panel_role: None}
-        for role in (self.x_role, self.color_role, self.panel_role):
-            current = defaults[role] if first else role.column()
-            role.set_columns(self.df, columns, current)
+        spec_layout = (spec or {}).get('layout', {})
+        for name, role in (('x', self.x_role), ('colour', self.color_role),
+                           ('panels', self.panel_role)):
+            if spec is not None and name in spec_layout:
+                role.set_columns(self.df, columns, spec_layout[name].get('column'))
+                if spec_layout[name].get('edges') and role.edges.isEnabled():
+                    role.edges.setText(spec_layout[name]['edges'])
+            else:
+                current = defaults[role] if first else role.column()
+                role.set_columns(self.df, columns, current)
         self.redraw()
 
     def _check_sessions(self, predicate, redraw=True):
@@ -663,29 +764,36 @@ class EstimConditionExplorer(QMainWindow):
         colors = self._colors(orders['__color'])
         mode = PLOT_CHOICES[self.plot_box.currentIndex()][1]
         pairs = self._pairwise(df, summary, panels, orders)
+        st = self.plot_style()
         positions = {}
         for ax, panel in zip(axes.flat, panels):
             positions[panel] = self._draw_panel(ax, summary[summary['__panel'] == panel],
                                                 df[df['__panel'] == panel], orders,
                                                 colors, mode)
             if self.panel_role.column():
-                ax.set_title(f"{self.panel_role.column()} = {panel}", fontsize=10,
-                             fontweight='bold')
+                ax.set_title(f"{self.panel_role.column()} = {panel}",
+                             fontsize=st['title'], fontweight='bold')
         for ax in list(axes.flat)[len(panels):]:
             ax.set_visible(False)
+        if self.n_box.isChecked():
+            # a strip below the lowest bar / star for the n labels (y is shared, so
+            # setting it on one panel sets them all)
+            y_lo, y_hi = axes.flat[0].get_ylim()
+            pad = 0.03 * st['n_label'] / 11 + 0.05
+            axes.flat[0].set_ylim(y_lo - pad * (y_hi - y_lo), y_hi)
         if pairs is not None:
             for ax, panel in zip(axes.flat, panels):
                 self._draw_brackets(ax, pairs[pairs['__panel'] == panel], positions[panel])
         self._legend_handles = self._legend(colors, mode)
         if self._legend_handles:
-            axes.flat[0].legend(handles=self._legend_handles, fontsize=8, loc='best',
-                                title=self.color_role.column() if self.color_role.column()
-                                else None, title_fontsize=8)
+            axes.flat[0].legend(handles=self._legend_handles, fontsize=st['legend'],
+                                loc='best', title=self.color_role.column() or None,
+                                title_fontsize=st['legend'])
         for ax in axes[:, 0]:
             ax.set_ylabel('EStim effect: ON − OFF (%)' if mode == 'bars'
-                          else '% chose hypothesized')
+                          else '% chose hypothesized', fontsize=st['axis_label'])
         for ax in axes[-1, :]:
-            ax.set_xlabel(self.x_role.column())
+            ax.set_xlabel(self.x_role.column(), fontsize=st['axis_label'])
         self.figure.tight_layout()
         self.canvas.draw_idle()
 
@@ -730,6 +838,7 @@ class EstimConditionExplorer(QMainWindow):
         return np.random.default_rng(seed).uniform(-half_width, half_width, n)
 
     def _draw_panel(self, ax, summary, panel_df, orders, colors, mode):
+        st = self.plot_style()
         x_order = [x for x in orders['__x'] if (summary['__x'] == x).any()]
         show_n = self.n_box.isChecked()
         positions = {}  # (x, colour) -> (bar centre, top of everything drawn for it)
@@ -786,19 +895,24 @@ class EstimConditionExplorer(QMainWindow):
                 marker = ect.significance_marker(r['p'])
                 if marker:
                     ax.annotate(marker, (pos, star_y), xytext=(0, 2 if va == 'bottom' else -2),
-                                textcoords='offset points', ha='center', va=va, fontsize=9)
+                                textcoords='offset points', ha='center', va=va,
+                                fontsize=st['stars'])
                 upper = max(star_y, 0) if mode == 'bars' else star_y
                 positions[(x, c)] = (pos, upper)
                 if show_n:
                     ax.annotate(f"{r['n_conditions']}/{r['n_sessions']}", (pos, 0),
                                 xycoords=('data', 'axes fraction'), xytext=(0, 2),
                                 textcoords='offset points', ha='center', va='bottom',
-                                fontsize=7, color='#555555')
+                                fontsize=st['n_label'], color='#555555')
         if mode == 'bars':
             ax.axhline(0, color='black', lw=0.8, ls='--')
         ax.set_xticks(range(len(x_order)))
-        ax.set_xticklabels(x_order, rotation=30 if len(x_order) > 4 else 0,
-                           ha='right' if len(x_order) > 4 else 'center', fontsize=8)
+        rotation = (30 if len(x_order) > 4 else 0) if st['xtick_rotation'] == 'auto' \
+            else int(st['xtick_rotation'])
+        ax.set_xticklabels(x_order, rotation=rotation,
+                           ha='right' if 0 < rotation < 90 else 'center',
+                           rotation_mode='anchor', fontsize=st['tick'])
+        ax.tick_params(axis='y', labelsize=st['tick'])
         ax.set_xlim(-0.6, len(x_order) - 0.4)
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines[['top', 'right']].set_visible(False)
@@ -886,9 +1000,147 @@ class EstimConditionExplorer(QMainWindow):
             ax.plot([x1, x1, x2, x2], [y - step * 0.3, y, y, y - step * 0.3],
                     color='black', lw=0.9)
             ax.text((x1 + x2) / 2, y, ect.significance_marker(p), ha='center',
-                    va='bottom', fontsize=9)
+                    va='bottom', fontsize=self.plot_style()['stars'])
             top = max(top, y + step)
         ax.set_ylim(y_lo, top)
+
+    # -- style ----------------------------------------------------------------------
+    def plot_style(self):
+        style = {key: box.value() for key, box in self.style_boxes.items()}
+        style['xtick_rotation'] = self.rotation_box.currentText()
+        return style
+
+    def set_plot_style(self, style, redraw=True):
+        widgets = [*self.style_boxes.values(), self.rotation_box]
+        for w in widgets:
+            w.blockSignals(True)
+        for key, box in self.style_boxes.items():
+            if key in style:
+                box.setValue(int(style[key]))
+        _set_combo_text(self.rotation_box, style.get('xtick_rotation'))
+        for w in widgets:
+            w.blockSignals(False)
+        if redraw:
+            self.schedule_redraw()
+
+    def save_style_default(self):
+        try:
+            SETTINGS_DIR.mkdir(parents=True, exist_ok=True)
+            STYLE_DEFAULTS_FILE.write_text(json.dumps(self.plot_style(), indent=2))
+        except OSError as exc:
+            self._note(f"Could not save style defaults: {exc}")
+            return
+        self._note(f"Saved style defaults to {STYLE_DEFAULTS_FILE}.")
+
+    # -- specs -----------------------------------------------------------------------
+    def get_spec(self):
+        """The whole current setup as a JSON-serialisable dict."""
+        def role(r):
+            return {'column': r.column(),
+                    'edges': r.edges.text() if r.edges.isEnabled() else None}
+        return {
+            'version': SPEC_VERSION,
+            'metric': self.metric_box.currentText(),
+            'algorithm_label': self.algo_box.currentText(),
+            'sessions': [self.session_list.item(i).text()
+                         for i in range(self.session_list.count())
+                         if self.session_list.item(i).checkState() == Qt.Checked],
+            'min_trials': self.trials_box.value(),
+            'filters': [r.state() for r in self.filter_rows],
+            'layout': {'x': role(self.x_role), 'colour': role(self.color_role),
+                       'panels': role(self.panel_role)},
+            'plot': {'plot': self.plot_box.currentText(),
+                     'test': self.test_box.currentText(),
+                     'points': self.points_box.currentText(),
+                     'compare': self.compare_box.currentText(),
+                     'pairwise_test': self.pair_test_box.currentText(),
+                     'show_n': self.n_box.isChecked()},
+            'style': self.plot_style(),
+        }
+
+    def apply_spec(self, spec):
+        """Restore a setup from get_spec / a spec file. Settings that no longer
+        apply (a missing column, session or option) are skipped and reported."""
+        skipped = []
+        for box, key in ((self.metric_box, 'metric'), (self.algo_box, 'algorithm_label')):
+            box.blockSignals(True)
+            if key in spec and not _set_combo_text(box, spec[key]):
+                skipped.append(f"{key} {spec[key]!r}")
+            box.blockSignals(False)
+        if not self._ensure_loaded(self._data_key()):
+            return
+        self.df = self._tables[self._data_key()]
+        if len(self.df) == 0:
+            self.status.setText(f"No EStimEffects rows for {self._data_key()}.")
+            return
+        plot = spec.get('plot', {})
+        widgets = [self.trials_box, self.plot_box, self.test_box, self.points_box,
+                   self.compare_box, self.pair_test_box, self.n_box]
+        for w in widgets:
+            w.blockSignals(True)
+        if 'min_trials' in spec:
+            self.trials_box.setValue(int(spec['min_trials']))
+        for box, key in ((self.plot_box, 'plot'), (self.test_box, 'test'),
+                         (self.points_box, 'points'), (self.compare_box, 'compare'),
+                         (self.pair_test_box, 'pairwise_test')):
+            if key in plot and not _set_combo_text(box, plot[key]):
+                skipped.append(f"{key} {plot[key]!r}")
+        if 'show_n' in plot:
+            self.n_box.setChecked(bool(plot['show_n']))
+        for w in widgets:
+            w.blockSignals(False)
+        if 'style' in spec:
+            self.set_plot_style(spec['style'], redraw=False)
+        known = set(self.df['session_id'])
+        missing_sessions = [s for s in spec.get('sessions', []) if s not in known]
+        if missing_sessions:
+            skipped.append(f"{len(missing_sessions)} session(s) not in the data")
+        missing_cols = [f['column'] for f in spec.get('filters', [])
+                        if f['column'] not in self.df.columns]
+        missing_cols += [r['column'] for r in spec.get('layout', {}).values()
+                         if r.get('column') and r['column'] not in self.df.columns]
+        if missing_cols:
+            skipped.append("column(s) " + ", ".join(sorted(set(missing_cols))))
+        self._populate(False, spec=spec)
+        if skipped:
+            self._note("Spec loaded; skipped: " + "; ".join(skipped) + ".")
+
+    def _spec_dir(self):
+        folder = SETTINGS_DIR / 'specs'
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            folder = Path.home()
+        return str(folder)
+
+    def save_spec_dialog(self):
+        path, _ = QFileDialog.getSaveFileName(self, "Save spec", self._spec_dir(),
+                                              "Spec (*.json)")
+        if path:
+            self.save_spec(path if path.endswith('.json') else path + '.json')
+
+    def load_spec_dialog(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Load spec", self._spec_dir(),
+                                              "Spec (*.json)")
+        if path:
+            self.load_spec(path)
+
+    def save_spec(self, path):
+        try:
+            Path(path).write_text(json.dumps(self.get_spec(), indent=2))
+        except OSError as exc:
+            self._note(f"Could not save spec: {exc}")
+            return
+        self._note(f"Saved spec to {path}.")
+
+    def load_spec(self, path):
+        try:
+            spec = json.loads(Path(path).read_text())
+        except (OSError, ValueError) as exc:
+            self._note(f"Could not read spec: {exc}")
+            return
+        self.apply_spec(spec)
+        self.setWindowTitle(f"EStim condition explorer — {Path(path).stem}")
 
     # -- clipboard -------------------------------------------------------------------
     def copy_summary(self):
@@ -940,12 +1192,13 @@ class EstimConditionExplorer(QMainWindow):
         had_legend = ax.get_legend() is not None
         # shared-y panels off the first column hide their tick labels
         had_yticklabels = any(t.label1.get_visible() for t in ax.yaxis.get_major_ticks())
-        ax.set_xlabel(old[0] or xlab)
-        ax.set_ylabel(old[1] or ylab)
+        st = self.plot_style()
+        ax.set_xlabel(old[0] or xlab, fontsize=st['axis_label'])
+        ax.set_ylabel(old[1] or ylab, fontsize=st['axis_label'])
         ax.tick_params(axis='y', labelleft=True)
         if not had_legend and self._legend_handles:
-            ax.legend(handles=self._legend_handles, fontsize=8, loc='best',
-                      title=self.color_role.column(), title_fontsize=8)
+            ax.legend(handles=self._legend_handles, fontsize=st['legend'], loc='best',
+                      title=self.color_role.column(), title_fontsize=st['legend'])
         others = [a for a in panels if a is not ax]
         for a in others:
             a.set_visible(False)
