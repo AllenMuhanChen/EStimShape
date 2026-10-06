@@ -30,6 +30,8 @@ import io
 import math
 import sys
 import traceback
+import zlib
+from itertools import combinations
 from pathlib import Path
 
 import matplotlib
@@ -68,6 +70,10 @@ PLOT_CHOICES = (('effect bars (ON − OFF)', 'bars'), ('ON vs OFF dots', 'dots')
 POINT_CHOICES = (('none', None), ('one per session', 'session'),
                  ('one per condition', 'condition'))
 POINT_COLOR = '#222222'
+# pairwise comparisons: (label, mode) — None = off
+COMPARE_CHOICES = (('off', None), ('colours within each x', 'colors'),
+                   ('x values within each colour', 'x'))
+PAIR_ALPHA = 0.05
 NONE_LABEL = '(none)'
 BAR_COLOR = '#4C72B0'
 ON_COLOR, OFF_COLOR = '#D32F2F', '#333333'
@@ -401,9 +407,16 @@ class EstimConditionExplorer(QMainWindow):
         self.points_box.setToolTip("Overlay individual data points: each session's mean "
                                    "(what the bar and its SEM summarise) or each "
                                    "condition")
+        self.compare_box = _compact(QComboBox())
+        self.compare_box.addItems([c[0] for c in COMPARE_CHOICES])
+        self.compare_box.setToolTip(
+            "Pairwise tests between bars: within-session label permutation of the "
+            "bars' statistic (mean of session means), Holm-corrected across all pairs "
+            "in the figure. Brackets mark pairs with corrected p < 0.05; every pair "
+            "is in 'Copy summary table'.")
         self.n_box = QCheckBox("show n (conditions / sessions)")
         self.n_box.setChecked(True)
-        for w in (self.plot_box, self.test_box, self.points_box):
+        for w in (self.plot_box, self.test_box, self.points_box, self.compare_box):
             w.currentIndexChanged.connect(self.schedule_redraw)
         self.n_box.stateChanged.connect(self.schedule_redraw)
         copy_table = QPushButton("Copy summary table")
@@ -427,6 +440,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Plot", self.plot_box)
         form.addRow("Test", self.test_box)
         form.addRow("Points", self.points_box)
+        form.addRow("Compare pairs", self.compare_box)
         form.addRow("", self.n_box)
         form.addRow(copy_table)
         self.status = QLabel()
@@ -608,6 +622,7 @@ class EstimConditionExplorer(QMainWindow):
         df = self.filtered()
         self.figure.clear()
         self.summary = None
+        self.pairwise = None
         if len(df) == 0:
             self.canvas.draw_idle()
             self.status.setText("No conditions pass the filters.")
@@ -635,14 +650,20 @@ class EstimConditionExplorer(QMainWindow):
         axes = self.figure.subplots(n_rows, n_cols, squeeze=False, sharey=True)
         colors = self._colors(orders['__color'])
         mode = PLOT_CHOICES[self.plot_box.currentIndex()][1]
+        pairs = self._pairwise(df, summary, panels, orders)
+        positions = {}
         for ax, panel in zip(axes.flat, panels):
-            self._draw_panel(ax, summary[summary['__panel'] == panel],
-                             df[df['__panel'] == panel], orders, colors, mode)
+            positions[panel] = self._draw_panel(ax, summary[summary['__panel'] == panel],
+                                                df[df['__panel'] == panel], orders,
+                                                colors, mode)
             if self.panel_role.column():
                 ax.set_title(f"{self.panel_role.column()} = {panel}", fontsize=10,
                              fontweight='bold')
         for ax in list(axes.flat)[len(panels):]:
             ax.set_visible(False)
+        if pairs is not None:
+            for ax, panel in zip(axes.flat, panels):
+                self._draw_brackets(ax, pairs[pairs['__panel'] == panel], positions[panel])
         self._legend_handles = self._legend(colors, mode)
         if self._legend_handles:
             axes.flat[0].legend(handles=self._legend_handles, fontsize=8, loc='best',
@@ -660,7 +681,8 @@ class EstimConditionExplorer(QMainWindow):
         self.status.setText(
             f"{len(df)} of {len(self.df)} conditions, {df['session_id'].nunique()} sessions "
             f"pass the filters.\nFilters: {'; '.join(filt) if filt else 'none'}"
-            + ("" if alternative else "\nTest off."))
+            + ("" if alternative else "\nTest off.")
+            + (self._pairwise_note(pairs) if pairs is not None else ""))
 
     @staticmethod
     def _colors(color_order):
@@ -698,6 +720,7 @@ class EstimConditionExplorer(QMainWindow):
     def _draw_panel(self, ax, summary, panel_df, orders, colors, mode):
         x_order = [x for x in orders['__x'] if (summary['__x'] == x).any()]
         show_n = self.n_box.isChecked()
+        positions = {}  # (x, colour) -> (bar centre, top of everything drawn for it)
         # one bar width for the panel (set by the most crowded x), so a lone bar
         # isn't drawn wider than its neighbours
         width = 0.8 / max(summary.groupby('__x')['__color'].nunique().max(), 1)
@@ -752,6 +775,8 @@ class EstimConditionExplorer(QMainWindow):
                 if marker:
                     ax.annotate(marker, (pos, star_y), xytext=(0, 2 if va == 'bottom' else -2),
                                 textcoords='offset points', ha='center', va=va, fontsize=9)
+                upper = max(star_y, 0) if mode == 'bars' else star_y
+                positions[(x, c)] = (pos, upper)
                 if show_n:
                     ax.annotate(f"{r['n_conditions']}/{r['n_sessions']}", (pos, 0),
                                 xycoords=('data', 'axes fraction'), xytext=(0, 2),
@@ -765,12 +790,98 @@ class EstimConditionExplorer(QMainWindow):
         ax.set_xlim(-0.6, len(x_order) - 0.4)
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines[['top', 'right']].set_visible(False)
+        return positions
+
+    # -- pairwise comparisons ---------------------------------------------------------
+    def _pairwise(self, df, summary, panels, orders):
+        """Pairwise tests for the chosen Compare mode, Holm-corrected across every
+        pair in the figure. DataFrame (one row per pair) or None when off."""
+        compare = COMPARE_CHOICES[self.compare_box.currentIndex()][1]
+        if compare is None:
+            return None
+        # compare 'colors': colours against each other at each x; 'x': x values
+        # against each other for each colour
+        fixed, varied = ('__x', '__color') if compare == 'colors' else ('__color', '__x')
+        rows = []
+        for panel in panels:
+            pdf = df[df['__panel'] == panel]
+            psum = summary[summary['__panel'] == panel]
+            for f in orders[fixed]:
+                present = [v for v in orders[varied]
+                           if ((psum[fixed] == f) & (psum[varied] == v)).any()]
+                sub = pdf[pdf[fixed] == f]
+                for a, b in combinations(present, 2):
+                    seed = zlib.crc32(f"{panel}|{f}|{a}|{b}".encode())
+                    res = ect.pairwise_label_permutation(sub, varied, a, b, seed=seed)
+                    rows.append({'__panel': panel, 'fixed': f, 'a': a, 'b': b, **res})
+        pairs = pd.DataFrame(rows, columns=['__panel', 'fixed', 'a', 'b', 'diff', 'p',
+                                            'n_sessions_a', 'n_sessions_b', 'n_shared'])
+        pairs['p_holm'] = ect.holm(list(pairs['p'])) if len(pairs) else []
+        pairs['_compare'] = compare
+        fixed_name = (self.x_role.column() if compare == 'colors'
+                      else self.color_role.column() or 'colour')
+        varied_name = (self.color_role.column() or 'colour' if compare == 'colors'
+                       else self.x_role.column())
+        self.pairwise = pairs.drop(columns='_compare').rename(columns={
+            '__panel': self.panel_role.column() or 'panel', 'fixed': fixed_name,
+            'a': f"{varied_name} A", 'b': f"{varied_name} B",
+            'diff': 'diff (A − B)'})
+        if not self.panel_role.column():
+            self.pairwise = self.pairwise.drop(columns='panel')
+        return pairs
+
+    @staticmethod
+    def _pairwise_note(pairs):
+        if len(pairs) == 0:
+            return "\nPairwise: no pairs to compare (need ≥ 2 bars per group)."
+        tested = pairs['p'].notna().sum()
+        sig = int((pairs['p_holm'].fillna(1) < PAIR_ALPHA).sum())
+        untestable = len(pairs) - tested
+        return (f"\nPairwise: {tested} pairs tested, {sig} significant after Holm "
+                f"(p < {PAIR_ALPHA:g})"
+                + (f"; {untestable} untestable (no session has both)" if untestable else "")
+                + ".")
+
+    def _draw_brackets(self, ax, pairs, positions):
+        """Brackets over pairs with Holm p < PAIR_ALPHA, stacked so they don't overlap."""
+        sig = pairs[pairs['p_holm'].fillna(1) < PAIR_ALPHA]
+        if len(sig) == 0:
+            return
+        y_lo, y_hi = ax.get_ylim()
+        step = 0.06 * (y_hi - y_lo)
+        spans = []
+        for _, r in sig.iterrows():
+            keys = ((r['fixed'], r['a']), (r['fixed'], r['b'])) if r['_compare'] == 'colors' \
+                else ((r['a'], r['fixed']), (r['b'], r['fixed']))
+            if keys[0] not in positions or keys[1] not in positions:
+                continue
+            x1, x2 = sorted(positions[k][0] for k in keys)
+            spans.append((x2 - x1, x1, x2, r['p_holm']))
+        placed = []  # (x1, x2, y)
+        top = y_hi
+        for _, x1, x2, p in sorted(spans):  # narrow brackets lowest
+            base = max(u for (x, u) in positions.values() if x1 - 1e-9 <= x <= x2 + 1e-9)
+            y = base + step
+            for px1, px2, py in placed:
+                if px1 <= x2 and x1 <= px2:  # overlapping span -> go above it
+                    y = max(y, py + step)
+            placed.append((x1, x2, y))
+            ax.plot([x1, x1, x2, x2], [y - step * 0.3, y, y, y - step * 0.3],
+                    color='black', lw=0.9)
+            ax.text((x1 + x2) / 2, y, ect.significance_marker(p), ha='center',
+                    va='bottom', fontsize=9)
+            top = max(top, y + step)
+        ax.set_ylim(y_lo, top)
 
     # -- clipboard -------------------------------------------------------------------
     def copy_summary(self):
         if self.summary is None:
             return
-        QApplication.clipboard().setText(self.summary.to_csv(sep='\t', index=False))
+        text = self.summary.to_csv(sep='\t', index=False)
+        if self.pairwise is not None and len(self.pairwise):
+            text += ("\nPairwise comparisons (within-session label permutation, "
+                     "Holm-corrected)\n" + self.pairwise.to_csv(sep='\t', index=False))
+        QApplication.clipboard().setText(text)
         self._note("Copied the summary table to the clipboard.")
 
     def _note(self, text):

@@ -260,3 +260,73 @@ def significance_marker(p):
     if p is None or not np.isfinite(p):
         return ''
     return '***' if p < 0.001 else '**' if p < 0.01 else '*' if p < 0.05 else 'ns'
+
+
+# ---------------------------------------------------------------------------
+# Pairwise comparison of two groups
+# ---------------------------------------------------------------------------
+
+PAIRWISE_N_PERM = 5000
+
+
+def pairwise_label_permutation(df, label_col, a, b, n_perm=PAIRWISE_N_PERM, seed=0):
+    """Test whether group a's effect differs from group b's (rows of df with
+    label_col == a / b), using the bars' own statistic: mean of per-session mean
+    effects of a minus that of b.
+
+    Null: within each session that has conditions in BOTH groups, the a / b labels
+    are shuffled among that session's conditions (group sizes kept). Session-level
+    differences in overall effect are therefore held fixed. Sessions with only one
+    group still count toward the difference but are never shuffled, so the test
+    needs sessions with both (n_shared); with none, p is None.
+
+    Returns {'diff', 'p' (two-sided, (k+1)/(n_perm+1)), 'n_sessions_a',
+    'n_sessions_b', 'n_shared'}."""
+    rng = np.random.default_rng(seed)
+    sub = df[df[label_col].isin([a, b])]
+    obs_a, obs_b = [], []
+    null_a = np.zeros(n_perm)
+    null_b = np.zeros(n_perm)
+    n_shared = 0
+    for _, sdf in sub.groupby('session_id'):
+        e = sdf[EFFECT_COL].to_numpy(dtype=float)
+        is_a = (sdf[label_col] == a).to_numpy(dtype=bool)
+        n_a = int(is_a.sum())
+        n_b = len(e) - n_a
+        if n_a:
+            obs_a.append(e[is_a].mean())
+        if n_b:
+            obs_b.append(e[~is_a].mean())
+        if n_a and n_b:
+            n_shared += 1
+            # a random a/b relabelling per permutation, keeping n_a conditions as a
+            ranks = rng.random((n_perm, len(e))).argsort(axis=1).argsort(axis=1)
+            mask = ranks < n_a
+            null_a += (mask * e).sum(axis=1) / n_a
+            null_b += (~mask * e).sum(axis=1) / n_b
+        elif n_a:
+            null_a += e.mean()
+        else:
+            null_b += e.mean()
+    out = {'diff': np.nan, 'p': None, 'n_sessions_a': len(obs_a),
+           'n_sessions_b': len(obs_b), 'n_shared': n_shared}
+    if not obs_a or not obs_b:
+        return out
+    out['diff'] = float(np.mean(obs_a) - np.mean(obs_b))
+    if n_shared:
+        null = null_a / len(obs_a) - null_b / len(obs_b)
+        k = int(np.sum(np.abs(null) >= abs(out['diff']) - 1e-12))
+        out['p'] = (k + 1) / (n_perm + 1)
+    return out
+
+
+def holm(p_values):
+    """Holm-Bonferroni adjusted p-values (same order; None stays None)."""
+    idx = [i for i, p in enumerate(p_values) if p is not None]
+    adjusted = [None] * len(p_values)
+    m = len(idx)
+    running = 0.0
+    for rank, i in enumerate(sorted(idx, key=lambda i: p_values[i])):
+        running = max(running, min(1.0, (m - rank) * p_values[i]))
+        adjusted[i] = running
+    return adjusted
