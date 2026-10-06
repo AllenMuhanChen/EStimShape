@@ -26,6 +26,7 @@ over sessions).
 """
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -274,20 +275,27 @@ def pairwise_label_permutation(df, label_col, a, b, n_perm=PAIRWISE_N_PERM, seed
     label_col == a / b), using the bars' own statistic: mean of per-session mean
     effects of a minus that of b.
 
-    Null: within each session that has conditions in BOTH groups, the a / b labels
-    are shuffled among that session's conditions (group sizes kept). Session-level
-    differences in overall effect are therefore held fixed. Sessions with only one
-    group still count toward the difference but are never shuffled, so the test
-    needs sessions with both (n_shared); with none, p is None.
+    Null (labels a / b exchangeable), permuting at the level the data allow:
+      - a session with conditions in BOTH groups: the a / b labels are shuffled
+        among its conditions (group sizes kept), so its session-level offset stays
+        on both sides;
+      - sessions with only ONE group: their session means are shuffled between a
+        and b as whole sessions (how many sessions are a-only / b-only kept).
+    So every pair is testable, but sessions — not conditions — stay the unit: when
+    no session has both groups the test is a session-level permutation, and with
+    few sessions its smallest attainable p is large (see n_arrangements).
 
-    Returns {'diff', 'p' (two-sided, (k+1)/(n_perm+1)), 'n_sessions_a',
-    'n_sessions_b', 'n_shared'}."""
+    Returns {'diff', 'p' (two-sided, (k+1)/(n_perm+1); None if the data allow only
+    one arrangement), 'n_sessions_a', 'n_sessions_b', 'n_shared', 'n_arrangements'
+    (distinct relabellings, capped at 1e9)}."""
     rng = np.random.default_rng(seed)
     sub = df[df[label_col].isin([a, b])]
     obs_a, obs_b = [], []
     null_a = np.zeros(n_perm)
     null_b = np.zeros(n_perm)
+    single_means, single_is_a = [], []
     n_shared = 0
+    log_arrangements = 0.0
     for _, sdf in sub.groupby('session_id'):
         e = sdf[EFFECT_COL].to_numpy(dtype=float)
         is_a = (sdf[label_col] == a).to_numpy(dtype=bool)
@@ -299,30 +307,68 @@ def pairwise_label_permutation(df, label_col, a, b, n_perm=PAIRWISE_N_PERM, seed
             obs_b.append(e[~is_a].mean())
         if n_a and n_b:
             n_shared += 1
+            log_arrangements += math.log(math.comb(len(e), n_a))
             # a random a/b relabelling per permutation, keeping n_a conditions as a
             ranks = rng.random((n_perm, len(e))).argsort(axis=1).argsort(axis=1)
             mask = ranks < n_a
             null_a += (mask * e).sum(axis=1) / n_a
             null_b += (~mask * e).sum(axis=1) / n_b
-        elif n_a:
-            null_a += e.mean()
         else:
-            null_b += e.mean()
+            single_means.append(e.mean())
+            single_is_a.append(bool(n_a))
     out = {'diff': np.nan, 'p': None, 'n_sessions_a': len(obs_a),
-           'n_sessions_b': len(obs_b), 'n_shared': n_shared}
+           'n_sessions_b': len(obs_b), 'n_shared': n_shared, 'n_arrangements': 1}
     if not obs_a or not obs_b:
         return out
     out['diff'] = float(np.mean(obs_a) - np.mean(obs_b))
-    if n_shared:
+    if single_means:
+        m = np.asarray(single_means)
+        k_a = int(np.sum(single_is_a))
+        log_arrangements += math.log(math.comb(len(m), k_a))
+        # shuffle which single-group sessions count as a (k_a of them stay a)
+        ranks = rng.random((n_perm, len(m))).argsort(axis=1).argsort(axis=1)
+        as_a = ranks < k_a
+        null_a += (as_a * m).sum(axis=1)
+        null_b += (~as_a * m).sum(axis=1)
+    out['n_arrangements'] = int(min(round(math.exp(log_arrangements)), 1e9))
+    if out['n_arrangements'] > 1:
         null = null_a / len(obs_a) - null_b / len(obs_b)
         k = int(np.sum(np.abs(null) >= abs(out['diff']) - 1e-12))
         out['p'] = (k + 1) / (n_perm + 1)
     return out
 
 
+def pairwise_welch(df, label_col, a, b):
+    """Welch's (unequal-variance) t-test between group a and group b on their
+    per-session mean effects — one value per session per group, the same numbers
+    the bars and their SEMs are built from. Sessions need not appear in both
+    groups. Treats a session in both groups as two independent values (no
+    pairing). Needs >= 2 sessions per group, else p is None.
+
+    Returns {'diff', 'p' (two-sided), 't', 'n_sessions_a', 'n_sessions_b',
+    'n_shared'}."""
+    from scipy import stats as sp_stats
+    sub = df[df[label_col].isin([a, b])]
+    means = sub.groupby(['session_id', label_col], observed=True)[EFFECT_COL].mean()
+    means = means.reset_index()
+    va = means.loc[means[label_col] == a, EFFECT_COL].to_numpy(dtype=float)
+    vb = means.loc[means[label_col] == b, EFFECT_COL].to_numpy(dtype=float)
+    shared = (set(means.loc[means[label_col] == a, 'session_id'])
+              & set(means.loc[means[label_col] == b, 'session_id']))
+    out = {'diff': np.nan, 'p': None, 't': np.nan, 'n_sessions_a': len(va),
+           'n_sessions_b': len(vb), 'n_shared': len(shared)}
+    if len(va) and len(vb):
+        out['diff'] = float(va.mean() - vb.mean())
+    if len(va) >= 2 and len(vb) >= 2:
+        t, p = sp_stats.ttest_ind(va, vb, equal_var=False)
+        if np.isfinite(p):
+            out['t'], out['p'] = float(t), float(p)
+    return out
+
+
 def holm(p_values):
-    """Holm-Bonferroni adjusted p-values (same order; None stays None)."""
-    idx = [i for i, p in enumerate(p_values) if p is not None]
+    """Holm-Bonferroni adjusted p-values (same order; None / NaN stay None)."""
+    idx = [i for i, p in enumerate(p_values) if p is not None and np.isfinite(p)]
     adjusted = [None] * len(p_values)
     m = len(idx)
     running = 0.0

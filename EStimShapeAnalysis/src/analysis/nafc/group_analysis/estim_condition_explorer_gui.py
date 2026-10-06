@@ -74,6 +74,10 @@ POINT_COLOR = '#222222'
 COMPARE_CHOICES = (('off', None), ('colours within each x', 'colors'),
                    ('x values within each colour', 'x'))
 PAIR_ALPHA = 0.05
+# (label, function) for the pairwise test
+PAIR_TEST_CHOICES = (('permutation (within / between sessions)',
+                      ect.pairwise_label_permutation),
+                     ('Welch t-test on session means', ect.pairwise_welch))
 NONE_LABEL = '(none)'
 BAR_COLOR = '#4C72B0'
 ON_COLOR, OFF_COLOR = '#D32F2F', '#333333'
@@ -410,13 +414,20 @@ class EstimConditionExplorer(QMainWindow):
         self.compare_box = _compact(QComboBox())
         self.compare_box.addItems([c[0] for c in COMPARE_CHOICES])
         self.compare_box.setToolTip(
-            "Pairwise tests between bars: within-session label permutation of the "
-            "bars' statistic (mean of session means), Holm-corrected across all pairs "
-            "in the figure. Brackets mark pairs with corrected p < 0.05; every pair "
-            "is in 'Copy summary table'.")
+            "Pairwise tests between bars, Holm-corrected across all pairs in the "
+            "figure. Brackets mark pairs with corrected p < 0.05; every pair is in "
+            "'Copy summary table'.")
+        self.pair_test_box = _compact(QComboBox())
+        self.pair_test_box.addItems([c[0] for c in PAIR_TEST_CHOICES])
+        self.pair_test_box.setToolTip(
+            "Welch t-test: unequal-variance t-test on the per-session means (one "
+            "value per session per bar). Permutation: shuffles bar labels among a "
+            "session's conditions where it has both, and whole sessions between the "
+            "bars otherwise (no normality assumption; coarse p with few sessions).")
         self.n_box = QCheckBox("show n (conditions / sessions)")
         self.n_box.setChecked(True)
-        for w in (self.plot_box, self.test_box, self.points_box, self.compare_box):
+        for w in (self.plot_box, self.test_box, self.points_box, self.compare_box,
+                  self.pair_test_box):
             w.currentIndexChanged.connect(self.schedule_redraw)
         self.n_box.stateChanged.connect(self.schedule_redraw)
         copy_table = QPushButton("Copy summary table")
@@ -441,6 +452,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Test", self.test_box)
         form.addRow("Points", self.points_box)
         form.addRow("Compare pairs", self.compare_box)
+        form.addRow("Pairwise test", self.pair_test_box)
         form.addRow("", self.n_box)
         form.addRow(copy_table)
         self.status = QLabel()
@@ -802,6 +814,7 @@ class EstimConditionExplorer(QMainWindow):
         # compare 'colors': colours against each other at each x; 'x': x values
         # against each other for each colour
         fixed, varied = ('__x', '__color') if compare == 'colors' else ('__color', '__x')
+        test = PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][1]
         rows = []
         for panel in panels:
             pdf = df[df['__panel'] == panel]
@@ -811,11 +824,15 @@ class EstimConditionExplorer(QMainWindow):
                            if ((psum[fixed] == f) & (psum[varied] == v)).any()]
                 sub = pdf[pdf[fixed] == f]
                 for a, b in combinations(present, 2):
-                    seed = zlib.crc32(f"{panel}|{f}|{a}|{b}".encode())
-                    res = ect.pairwise_label_permutation(sub, varied, a, b, seed=seed)
+                    if test is ect.pairwise_label_permutation:
+                        seed = zlib.crc32(f"{panel}|{f}|{a}|{b}".encode())
+                        res = test(sub, varied, a, b, seed=seed)
+                    else:
+                        res = test(sub, varied, a, b)
                     rows.append({'__panel': panel, 'fixed': f, 'a': a, 'b': b, **res})
-        pairs = pd.DataFrame(rows, columns=['__panel', 'fixed', 'a', 'b', 'diff', 'p',
-                                            'n_sessions_a', 'n_sessions_b', 'n_shared'])
+        pairs = pd.DataFrame(rows)
+        if len(pairs) == 0:
+            pairs = pd.DataFrame(columns=['__panel', 'fixed', 'a', 'b', 'diff', 'p'])
         pairs['p_holm'] = ect.holm(list(pairs['p'])) if len(pairs) else []
         pairs['_compare'] = compare
         fixed_name = (self.x_role.column() if compare == 'colors'
@@ -839,7 +856,7 @@ class EstimConditionExplorer(QMainWindow):
         untestable = len(pairs) - tested
         return (f"\nPairwise: {tested} pairs tested, {sig} significant after Holm "
                 f"(p < {PAIR_ALPHA:g})"
-                + (f"; {untestable} untestable (no session has both)" if untestable else "")
+                + (f"; {untestable} untestable (too few sessions)" if untestable else "")
                 + ".")
 
     def _draw_brackets(self, ax, pairs, positions):
