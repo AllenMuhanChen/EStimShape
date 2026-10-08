@@ -991,8 +991,8 @@ def main():
     # to each saved filename, e.g. ..._histogram__HypothesizedShape.png
     trial_types = None
     # trial_types = ['Hypothesized Shape']
-    trial_types = ['Hypothesized Shape', 'Delta Shape']
-    # trial_types = ['Delta Shape']
+    # trial_types = ['Hypothesized Shape', 'Delta Shape']
+    trial_types = ['Delta Shape']
     # current : half-distance ratio ranges to drop from EVERY plot (inclusive; None =
     # open end); also appended to each filename, e.g. ..._histogram__xratio8-inf.png
     exclude_ratio_ranges = [(8, None)]
@@ -1024,7 +1024,7 @@ def main():
         metric=metric,
         alternative='greater',   # 'less' -> test whether the average effect is negative
         min_trials=min_trials,
-        bin_width=None,          # None -> 5 %-points, or 0.5 z when studentized
+        bin_width=10,          # None -> 5 %-points, or 0.5 z when studentized
         studentize=studentize,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
         exclude_ratio_ranges=exclude_ratio_ranges,
