@@ -492,7 +492,7 @@ def main():
     RF_CHANNEL = 'SUPRA-000'             # which channel's RF to draw per session
     LABEL_SESSIONS = False               # session id next to each RF center
     PRINT_AREAS = ['TEO']                # print sessions in (or nearest to) these areas
-    START_DATE = None                    # e.g. "260401" (YYMMDD) -> only sessions on/after; None = all
+    START_DATE = "251021"                    # e.g. "260401" (YYMMDD) -> only sessions on/after; None = all
     DB = dict(database="allen_data_repository", user="xper_rw",
               password="up2nite", host="172.30.6.61")
     # ----------------------------------------------------------------------
