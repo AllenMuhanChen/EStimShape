@@ -461,7 +461,9 @@ DEFAULT_BIN_WIDTH_Z   = 0.5   # standard deviations
 
 
 def _unit_noun(merge_behavioral):
-    return "specs" if merge_behavioral else "conditions"
+    # Plot / printout noun. With merge_behavioral each unit is a (session, trial type,
+    # spec), but it is still labelled a condition.
+    return "conditions"
 
 
 def _spec_unit_key(session_id, cond_dict):
@@ -524,7 +526,7 @@ def _resolve_bin_width(bin_width, studentize):
 
 
 def _effect_axis_label(studentize, merge_behavioral=False):
-    per = "per spec" if merge_behavioral else "per condition"
+    per = "per condition"
     if studentize:
         return f"Studentized EStim effect: (% ON − % OFF) / chance SD  (z, {per})"
     return f"EStim effect: % ON − % OFF ({per})"
