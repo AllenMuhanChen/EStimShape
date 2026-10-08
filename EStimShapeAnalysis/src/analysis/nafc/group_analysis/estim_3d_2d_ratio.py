@@ -18,7 +18,14 @@ Each session is categorized as "3D" when it has more 3D than 2D base stimuli, ot
 
 Each session also gets mean_spi: its solid preference index (SolidPreferenceIndices)
 averaged over its GA channels (the latest-generation ClusterInfo channels), plotted as a
-histogram across sessions. Both figures are shown and saved to SAVE_DIR.
+histogram across sessions. Bars are split by whether the session's GA channels are
+significantly 3D- or 2D-preferring: the per-channel permutation p-values
+(SolidPreferenceIndices.p_value, two-tailed) are combined with Stouffer's method, each
+channel signed by its SPI, so z_i = sign(SPI_i) * Phi^-1(1 - p_i / 2) and
+Z = sum(z_i) / sqrt(k). A session is significantly 3D when Z > 0 and p(Z) < SIGNIFICANCE_ALPHA,
+significantly 2D when Z < 0 and p(Z) < SIGNIFICANCE_ALPHA, otherwise n.s. Sessions with no
+p-values (permutation test not run) are "no test".
+Both figures are shown and saved to SAVE_DIR.
 """
 
 from __future__ import annotations
@@ -28,6 +35,7 @@ import traceback
 
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 from matplotlib import pyplot as plt
 from clat.util.connection import Connection
 
@@ -38,6 +46,13 @@ from src.startup.startup_system import ExperimentManager
 TWO_D_TEXTURE = "2D"
 
 SAVE_DIR = "/home/connorlab/Documents/plots/across_experiments/"
+
+SIGNIFICANCE_ALPHA = 0.05
+
+SPI_SIG_ORDER = ("3D", "2D", "n.s.", "no test")
+SPI_SIG_LABELS = {"3D": "Significantly 3D", "2D": "Significantly 2D",
+                  "n.s.": "Not significant", "no test": "No permutation test"}
+SPI_SIG_COLORS = {"3D": "#2a78d6", "2D": "#eb6834", "n.s.": "#a9a9a9", "no test": "#dddddd"}
 
 CATEGORY_COLORS = {"3D": "#2a78d6", "2D": "#eb6834", "unknown": "#a9a9a9"}
 
@@ -102,14 +117,42 @@ def categorize(n_3d: int, n_2d: int) -> str:
     return "3D" if n_3d > n_2d else "2D"
 
 
-def mean_ga_channel_spi(repo_conn, session_id: str) -> tuple[float, int]:
-    """Solid preference index averaged over the session's GA channels, and how many
-    GA channels had an SPI. NaN when none did."""
+def combine_signed_pvalues(spis: list[float], pvalues: list[float]) -> tuple[float, float]:
+    """Stouffer's Z over channels, each two-tailed p signed by its SPI. Returns (Z, two-tailed p)."""
+    # Clip so p = 0 (no permutation beat the actual SPI) doesn't give an infinite z.
+    p = np.clip(np.asarray(pvalues, dtype=float), 1e-12, 1.0)
+    z = np.sign(spis) * norm.isf(p / 2)
+    combined_z = float(z.sum() / np.sqrt(len(z)))
+    return combined_z, float(2 * norm.sf(abs(combined_z)))
+
+
+def ga_channel_spi_summary(repo_conn, session_id: str) -> dict:
+    """Mean SPI over the session's GA channels, plus the combined significance of those
+    channels' permutation tests (see module docstring)."""
     ga_channels = ClusterChannelLoader(session_id, repo_conn).load()
-    spi_by_channel = SolidPreferenceLoader(session_id, repo_conn).load()
+    loader = SolidPreferenceLoader(session_id, repo_conn)
+    spi_by_channel = loader.load()
     values = [spi_by_channel[ch] for ch in ga_channels
               if ch in spi_by_channel and spi_by_channel[ch] is not None]
-    return (float(np.mean(values)) if values else float("nan")), len(values)
+
+    tested = [(spi, p) for ch, spi, p in loader._load_index_and_pvalue()
+              if ch in ga_channels and spi is not None and p is not None]
+    if tested:
+        spi_z, spi_p = combine_signed_pvalues(*zip(*tested))
+        if spi_p >= SIGNIFICANCE_ALPHA:
+            spi_sig = "n.s."
+        else:
+            spi_sig = "3D" if spi_z > 0 else "2D"
+    else:
+        spi_z, spi_p, spi_sig = float("nan"), float("nan"), "no test"
+
+    return {
+        "mean_spi": float(np.mean(values)) if values else float("nan"),
+        "n_spi_channels": len(values),
+        "spi_z": spi_z,
+        "spi_p": spi_p,
+        "spi_sig": spi_sig,
+    }
 
 
 def compute_ratio_table(session_ids=None) -> pd.DataFrame:
@@ -131,11 +174,12 @@ def compute_ratio_table(session_ids=None) -> pd.DataFrame:
         counts = count_textures(stim_ids, textures)
         counts["category"] = categorize(counts["n_3d"], counts["n_2d"])
         try:
-            counts["mean_spi"], counts["n_spi_channels"] = mean_ga_channel_spi(repo_conn, sid)
+            counts.update(ga_channel_spi_summary(repo_conn, sid))
         except Exception:
             print(f"[3d/2d] could not load SPI for session {sid}:")
             traceback.print_exc()
-            counts["mean_spi"], counts["n_spi_channels"] = float("nan"), 0
+            counts.update(mean_spi=float("nan"), n_spi_channels=0,
+                          spi_z=float("nan"), spi_p=float("nan"), spi_sig="no test")
         rows.append({"session_id": sid, **counts})
 
     return pd.DataFrame(rows)
@@ -167,17 +211,23 @@ def plot_category_pie(table: pd.DataFrame):
 
 
 def plot_spi_histogram(table: pd.DataFrame):
-    """Histogram across sessions of the GA-channel-averaged solid preference index."""
-    spi = table["mean_spi"].dropna()
+    """Histogram across sessions of the GA-channel-averaged solid preference index,
+    stacked by whether the session is significantly 3D, significantly 2D, or neither."""
+    with_spi = table.dropna(subset=["mean_spi"])
+    groups = [g for g in SPI_SIG_ORDER if (with_spi["spi_sig"] == g).any()]
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.hist(spi, bins=np.linspace(-1, 1, 21), color=CATEGORY_COLORS["3D"],
+    ax.hist([with_spi.loc[with_spi["spi_sig"] == g, "mean_spi"] for g in groups],
+            bins=np.linspace(-1, 1, 21), stacked=True,
+            color=[SPI_SIG_COLORS[g] for g in groups],
+            label=[SPI_SIG_LABELS[g] for g in groups],
             edgecolor="white", linewidth=2)
+    ax.legend(loc="upper left", frameon=True, facecolor="white", edgecolor="none", framealpha=1, title=f"Combined GA channels, p < {SIGNIFICANCE_ALPHA}")
     ax.axvline(0, color="#888888", linewidth=1, linestyle="--", zorder=0)
     ax.set_xlim(-1, 1)
     ax.set_xlabel("Mean solid preference index over GA channels  (2D ← → 3D)")
     ax.set_ylabel("Sessions")
-    ax.set_title(f"Solid preference index per EStim session (n = {len(spi)})")
+    ax.set_title("Solid preference index per EStim session")
     ax.yaxis.get_major_locator().set_params(integer=True)
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
@@ -193,6 +243,7 @@ def save_figure(fig, name: str):
 
 
 def main():
+    SHOW_PLOTS = True
     # Edit this list to target specific sessions; None = every session in EStimShapeTrials.
     session_ids = None
 
@@ -206,16 +257,20 @@ def main():
     total["category"] = ""
     total["mean_spi"] = table["mean_spi"].mean()
     total["n_spi_channels"] = int(table["n_spi_channels"].sum())
+    total.update(spi_z=float("nan"), spi_p=float("nan"), spi_sig="")
     printed = pd.concat([table, pd.DataFrame([{"session_id": "ALL", **total}])], ignore_index=True)
 
-    with pd.option_context("display.max_rows", None, "display.width", 120):
+    with pd.option_context("display.max_rows", None, "display.width", 160):
         print(printed.to_string(index=False, float_format=lambda x: f"{x:.2f}"))
     print()
     print(table["category"].value_counts().to_string())
+    print()
+    print(table["spi_sig"].value_counts().to_string())
 
     save_figure(plot_category_pie(table), "estim_3d_2d_category_pie.png")
     save_figure(plot_spi_histogram(table), "estim_session_spi_histogram.png")
-    plt.show()
+    if SHOW_PLOTS:
+        plt.show()
 
 
 if __name__ == '__main__':
