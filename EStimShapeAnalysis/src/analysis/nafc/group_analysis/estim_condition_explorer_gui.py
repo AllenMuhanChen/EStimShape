@@ -15,7 +15,10 @@ Left panel:
     values; numeric ones a min / max range (inclusive) with "keep missing".
   - Layout: X-axis by / Colour by / Panels by — any column (or session_id). A
     numeric column with many values is binned; edit its bin edges (comma
-    separated) next to the dropdown.
+    separated) next to the dropdown. "x labels": your own tick labels, one per x
+    point left to right (comma separated, or ';' if a label has a comma; blank
+    keeps that tick's value; \\n breaks a line). "fill" puts the current ticks in
+    the box to edit. Cleared when the X-axis column changes.
   - Plot: effect bars (mean of per-session mean effects ± SEM across sessions) or
     ON vs OFF dots, with the permutation test against the stored
     EStimPermutationTests nulls (two-sided / greater / less / off).
@@ -23,7 +26,8 @@ Left panel:
   - Style: font sizes and x-label rotation. "Save as default" stores them in
     ~/.estim_condition_explorer/style_defaults.json, used at every start-up.
   - Save spec… / Load spec…: the whole setup (metric, algorithm label, sessions,
-    min trials, filters, layout incl. bin edges, plot options, style) as a JSON file.
+    min trials, filters, layout incl. bin edges and x labels, plot options, style)
+    as a JSON file.
 The figure redraws in place; the toolbar zooms, pans and saves. RIGHT-CLICK a panel
 to copy just that panel (or the whole figure) to the clipboard as an image.
 
@@ -185,6 +189,15 @@ def _parse_edges(text):
     except ValueError:
         return None
     return edges if len(edges) >= 2 and all(a < b for a, b in zip(edges, edges[1:])) else None
+
+
+def _parse_tick_labels(text):
+    """Custom x tick labels: ';'-separated if the text has a ';', else comma
+    separated; '\\n' becomes a line break, '' keeps that tick's own value."""
+    if not text.strip():
+        return []
+    parts = text.split(';') if ';' in text else text.split(',')
+    return [p.strip().replace('\\n', '\n') for p in parts]
 
 
 def _bin_labels(values, edges):
@@ -490,6 +503,24 @@ class EstimConditionExplorer(QMainWindow):
         self.x_role = RoleRow(False, self.schedule_redraw)
         self.color_role = RoleRow(True, self.schedule_redraw)
         self.panel_role = RoleRow(True, self.schedule_redraw)
+        self.xlabels_edit = QLineEdit()
+        self.xlabels_edit.setPlaceholderText("custom x labels (optional)")
+        self.xlabels_edit.setToolTip(
+            "Your own x tick labels, one per x point left to right, comma separated "
+            "(use ';' instead if a label has a comma). Leave an entry blank to keep "
+            "that tick's value; \\n breaks a line. Cleared when the X-axis column "
+            "changes.")
+        self.xlabels_edit.editingFinished.connect(self.schedule_redraw)
+        xlabels_fill = QPushButton("fill")
+        xlabels_fill.setToolTip("Put the current x tick labels in the box to edit")
+        xlabels_fill.clicked.connect(self._fill_xlabels)
+        self.xlabels_row = QHBoxLayout()
+        self.xlabels_row.addWidget(self.xlabels_edit, 1)
+        self.xlabels_row.addWidget(xlabels_fill)
+        # a new x column means new ticks, so old custom labels no longer apply
+        self.x_role.combo.currentIndexChanged.connect(
+            lambda *_: self.xlabels_edit.setText(""))
+        self._x_ticks, self._x_names = [], {}
         self.plot_box = _compact(QComboBox())
         self.plot_box.addItems([c[0] for c in PLOT_CHOICES])
         self.test_box = _compact(QComboBox())
@@ -564,6 +595,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow(self.add_filter_box)
         form.addRow(QLabel("<b>Layout</b>"))
         form.addRow("X-axis by", self.x_role)
+        form.addRow("x labels", self.xlabels_row)
         form.addRow("Colour by", self.color_role)
         form.addRow("Panels by", self.panel_role)
         form.addRow(QLabel("<b>Plot</b>"))
@@ -709,6 +741,8 @@ class EstimConditionExplorer(QMainWindow):
                 # older specs have no 'bin': binned exactly when they stored edges
                 role.set_binning(saved.get('bin', bool(saved.get('edges'))),
                                  saved.get('edges'))
+                if role is self.x_role:
+                    self.xlabels_edit.setText(saved.get('labels') or "")
             else:
                 current = defaults[role] if first else role.column()
                 role.set_columns(self.df, columns, current)
@@ -804,6 +838,11 @@ class EstimConditionExplorer(QMainWindow):
             '__x': self.x_role.column(), '__color': self.color_role.column() or 'colour'})
 
         panels = [p for p in orders['__panel'] if (summary['__panel'] == p).any()]
+        # custom x tick labels apply in order to the x values shown anywhere in
+        # the figure, so a panel missing an x value still gets the right names
+        self._x_ticks = [x for x in orders['__x'] if (summary['__x'] == x).any()]
+        custom = _parse_tick_labels(self.xlabels_edit.text())
+        self._x_names = {x: c for x, c in zip(self._x_ticks, custom) if c}
         n_cols = min(len(panels), 3)
         n_rows = math.ceil(len(panels) / n_cols)
         axes = self.figure.subplots(n_rows, n_cols, squeeze=False, sharey=True)
@@ -848,7 +887,9 @@ class EstimConditionExplorer(QMainWindow):
             f"{len(df)} of {len(self.df)} conditions, {df['session_id'].nunique()} sessions "
             f"pass the filters.\nFilters: {'; '.join(filt) if filt else 'none'}"
             + ("" if alternative else "\nTest off.")
-            + (self._pairwise_note(pairs) if pairs is not None else ""))
+            + (self._pairwise_note(pairs) if pairs is not None else "")
+            + (f"\nx labels: {len(custom)} given for {len(self._x_ticks)} x points."
+               if custom and len(custom) != len(self._x_ticks) else ""))
 
     @staticmethod
     def _colors(color_order):
@@ -955,7 +996,7 @@ class EstimConditionExplorer(QMainWindow):
         ax.set_xticks(range(len(x_order)))
         rotation = (30 if len(x_order) > 4 else 0) if st['xtick_rotation'] == 'auto' \
             else int(st['xtick_rotation'])
-        ax.set_xticklabels(x_order, rotation=rotation,
+        ax.set_xticklabels([self._x_names.get(x, x) for x in x_order], rotation=rotation,
                            ha='right' if 0 < rotation < 90 else 'center',
                            rotation_mode='anchor', fontsize=st['tick'])
         ax.tick_params(axis='y', labelsize=st['tick'])
@@ -1050,6 +1091,13 @@ class EstimConditionExplorer(QMainWindow):
             top = max(top, y + step)
         ax.set_ylim(y_lo, top)
 
+    def _fill_xlabels(self):
+        """Put the current x ticks (custom names where set) in the box to edit."""
+        names = [self._x_names.get(x, x).replace('\n', '\\n')
+                 for x in self._x_ticks]
+        sep = '; ' if any(',' in n for n in names) else ', '
+        self.xlabels_edit.setText(sep.join(names))
+
     # -- style ----------------------------------------------------------------------
     def plot_style(self):
         style = {key: box.value() for key, box in self.style_boxes.items()}
@@ -1084,6 +1132,9 @@ class EstimConditionExplorer(QMainWindow):
         def role(r):
             return {'column': r.column(), 'bin': r.bin_box.isChecked(),
                     'edges': r.edges.text() if r.edges.isEnabled() else None}
+        layout = {'x': role(self.x_role), 'colour': role(self.color_role),
+                  'panels': role(self.panel_role)}
+        layout['x']['labels'] = self.xlabels_edit.text()
         return {
             'version': SPEC_VERSION,
             'metric': self.metric_box.currentText(),
@@ -1093,8 +1144,7 @@ class EstimConditionExplorer(QMainWindow):
                          if self.session_list.item(i).checkState() == Qt.Checked],
             'min_trials': self.trials_box.value(),
             'filters': [r.state() for r in self.filter_rows],
-            'layout': {'x': role(self.x_role), 'colour': role(self.color_role),
-                       'panels': role(self.panel_role)},
+            'layout': layout,
             'plot': {'plot': self.plot_box.currentText(),
                      'test': self.test_box.currentText(),
                      'points': self.points_box.currentText(),
