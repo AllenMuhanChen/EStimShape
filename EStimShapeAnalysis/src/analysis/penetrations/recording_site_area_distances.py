@@ -26,6 +26,7 @@ Outputs (never overwritten): OUT_BASE/<RUN_TAG>_<timestamp>/
     rf_map_by_area.png          receptive fields (ReceptiveFieldInfo) drawn as
                                 circles at their location/size, colored by the
                                 area the site is in (solid) or nearest to (dashed)
+    v4_border_rf_check.png      RF radius / eccentricity vs closeness to both V4v and V4d
 """
 import datetime
 import importlib.util
@@ -403,6 +404,54 @@ def plot_rf_map(df: pd.DataFrame, areas: List[str], out_path: str, title: str,
     return fig
 
 
+def plot_v4_border_check(df: pd.DataFrame, out_path: str, a: str = 'V4v', b: str = 'V4d'):
+    """Sanity check: sites close to BOTH V4v and V4d (the foveal confluence)
+    should have small, near-foveal RFs.
+
+    Closeness-to-both score = max(d_a, d_b): small only when the site is near
+    both areas at once (it is the distance to the farther of the two).
+    Spearman correlation (rank-based, no linearity assumption) is reported
+    for RF radius and RF eccentricity against that score.
+    """
+    from scipy.stats import spearmanr
+    d_a, d_b = df[a].to_numpy(float), df[b].to_numpy(float)
+    score = np.maximum(d_a, d_b)
+    radius = df['rf_radius'].to_numpy(float)
+    ecc = np.hypot(df['rf_x'].to_numpy(float), df['rf_y'].to_numpy(float))
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5.8))
+
+    ax = axes[0]
+    sc = ax.scatter(d_a, d_b, c=radius, cmap='viridis', s=90, edgecolor='black', linewidth=0.6)
+    lim = max(1.0, float(np.nanmax(np.r_[d_a, d_b])) * 1.08)
+    ax.set_xlim(-0.3, lim); ax.set_ylim(-0.3, lim); ax.set_aspect('equal')
+    ax.set_xlabel(f'Distance to {a} (mm)', fontsize=14)
+    ax.set_ylabel(f'Distance to {b} (mm)', fontsize=14)
+    ax.set_title(f'Distance to {a} vs {b}', fontsize=15)
+    cb = fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.04)
+    cb.set_label('RF radius (deg)', fontsize=13)
+    cb.ax.tick_params(labelsize=11)
+
+    for ax, y, ylabel in ((axes[1], radius, 'RF radius (deg)'),
+                          (axes[2], ecc, 'RF eccentricity (deg)')):
+        ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
+        if len(score) >= 3:
+            rho, pval = spearmanr(score, y)
+            ax.text(0.03, 0.97, f"Spearman \u03c1 = {rho:.2f}\np = {pval:.3g}\nn = {len(score)}",
+                    transform=ax.transAxes, va='top', fontsize=13)
+        ax.set_xlabel(f'Distance to farther of {a} / {b} (mm)', fontsize=14)
+        ax.set_ylabel(ylabel, fontsize=14)
+        ax.set_xlim(left=-0.3); ax.set_ylim(bottom=0)
+        ax.set_title(f'{ylabel.split(" (")[0]} vs closeness to both', fontsize=15)
+
+    for ax in axes:
+        ax.tick_params(labelsize=12)
+        ax.spines[['top', 'right']].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150, bbox_inches='tight')
+    return fig
+
+
 def filter_by_start_date(pens: List[dict], start_date: Optional[str]) -> List[dict]:
     """Keep sessions whose id date (YYMMDD prefix, e.g. 260402_0) is on/after start_date."""
     if not start_date:
@@ -439,6 +488,7 @@ def main():
     }
     # Receptive-field map (ReceptiveFieldInfo in the data repository)
     PLOT_RF_MAP = True
+    PLOT_V4_BORDER_CHECK = True          # RF size/eccentricity vs closeness to both V4v and V4d
     RF_CHANNEL = 'SUPRA-000'             # which channel's RF to draw per session
     LABEL_SESSIONS = False               # session id next to each RF center
     PRINT_AREAS = ['TEO']                # print sessions in (or nearest to) these areas
@@ -465,7 +515,7 @@ def main():
             timestamp=ts, run_tag=RUN_TAG, mri_config=os.path.abspath(MRI_CONFIG),
             corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
             pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
-            plot_rf_map=PLOT_RF_MAP, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
+            plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
             print_areas=PRINT_AREAS, start_date=START_DATE,
             area_label_indices=df.attrs['area_indices'],
             sources=geom['sources'],
@@ -487,7 +537,7 @@ def main():
             print(f"  {r['session_id']}  ({where})")
     print()
 
-    if PLOT_RF_MAP:
+    if PLOT_RF_MAP or PLOT_V4_BORDER_CHECK:
         rfs = fetch_rfs(conn, RF_CHANNEL)
         rf_df = sites.merge(rfs, on='session_id', how='inner')
         missing = sorted(set(sites['session_id']) - set(rf_df['session_id']))
@@ -496,9 +546,12 @@ def main():
         if rf_df.empty:
             raise ValueError(f"No ReceptiveFieldInfo rows for channel {RF_CHANNEL} match the red sites")
         rf_df.to_csv(os.path.join(out_dir, 'rf_map_by_area.csv'), index=False)
-        plot_rf_map(rf_df, list(AREAS), os.path.join(out_dir, 'rf_map_by_area.png'),
-                    "Receptive fields by recording area",
-                    LABEL_SESSIONS)
+        if PLOT_RF_MAP:
+            plot_rf_map(rf_df, list(AREAS), os.path.join(out_dir, 'rf_map_by_area.png'),
+                        "Receptive fields by recording area",
+                        LABEL_SESSIONS)
+        if PLOT_V4_BORDER_CHECK:
+            plot_v4_border_check(rf_df, os.path.join(out_dir, 'v4_border_rf_check.png'))
 
     print(f"Wrote {len(df)} sites from {df['session_id'].nunique()} sessions -> {out_dir}")
     if SHOW_PLOTS:
