@@ -24,10 +24,15 @@ from __future__ import annotations
 import traceback
 
 
-def update_repository_with_ga_responses(use_baseline_correction: bool = False) -> bool:
+def update_repository_with_ga_responses(use_baseline_correction: bool = False,
+                                        data_type: str = None) -> bool:
     """Re-compile + export the current GA session so the repository reflects the
     GA Responses that were just computed. Returns True on success, False (with an
-    explanation printed) if the update couldn't be completed."""
+    explanation printed) if the update couldn't be completed.
+
+    data_type picks the spike table the export writes: None/'raw' ->
+    RawSpikeResponses (spike.dat), 'mua' / 'mua_<metric>' -> MUASpikeResponses
+    tagged with that metric."""
     # Imported lazily so the GA/response-processing path doesn't pay for the heavy
     # analysis import unless this actually runs, and to avoid import cycles.
     try:
@@ -39,8 +44,10 @@ def update_repository_with_ga_responses(use_baseline_correction: bool = False) -
         return False
 
     try:
-        analysis = PlotTopNAnalysis(use_baseline_correction=use_baseline_correction)
-        print(f"[ga-repo-update] Updating repository from '{context.ga_database}' so it "
+        analysis = PlotTopNAnalysis(use_baseline_correction=use_baseline_correction,
+                                    data_type=data_type)
+        print(f"[ga-repo-update] Updating repository from '{context.ga_database}' "
+              f"({analysis.response_table or 'RawSpikeResponses'}) so it "
               "reflects the newly-computed GA Responses...")
         data = analysis.compile_and_export()
         n_rows = 0 if data is None else len(data)
