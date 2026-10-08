@@ -19,6 +19,10 @@ Two kinds of rows:
     the child's comp numbering isn't known, so it gets none. The header says
     "inherited". Toggle them off with "Include inherited".
 
+Trial types can each be shown or hidden ("Show ZERO", "Show SHUFFLE", ...);
+a pair is shown only when both its child's and its parent's types are on.
+SHUFFLE and LIGHTING are off by default.
+
 No response or ratio thresholds; a pair is only left out when the child or
 the parent has no response data. Nothing is written to any database.
 """
@@ -34,16 +38,27 @@ from src.analysis.ga.explorer.modules.pair_viewer import (PairViewerModule, _fmt
                                                           read_hypothesized_comp_rows,
                                                           short_type)
 
-# Stim-type filter options. "_2D" versions count as their 3D type.
-TYPE_FILTERS = ["any", "VARIANTS", "DELTA", "ZERO", "ONE", "TWO", "THREE", "other"]
+# Trial-type families used by the filters. "_2D" versions count as their 3D
+# type; SHUFFLE_PIXEL, SHUFFLE_PHASE, ... count as SHUFFLE, and so on.
+TYPE_FAMILIES = ["ZERO", "ONE", "TWO", "THREE", "VARIANTS", "DELTA", "SHUFFLE", "LIGHTING",
+                 "SIDETEST", "CATCH", "other"]
+# Families hidden until you tick them.
+HIDDEN_BY_DEFAULT = {"SHUFFLE", "LIGHTING"}
+TYPE_FILTERS = ["any"] + TYPE_FAMILIES
 
 
 def type_family(stim_type) -> str:
-    """'REGIME_ESTIM_VARIANTS' -> 'VARIANTS', 'REGIME_ONE_2D' -> 'ONE', else 'other'."""
+    """'REGIME_ESTIM_VARIANTS' -> 'VARIANTS', 'REGIME_ONE_2D' -> 'ONE',
+    'SHUFFLE_PIXEL' -> 'SHUFFLE', anything unknown -> 'other'."""
     t = short_type(stim_type)
     if t.endswith("_2D"):
         t = t[:-3]
-    return t if t in TYPE_FILTERS else "other"
+    if t in TYPE_FAMILIES:
+        return t
+    for family in ("SHUFFLE", "LIGHTING", "SIDETEST", "CATCH"):
+        if t.startswith(family):
+            return family
+    return "other"
 
 
 def compute_hypothesis_pairs(data: pd.DataFrame, response_col: str) -> pd.DataFrame | None:
@@ -88,9 +103,10 @@ def compute_hypothesis_pairs(data: pd.DataFrame, response_col: str) -> pd.DataFr
 
 class AllPairExplorerModule(PairViewerModule):
     name = "All pair explorer"
-    description = ("Every parent-child pair with hypothesized-comp history "
-                   "(variant/variant, delta/variant, variant/other, ...). Same "
-                   "selection and figure as the delta-variant viewer.")
+    description = ("Every parent-child pair with hypothesized-comp history, e.g. "
+                   "variant from variant, delta from variant, variant from ONE. "
+                   "SHUFFLE and LIGHTING are hidden until ticked. Same selection "
+                   "and figure as the delta-variant viewer.")
     child_label = "Child"
     parent_label = "Parent"
     child_prefix = "c"
@@ -99,8 +115,16 @@ class AllPairExplorerModule(PairViewerModule):
 
     def extra_params(self):
         return [
+            # One on/off per trial type: a pair is shown only when both its
+            # child's and its parent's types are ticked.
+            *[Param(f"type_{family}", f"Show {family}", "bool",
+                    family not in HIDDEN_BY_DEFAULT, live=True,
+                    tooltip=f"Show pairs whose child or parent is a {family} stim. "
+                            "_2D types count as their 3D type.")
+              for family in TYPE_FAMILIES],
             Param("child_type", "Child type", "choice", "any", choices=TYPE_FILTERS, live=True,
-                  tooltip="_2D types count as their 3D type."),
+                  tooltip="Only pairs whose child is this type. _2D types count as "
+                          "their 3D type."),
             Param("parent_type", "Parent type", "choice", "any", choices=TYPE_FILTERS, live=True),
             Param("include_inherited", "Include inherited", "bool", True, live=True,
                   tooltip="Pairs whose child only carries a copy of its parent's "
@@ -113,6 +137,10 @@ class AllPairExplorerModule(PairViewerModule):
 
     def filter_pairs(self, df):
         v = self.values
+        shown = {f for f in TYPE_FAMILIES
+                 if v.get(f"type_{f}", f not in HIDDEN_BY_DEFAULT)}
+        df = df[df["ChildType"].map(type_family).isin(shown)
+                & df["ParentType"].map(type_family).isin(shown)]
         if v.get("child_type", "any") != "any":
             df = df[df["ChildType"].map(type_family) == v["child_type"]]
         if v.get("parent_type", "any") != "any":

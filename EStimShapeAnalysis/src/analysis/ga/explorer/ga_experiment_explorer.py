@@ -195,7 +195,7 @@ class GAExperimentExplorer(QMainWindow):
         save_btn.setToolTip("Write the current view + config.json into a new timestamped folder.")
         save_btn.clicked.connect(self.save_current)
         left_lay.addWidget(save_btn)
-        left.setMinimumWidth(380)
+        left.setMinimumWidth(420)
         splitter.addWidget(left)
 
         right = QWidget()
@@ -210,7 +210,7 @@ class GAExperimentExplorer(QMainWindow):
         right_lay.addWidget(self.view_stack, stretch=1)
         splitter.addWidget(right)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([400, 1200])
+        splitter.setSizes([440, 1160])
 
         self.module_list.currentRowChanged.connect(self._on_module_selected)
         self.statusBar().showMessage("Ready")
@@ -283,6 +283,9 @@ class GAExperimentExplorer(QMainWindow):
             w.lineEdit().returnPressed.connect(lambda: self._apply(idx))
         elif p.kind == "choice":
             w = QComboBox()
+            # Size to a short text, not the longest choice, so the panel fits.
+            w.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            w.setMinimumContentsLength(8)
             w.addItems([str(c) for c in p.choices])
             w.setCurrentText(str(p.default))
             w.currentTextChanged.connect(changed)
