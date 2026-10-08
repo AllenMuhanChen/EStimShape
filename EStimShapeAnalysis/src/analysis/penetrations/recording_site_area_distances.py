@@ -189,12 +189,44 @@ def area_distances(sites: np.ndarray, atlas_data: np.ndarray, atlas_to_world: np
         if len(ijk) == 0:
             raise ValueError(f"Area '{area}' has labels {idxs} but no voxels in the atlas volume")
         area_world = (atlas_to_world @ np.c_[ijk, np.ones(len(ijk))].T).T[:, :3]
-        d, _ = cKDTree(area_world).query(sites)
+        d, nn = cKDTree(area_world).query(sites)
         d[np.isin(site_labels, idxs)] = 0.0
         cols[area] = d
+        # World position of the nearest voxel of this area, so it can be checked in the viewer
+        for k, ax in enumerate(('ML', 'AP', 'DV')):
+            cols[f'nearest_{area}_{ax}'] = area_world[nn, k]
     df = pd.DataFrame(cols)
     df.insert(0, 'site_label_index', site_labels)
     return df
+
+
+def nearby_regions(sites: np.ndarray, atlas_data: np.ndarray, atlas_to_world: np.ndarray,
+                   label_names: Dict[int, str], radius_mm: float = 5.0, n_max: int = 4) -> List[str]:
+    """For each site, the closest atlas regions of ANY label within radius_mm,
+    e.g. 'V4 0.6, V3v 1.8' — shows what the site actually sits next to."""
+    world_to_vox = np.linalg.inv(atlas_to_world)
+    vox_mm = np.sqrt((atlas_to_world[:3, :3] ** 2).sum(axis=0))
+    half = np.ceil(radius_mm / vox_mm).astype(int)
+    shape = np.array(atlas_data.shape[:3])
+    out = []
+    for w in sites:
+        c = np.round((world_to_vox @ np.r_[w, 1])[:3]).astype(int)
+        lo, hi = np.maximum(c - half, 0), np.minimum(c + half + 1, shape)
+        if np.any(hi <= lo):
+            out.append('')
+            continue
+        block = atlas_data[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]]
+        ijk = np.argwhere(block > 0)
+        if len(ijk) == 0:
+            out.append('')
+            continue
+        labs = block[tuple(ijk.T)]
+        world = (atlas_to_world @ np.c_[ijk + lo, np.ones(len(ijk))].T).T[:, :3]
+        d = np.linalg.norm(world - w, axis=1)
+        best = pd.Series(d).groupby(labs).min()
+        best = best[best <= radius_mm].sort_values().head(n_max)
+        out.append(', '.join(f"{label_names.get(int(l), l)} {v:.1f}" for l, v in best.items()))
+    return out
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -239,7 +271,14 @@ def compute_site_distances(pens: List[dict], geom: dict, area_names: Dict[str, L
     df['ML_ebz'], df['AP_ebz'], df['DV_ebz'] = (sites - ebz).T
     df['site_region'] = [geom['label_names'].get(int(i), 'outside atlas / unlabelled') if i else
                          'outside atlas / unlabelled' for i in dists['site_label_index']]
+    df['nearby_regions_mm'] = nearby_regions(sites, geom['atlas_data'], atlas_to_world,
+                                             geom['label_names'])
+    for c in [c for c in dists.columns if c.startswith('nearest_')]:
+        dists[c] = dists[c] - ebz[('ML', 'AP', 'DV').index(c.rsplit('_', 1)[1])]   # EBZ-relative
     df = pd.concat([df, dists.drop(columns='site_label_index')], axis=1)
+    for _, r in df.iterrows():
+        print(f"  {r['session_id']} ({r['label']}): EBZ-rel ML={r['ML_ebz']:.2f} AP={r['AP_ebz']:.2f} "
+              f"DV={r['DV_ebz']:.2f} | in: {r['site_region']} | within 5 mm: {r['nearby_regions_mm'] or 'none'}")
     df.attrs['area_indices'] = area_idx
     return df
 
