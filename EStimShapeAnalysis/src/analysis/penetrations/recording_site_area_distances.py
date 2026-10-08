@@ -23,6 +23,9 @@ Outputs (never overwritten): OUT_BASE/<RUN_TAG>_<timestamp>/
     config.json                 every parameter used + resolved paths/matrices
     site_area_distances.csv     one row per red site, one column per area
     site_area_distances.png     heatmap: sites x areas, annotated in mm
+    rf_map_by_area.png          receptive fields (ReceptiveFieldInfo) drawn as
+                                circles at their location/size, colored by the
+                                area the site is in (solid) or nearest to (dashed)
 """
 import datetime
 import importlib.util
@@ -280,6 +283,87 @@ def plot_distance_heatmap(df: pd.DataFrame, areas: List[str], out_path: str, tit
     return fig
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+#  Receptive fields colored by area
+# ═══════════════════════════════════════════════════════════════════════════
+
+def assign_area(df: pd.DataFrame, areas: List[str]) -> pd.DataFrame:
+    """Add 'area' (the area the site is in, else the nearest one) and
+    'inside' (True if the site is in that area)."""
+    D = df[areas].to_numpy(dtype=float)
+    j = np.argmin(D, axis=1)
+    out = df.copy()
+    out['area'] = [areas[k] for k in j]
+    out['inside'] = D[np.arange(len(D)), j] == 0
+    return out
+
+
+def fetch_rfs(conn, channel: str) -> pd.DataFrame:
+    conn.execute("SELECT session_id, x, y, radius FROM ReceptiveFieldInfo WHERE channel = %s",
+                 (channel,))
+    rows = [r for r in conn.fetch_all() if None not in r]
+    return pd.DataFrame(rows, columns=['session_id', 'rf_x', 'rf_y', 'rf_radius'])
+
+
+def one_site_per_session(df: pd.DataFrame) -> pd.DataFrame:
+    """RFs are per session; if a session has several red sites, keep the most
+    recently added one (highest pen_id)."""
+    dup = df['session_id'][df['session_id'].duplicated()].unique()
+    if len(dup):
+        print(f"  Sessions with >1 red site (using the latest pen_id for RF coloring): {list(dup)}")
+    return df.sort_values('pen_id').groupby('session_id', as_index=False).last()
+
+
+AREA_COLORS = {   # roughly ventral -> dorsal stream, distinct hues
+    'V3v': '#9467bd', 'V4v': '#1f77b4', 'TEO': '#17becf',
+    'V3d': '#e377c2', 'V4d': '#2ca02c', 'V4t': '#ff7f0e', 'MT': '#d62728',
+}
+
+
+def plot_rf_map(df: pd.DataFrame, areas: List[str], out_path: str, title: str,
+                label_sessions: bool = True):
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Circle
+    fallback = plt.get_cmap('tab10')
+    colors = {a: AREA_COLORS.get(a, fallback(i % 10)) for i, a in enumerate(areas)}
+
+    fig, ax = plt.subplots(figsize=(10, 9))
+    # Big circles first so small ones stay visible on top
+    for _, r in df.sort_values('rf_radius', ascending=False).iterrows():
+        c = colors[r['area']]
+        ax.add_patch(Circle((r['rf_x'], r['rf_y']), r['rf_radius'], facecolor=c, alpha=0.18,
+                            edgecolor='none'))
+        ax.add_patch(Circle((r['rf_x'], r['rf_y']), r['rf_radius'], facecolor='none',
+                            edgecolor=c, lw=2.2, linestyle='-' if r['inside'] else '--'))
+        ax.plot(r['rf_x'], r['rf_y'], 'o', color=c, markersize=4)
+        if label_sessions:
+            ax.annotate(str(r['session_id']), (r['rf_x'], r['rf_y']), xytext=(4, 4),
+                        textcoords='offset points', fontsize=9, color='#333333')
+
+    ext = np.r_[np.abs(df['rf_x']) + df['rf_radius'], np.abs(df['rf_y']) + df['rf_radius']]
+    lim = float(np.ceil(np.max(ext) + 1)) if len(ext) else 10.0
+    ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
+    ax.set_aspect('equal')
+    ax.axhline(0, color='#999999', lw=0.8, zorder=0)
+    ax.axvline(0, color='#999999', lw=0.8, zorder=0)
+    ax.plot(0, 0, '+', color='black', markersize=14, markeredgewidth=2)
+    ax.set_xlabel('Horizontal position (deg)', fontsize=14)
+    ax.set_ylabel('Vertical position (deg)', fontsize=14)
+    ax.tick_params(labelsize=12)
+    ax.set_title(title, fontsize=15)
+
+    counts = df['area'].value_counts()
+    handles = [Line2D([], [], color=colors[a], lw=6, alpha=0.6,
+                      label=f"{a} (n={counts.get(a, 0)})") for a in areas if counts.get(a, 0)]
+    handles += [Line2D([], [], color='#444444', lw=2, ls='-', label='inside area'),
+                Line2D([], [], color='#444444', lw=2, ls='--', label='nearest area')]
+    ax.legend(handles=handles, fontsize=12, loc='center left', bbox_to_anchor=(1.02, 0.5),
+              frameon=False)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150, bbox_inches='tight')
+    return fig
+
+
 def main():
     # ---- PARAMETERS ------------------------------------------------------
     OUT_BASE = "/home/connorlab/Documents/penetration_optimization_plots/recording_site_area_distances"
@@ -301,7 +385,13 @@ def main():
         'TEO': ['TEO'],
         'V4t': ['V4t'],
         'MT':  ['MT'],
+        'V3d': ['V3d', 'V3'],
+        'V3v': ['V3v'],
     }
+    # Receptive-field map (ReceptiveFieldInfo in the data repository)
+    PLOT_RF_MAP = True
+    RF_CHANNEL = 'SUPRA-000'             # which channel's RF to draw per session
+    LABEL_SESSIONS = True                # session id next to each RF center
     DB = dict(database="allen_data_repository", user="xper_rw",
               password="up2nite", host="172.30.6.61")
     # ----------------------------------------------------------------------
@@ -324,6 +414,7 @@ def main():
             timestamp=ts, run_tag=RUN_TAG, mri_config=os.path.abspath(MRI_CONFIG),
             corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
             pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
+            plot_rf_map=PLOT_RF_MAP, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
             area_label_indices=df.attrs['area_indices'],
             sources=geom['sources'],
             subject_correction=geom['subj_corr'].tolist(),
@@ -334,6 +425,21 @@ def main():
     df.to_csv(os.path.join(out_dir, 'site_area_distances.csv'), index=False)
     plot_distance_heatmap(df, list(AREAS), os.path.join(out_dir, 'site_area_distances.png'),
                           f"Final recording site distance to area ({table}, {len(df)} sites)")
+
+    if PLOT_RF_MAP:
+        sites = assign_area(one_site_per_session(df), list(AREAS))
+        rfs = fetch_rfs(conn, RF_CHANNEL)
+        rf_df = sites.merge(rfs, on='session_id', how='inner')
+        missing = sorted(set(sites['session_id']) - set(rf_df['session_id']))
+        if missing:
+            print(f"  No {RF_CHANNEL} RF for sessions: {missing}")
+        if rf_df.empty:
+            raise ValueError(f"No ReceptiveFieldInfo rows for channel {RF_CHANNEL} match the red sites")
+        rf_df.to_csv(os.path.join(out_dir, 'rf_map_by_area.csv'), index=False)
+        plot_rf_map(rf_df, list(AREAS), os.path.join(out_dir, 'rf_map_by_area.png'),
+                    f"Receptive fields by recording area ({RF_CHANNEL}, {len(rf_df)} sessions)",
+                    LABEL_SESSIONS)
+
     print(f"Wrote {len(df)} sites from {df['session_id'].nunique()} sessions -> {out_dir}")
     if SHOW_PLOTS:
         plt.show()
