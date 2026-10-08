@@ -159,11 +159,14 @@ def resolve_area_indices(label_names: Dict[int, str], area_names: Dict[str, List
         idxs = [idx for idx, name in label_names.items()
                 if wanted & {t.strip().lower() for t in [name] + name.split(',')}]
         if not idxs:
+            # Loose stems (e.g. 'v4d' -> 'v4') so the error shows the neighbours
+            stems = wanted | {w.rstrip('dvtlrsmpi') or w for w in wanted}
             near = [f"{i}: {n}" for i, n in label_names.items()
-                    if any(w in n.lower() for w in wanted)]
+                    if any(st in n.lower() for st in stems)]
             raise ValueError(f"Area '{area}' (aliases {aliases}) matched no atlas label. "
                              f"Partial matches: {near[:20] or 'none'}")
         out[area] = sorted(idxs)
+        print(f"  {area:>5} -> " + ", ".join(f"{i}: {label_names[i]}" for i in out[area]))
     return out
 
 
@@ -293,7 +296,7 @@ def main():
     # any comma-separated token of the D99 label).
     AREAS = {
         'V4v': ['V4v'],
-        'V4d': ['V4d'],
+        'V4d': ['V4d', 'V4'],   # D99 labels dorsal V4 as plain 'V4'
         'TEO': ['TEO'],
         'V4t': ['V4t'],
         'MT':  ['MT'],
