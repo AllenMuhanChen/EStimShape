@@ -430,7 +430,8 @@ def main():
     # Receptive-field map (ReceptiveFieldInfo in the data repository)
     PLOT_RF_MAP = True
     RF_CHANNEL = 'SUPRA-000'             # which channel's RF to draw per session
-    LABEL_SESSIONS = True                # session id next to each RF center
+    LABEL_SESSIONS = False               # session id next to each RF center
+    PRINT_AREAS = ['TEO']                # print sessions in (or nearest to) these areas
     DB = dict(database="allen_data_repository", user="xper_rw",
               password="up2nite", host="172.30.6.61")
     # ----------------------------------------------------------------------
@@ -454,6 +455,7 @@ def main():
             corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
             pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
             plot_rf_map=PLOT_RF_MAP, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
+            print_areas=PRINT_AREAS,
             area_label_indices=df.attrs['area_indices'],
             sources=geom['sources'],
             subject_correction=geom['subj_corr'].tolist(),
@@ -463,10 +465,18 @@ def main():
         ), f, indent=2)
     df.to_csv(os.path.join(out_dir, 'site_area_distances.csv'), index=False)
     plot_distance_heatmap(df, list(AREAS), os.path.join(out_dir, 'site_area_distances.png'),
-                          f"Final recording site distance to area ({table}, {len(df)} sites)")
+                          "Recording site distance to area")
+
+    sites = assign_area(one_site_per_session(df), list(AREAS))
+    for area in PRINT_AREAS:
+        sel = sites[sites['area'] == area].sort_values('session_id')
+        print(f"\n{area} sessions ({len(sel)}):")
+        for _, r in sel.iterrows():
+            where = 'in' if r['inside'] else f"nearest, {r[area]:.1f} mm"
+            print(f"  {r['session_id']}  ({where})")
+    print()
 
     if PLOT_RF_MAP:
-        sites = assign_area(one_site_per_session(df), list(AREAS))
         rfs = fetch_rfs(conn, RF_CHANNEL)
         rf_df = sites.merge(rfs, on='session_id', how='inner')
         missing = sorted(set(sites['session_id']) - set(rf_df['session_id']))
@@ -476,7 +486,7 @@ def main():
             raise ValueError(f"No ReceptiveFieldInfo rows for channel {RF_CHANNEL} match the red sites")
         rf_df.to_csv(os.path.join(out_dir, 'rf_map_by_area.csv'), index=False)
         plot_rf_map(rf_df, list(AREAS), os.path.join(out_dir, 'rf_map_by_area.png'),
-                    f"Receptive fields by recording area ({RF_CHANNEL}, {len(rf_df)} sessions)",
+                    "Receptive fields by recording area",
                     LABEL_SESSIONS)
 
     print(f"Wrote {len(df)} sites from {df['session_id'].nunique()} sessions -> {out_dir}")
