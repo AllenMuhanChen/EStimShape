@@ -23,7 +23,8 @@ Left panel:
   - Plot: effect bars (mean of per-session mean effects ± SEM across sessions),
     ON vs OFF dots, or an effect histogram (effect on the x-axis; one row per
     X-axis value, a column per panel, colours overlaid; counts per condition or
-    per-session mean, set bin width; dashed line at 0; pairs are listed in the
+    per-session mean, set bin width, y as count or % of each histogram's own n
+    so groups of different sizes compare; dashed line at 0; pairs are listed in the
     stats box rather than drawn), with the permutation test against the stored
     EStimPermutationTests nulls (two-sided / greater / less / off).
   - Stats box (on by default): to the right of the plot, the test used and each
@@ -86,6 +87,9 @@ PLOT_CHOICES = (('effect bars (ON − OFF)', 'bars'), ('ON vs OFF dots', 'dots')
 # what one histogram count is: (label, unit)
 HIST_UNIT_CHOICES = (('per condition', 'condition'), ('per-session mean', 'session'))
 DEFAULT_HIST_BIN_WIDTH = 5.0
+# histogram height: (label, mode) — 'percent' = % of that histogram's own n, so
+# groups of different sizes compare
+HIST_Y_CHOICES = (('count', 'count'), ('% of group', 'percent'))
 # individual points over each bar: (label, unit) — None = off
 POINT_CHOICES = (('none', None), ('one per session', 'session'),
                  ('one per condition', 'condition'))
@@ -550,6 +554,13 @@ class EstimConditionExplorer(QMainWindow):
         self.hist_bin_box.setKeyboardTracking(False)
         self.hist_bin_box.setToolTip("Effect histogram bin width (bins are aligned "
                                      "to 0)")
+        self.hist_y_box = _compact(QComboBox())
+        self.hist_y_box.addItems([c[0] for c in HIST_Y_CHOICES])
+        self.hist_y_box.setToolTip("Effect histogram height: raw count, or % of that "
+                                   "histogram's own conditions / sessions (each "
+                                   "histogram sums to 100%), for groups of "
+                                   "different sizes")
+        self.hist_y_box.currentIndexChanged.connect(self.schedule_redraw)
         self.hist_unit_box.currentIndexChanged.connect(self.schedule_redraw)
         self.hist_bin_box.valueChanged.connect(self.schedule_redraw)
         self.plot_box.currentIndexChanged.connect(self._plot_mode_changed)
@@ -635,6 +646,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Plot", self.plot_box)
         form.addRow("Histogram of", self.hist_unit_box)
         form.addRow("Histogram bin", self.hist_bin_box)
+        form.addRow("Histogram y", self.hist_y_box)
         form.addRow("Test", self.test_box)
         form.addRow("Points", self.points_box)
         form.addRow("Compare pairs", self.compare_box)
@@ -973,6 +985,7 @@ class EstimConditionExplorer(QMainWindow):
         column per panel, colours overlaid. Shared bins (aligned to 0) and axes."""
         st = self.plot_style()
         unit = HIST_UNIT_CHOICES[self.hist_unit_box.currentIndex()][1]
+        percent = HIST_Y_CHOICES[self.hist_y_box.currentIndex()][1] == 'percent'
         groups = {}
         for key, sub in df.groupby(['__panel', '__x', '__color'], observed=True):
             vals = (sub.groupby('session_id')[ect.EFFECT_COL].mean() if unit == 'session'
@@ -997,8 +1010,10 @@ class EstimConditionExplorer(QMainWindow):
                     vals = groups.get((panel, x, c))
                     if vals is None:
                         continue
-                    ax.hist(vals, bins, color=color, alpha=0.55 if overlaid else 0.85,
-                            edgecolor='black', linewidth=0.4)
+                    weights = np.full(len(vals), 100 / len(vals)) if percent else None
+                    ax.hist(vals, bins, weights=weights, color=color,
+                            alpha=0.55 if overlaid else 0.85, edgecolor='black',
+                            linewidth=0.4)
                     r = summary[(summary['__panel'] == panel) & (summary['__x'] == x)
                                 & (summary['__color'] == c)].iloc[0]
                     n_lines.append((color if overlaid else '#555555',
@@ -1028,6 +1043,8 @@ class EstimConditionExplorer(QMainWindow):
         # the colour legend goes in a row above the grid (see _draw), clear of
         # the n labels
         count = 'sessions' if unit == 'session' else 'conditions'
+        if percent:
+            count = f"% of {count}"
         for x, ax in zip(rows, axes[:, 0]):
             # with panel titles on top, the rows are named on the left instead
             ax.set_ylabel(f"{self._x_name(x)}\n{count}" if self.panel_role.column()
@@ -1038,7 +1055,7 @@ class EstimConditionExplorer(QMainWindow):
 
     def _plot_mode_changed(self, *_):
         hist = PLOT_CHOICES[self.plot_box.currentIndex()][1] == 'hist'
-        for w in (self.hist_unit_box, self.hist_bin_box):
+        for w in (self.hist_unit_box, self.hist_bin_box, self.hist_y_box):
             w.setEnabled(hist)
         # histograms have no x tick labels (x labels name the rows) and no points
         for w in (self.rotation_box, self.points_box):
@@ -1390,7 +1407,8 @@ class EstimConditionExplorer(QMainWindow):
                      'show_n': self.n_box.isChecked(),
                      'show_stats': self.stats_box.isChecked(),
                      'hist_unit': self.hist_unit_box.currentText(),
-                     'hist_bin_width': self.hist_bin_box.value()},
+                     'hist_bin_width': self.hist_bin_box.value(),
+                     'hist_y': self.hist_y_box.currentText()},
             'style': self.plot_style(),
         }
 
@@ -1412,7 +1430,7 @@ class EstimConditionExplorer(QMainWindow):
         plot = spec.get('plot', {})
         widgets = [self.trials_box, self.plot_box, self.test_box, self.points_box,
                    self.compare_box, self.pair_test_box, self.n_box, self.stats_box,
-                   self.hist_unit_box, self.hist_bin_box]
+                   self.hist_unit_box, self.hist_bin_box, self.hist_y_box]
         for w in widgets:
             w.blockSignals(True)
         if 'min_trials' in spec:
@@ -1420,7 +1438,8 @@ class EstimConditionExplorer(QMainWindow):
         for box, key in ((self.plot_box, 'plot'), (self.test_box, 'test'),
                          (self.points_box, 'points'), (self.compare_box, 'compare'),
                          (self.pair_test_box, 'pairwise_test'),
-                         (self.hist_unit_box, 'hist_unit')):
+                         (self.hist_unit_box, 'hist_unit'),
+                         (self.hist_y_box, 'hist_y')):
             if key in plot and not _set_combo_text(box, plot[key]):
                 skipped.append(f"{key} {plot[key]!r}")
         if 'show_n' in plot:
@@ -1539,7 +1558,8 @@ class EstimConditionExplorer(QMainWindow):
         ax.set_xlabel(old[0] or xlab, fontsize=st['axis_label'])
         ax.set_ylabel(old[1] or ylab, fontsize=st['axis_label'])
         ax.tick_params(axis='y', labelleft=True)
-        if not had_legend and self._legend_handles:
+        fig_legend = bool(self.figure.legends)
+        if not had_legend and not fig_legend and self._legend_handles:
             ax.legend(handles=self._legend_handles, fontsize=st['legend'], loc='best',
                       title=self.color_role.column(), title_fontsize=st['legend'])
         others = [a for a in panels if a is not ax]
