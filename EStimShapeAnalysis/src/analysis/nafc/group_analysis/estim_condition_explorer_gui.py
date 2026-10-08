@@ -13,7 +13,8 @@ Left panel:
   - Min trials: keep conditions with at least this many estim-ON AND estim-OFF trials.
   - Filters: "Add filter…" any column. Categorical columns get a tick-list of
     values; numeric ones a min / max range (inclusive) with "keep missing".
-  - Layout: X-axis by / Colour by / Panels by — any column (or session_id). A
+  - Layout: X-axis by / Colour by / Panels by — any column (or session_id), or
+    (none) for a single group (e.g. one histogram of everything). A
     numeric column with many values is binned; edit its bin edges (comma
     separated) next to the dropdown. "x labels": your own tick labels, one per x
     point left to right (comma separated, or ';' if a label has a comma; blank
@@ -514,7 +515,7 @@ class EstimConditionExplorer(QMainWindow):
         self.add_filter_box.activated.connect(self._add_filter_from_box)
 
         # -- layout / plot --
-        self.x_role = RoleRow(False, self.schedule_redraw)
+        self.x_role = RoleRow(True, self.schedule_redraw)
         self.color_role = RoleRow(True, self.schedule_redraw)
         self.panel_role = RoleRow(True, self.schedule_redraw)
         self.xlabels_edit = QLineEdit()
@@ -871,7 +872,7 @@ class EstimConditionExplorer(QMainWindow):
                                        alternative=alternative)
         self.summary = summary.rename(columns={
             '__panel': self.panel_role.column() or 'panel',
-            '__x': self.x_role.column(), '__color': self.color_role.column() or 'colour'})
+            '__x': self.x_role.column() or 'x', '__color': self.color_role.column() or 'colour'})
 
         panels = [p for p in orders['__panel'] if (summary['__panel'] == p).any()]
         # custom x tick labels apply in order to the x values shown anywhere in
@@ -965,7 +966,7 @@ class EstimConditionExplorer(QMainWindow):
             ax.set_ylabel('EStim effect: ON − OFF (%)' if mode == 'bars'
                           else '% chose hypothesized', fontsize=st['axis_label'])
         for ax in axes[-1, :]:
-            ax.set_xlabel(self.x_role.column(), fontsize=st['axis_label'])
+            ax.set_xlabel(self.x_role.column() or '', fontsize=st['axis_label'])
 
     def _draw_hist(self, df, summary, panels, colors):
         """Effect histograms: effect on the x-axis, one row per X-axis value and a
@@ -1204,9 +1205,8 @@ class EstimConditionExplorer(QMainWindow):
                 for _, r in summary[summary['__panel'] == panel].iterrows():
                     if r['__x'] not in self._x_ticks:
                         continue
-                    name = self._x_name(r['__x'])
-                    if r['__color'] != '':
-                        name += f", {r['__color']}"
+                    name = ", ".join(str(v) for v in (self._x_name(r['__x']), r['__color'])
+                                     if v != '') or "all"
                     n_null = r.get('n_null')
                     rows.append(p_line(name, r['p'], n_null if pd.notna(n_null) else None))
                 return rows
@@ -1273,10 +1273,10 @@ class EstimConditionExplorer(QMainWindow):
             pairs = pd.DataFrame(columns=['__panel', 'fixed', 'a', 'b', 'diff', 'p'])
         pairs['p_holm'] = ect.holm(list(pairs['p'])) if len(pairs) else []
         pairs['_compare'] = compare
-        fixed_name = (self.x_role.column() if compare == 'colors'
+        fixed_name = (self.x_role.column() or 'x' if compare == 'colors'
                       else self.color_role.column() or 'colour')
         varied_name = (self.color_role.column() or 'colour' if compare == 'colors'
-                       else self.x_role.column())
+                       else self.x_role.column() or 'x')
         self.pairwise = pairs.drop(columns='_compare').rename(columns={
             '__panel': self.panel_role.column() or 'panel', 'fixed': fixed_name,
             'a': f"{varied_name} A", 'b': f"{varied_name} B",
