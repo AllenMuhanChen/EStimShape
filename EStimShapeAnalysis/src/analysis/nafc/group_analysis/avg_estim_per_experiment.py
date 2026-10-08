@@ -555,7 +555,6 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
     sig_color = "darkred" if _pop_is_sig(pop) else "#444444"
     name, stat_line, p_txt = _pop_result_lines(pop)
     if pop['method'] == STATS_TTEST:
-        ax.axvline(pop['mean_effect'], color=sig_color, linewidth=1.5)
         header = f"{name}, n = {pop['n']} {pop['noun']}"
         detail = f"mean = {pop['mean_effect']:+.2f}{unit}, {stat_line}, {p_txt}"
     else:
@@ -587,8 +586,8 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
     condition across all sessions).
 
     stats_method  : 'ttest' (default) -> one-sample t-test on the histogram's values
-                    (mean effect > 0 for alternative='greater'); the mean is drawn as a
-                    solid line. 'fisher_combined' -> session-level Fisher's combined test
+                    (mean effect > 0 for alternative='greater').
+                    'fisher_combined' -> session-level Fisher's combined test
                     on each session's pooled Fisher's exact p (not a test on the
                     histogram: conditions share OFF trials, so they are not independent).
 
