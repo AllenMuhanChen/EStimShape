@@ -22,6 +22,8 @@ Left panel:
   - Plot: effect bars (mean of per-session mean effects ± SEM across sessions) or
     ON vs OFF dots, with the permutation test against the stored
     EStimPermutationTests nulls (two-sided / greater / less / off).
+  - Stats box (on by default): to the right of the plot, the test used and each
+    bar's p-value, plus the pairwise tests (Holm-corrected p) when Compare is on.
   - Copy summary table: the numbers behind the plot, tab-separated, to the clipboard.
   - Style: font sizes and x-label rotation. "Save as default" stores them in
     ~/.estim_condition_explorer/style_defaults.json, used at every start-up.
@@ -99,10 +101,15 @@ SPEC_VERSION = 1
 # (key, label) of the font-size settings, in points
 STYLE_FONTS = (('tick', 'Tick labels'), ('axis_label', 'Axis labels'),
                ('title', 'Panel titles'), ('legend', 'Legend'),
-               ('stars', 'Stars / brackets'), ('n_label', 'n labels'))
+               ('stars', 'Stars / brackets'), ('n_label', 'n labels'),
+               ('stats', 'Stats box'))
 ROTATION_CHOICES = ('auto', '0', '30', '45', '90')
 BUILTIN_STYLE = {'tick': 14, 'axis_label': 16, 'title': 16, 'legend': 13,
-                 'stars': 15, 'n_label': 11, 'xtick_rotation': 'auto'}
+                 'stars': 15, 'n_label': 11, 'stats': 11, 'xtick_rotation': 'auto'}
+# pairwise lines listed in the stats box before the rest are summarised
+MAX_STATS_PAIRS = 12
+# most of the figure width the stats box may take (its text shrinks to fit)
+MAX_STATS_WIDTH = 0.45
 
 
 def _load_style_defaults():
@@ -545,6 +552,9 @@ class EstimConditionExplorer(QMainWindow):
             "bars otherwise (no normality assumption; coarse p with few sessions).")
         self.n_box = QCheckBox("show n (conditions / sessions)")
         self.n_box.setChecked(True)
+        self.stats_box = QCheckBox("stats box (test and p-values)")
+        self.stats_box.setChecked(True)
+        self.stats_box.stateChanged.connect(self.schedule_redraw)
         for w in (self.plot_box, self.test_box, self.points_box, self.compare_box,
                   self.pair_test_box):
             w.currentIndexChanged.connect(self.schedule_redraw)
@@ -605,6 +615,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Compare pairs", self.compare_box)
         form.addRow("Pairwise test", self.pair_test_box)
         form.addRow("", self.n_box)
+        form.addRow("", self.stats_box)
         form.addRow(QLabel("<b>Style</b>"))
         for key, label in STYLE_FONTS:
             form.addRow(label, self.style_boxes[key])
@@ -879,7 +890,25 @@ class EstimConditionExplorer(QMainWindow):
                           else '% chose hypothesized', fontsize=st['axis_label'])
         for ax in axes[-1, :]:
             ax.set_xlabel(self.x_role.column(), fontsize=st['axis_label'])
-        self.figure.tight_layout()
+        right = 1.0
+        if self.stats_box.isChecked():
+            text = self._stats_text(summary, pairs, panels, alternative)
+            box = self.figure.text(0.995, 0.5, text, ha='right', va='center',
+                                   multialignment='left', fontsize=st['stats'],
+                                   bbox=dict(boxstyle='round,pad=0.5', fc='white',
+                                             ec='#999999', lw=0.8))
+            # shrink the text if the box would take more than MAX_STATS_WIDTH of
+            # the figure or overflow its height, then give the plot the rest
+            renderer = self.canvas.get_renderer()
+            fig_w, fig_h = self.figure.bbox.width, self.figure.bbox.height
+            while True:
+                ext = box.get_window_extent(renderer)
+                if (ext.width <= MAX_STATS_WIDTH * fig_w and ext.height <= 0.97 * fig_h) \
+                        or box.get_fontsize() <= 6:
+                    break
+                box.set_fontsize(box.get_fontsize() - 1)
+            right = max(1 - MAX_STATS_WIDTH, 1 - ext.width / fig_w - 0.02)
+        self.figure.tight_layout(rect=(0, 0, right, 1))
         self.canvas.draw_idle()
 
         filt = [d for d in (r.describe() for r in self.filter_rows) if d]
@@ -1004,6 +1033,80 @@ class EstimConditionExplorer(QMainWindow):
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines[['top', 'right']].set_visible(False)
         return positions
+
+    def _x_name(self, x):
+        return self._x_names.get(x, x).replace('\n', ' ')
+
+    @staticmethod
+    def _p_text(p, n_null=None):
+        if p is None or not np.isfinite(p):
+            return "p = n/a"
+        if p == 0 and n_null:
+            return f"p < {1 / n_null:.1g}"
+        return f"p = {p:.3f}" if p >= 0.001 else f"p = {p:.1g}"
+
+    def _stats_text(self, summary, pairs, panels, alternative):
+        """Text for the stats box: the test, each bar's p and the pairwise tests,
+        grouped under a header per panel."""
+        side = {'two-sided': 'two-sided', 'greater': 'one-sided, ON > OFF',
+                'less': 'one-sided, ON < OFF'}
+        panel_col = self.panel_role.column()
+
+        def by_panel(rows_of_panel, indent="  "):
+            out = []
+            for panel in panels:
+                rows = rows_of_panel(panel)
+                if panel_col and rows:
+                    out.append(f"{indent}{panel_col} = {panel}")
+                pad = indent + ("  " if panel_col else "")
+                out += [pad + r for r in rows]
+            return out
+
+        def p_line(name, p, n_null=None):
+            return f"{name}: {self._p_text(p, n_null)} {ect.significance_marker(p)}".rstrip()
+
+        lines = []
+        if alternative is None:
+            lines.append("Per-bar test: off")
+        else:
+            lines += ["Per-bar test: permutation vs.",
+                      f"stored EStim nulls ({side[alternative]})"]
+
+            def bars(panel):
+                rows = []
+                for _, r in summary[summary['__panel'] == panel].iterrows():
+                    if r['__x'] not in self._x_ticks:
+                        continue
+                    name = self._x_name(r['__x'])
+                    if r['__color'] != '':
+                        name += f", {r['__color']}"
+                    n_null = r.get('n_null')
+                    rows.append(p_line(name, r['p'], n_null if pd.notna(n_null) else None))
+                return rows
+            lines += by_panel(bars)
+        if pairs is not None:
+            test = PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][0]
+            lines += ["", f"Pairwise: {test.split(' (')[0]},", "Holm-corrected"]
+            compare = COMPARE_CHOICES[self.compare_box.currentIndex()][1]
+            shown = pairs if len(pairs) <= MAX_STATS_PAIRS else \
+                pairs.nsmallest(MAX_STATS_PAIRS, 'p_holm')
+
+            def pair_rows(panel):
+                rows = []
+                for _, r in shown[shown['__panel'] == panel].iterrows():
+                    if compare == 'colors':   # colours at one x
+                        fixed, a, b = self._x_name(r['fixed']), r['a'], r['b']
+                    else:                     # x values for one colour
+                        fixed, a, b = r['fixed'], self._x_name(r['a']), self._x_name(r['b'])
+                    name = f"{fixed}: {a} vs {b}" if fixed != '' else f"{a} vs {b}"
+                    rows.append(p_line(name, r['p_holm'] if pd.notna(r['p']) else None))
+                return rows
+            lines += by_panel(pair_rows)
+            if len(pairs) > len(shown):
+                lines.append(f"  (+{len(pairs) - len(shown)} more in the summary table)")
+            if len(pairs) == 0:
+                lines.append("  no pairs to compare")
+        return "\n".join(lines)
 
     # -- pairwise comparisons ---------------------------------------------------------
     def _pairwise(self, df, summary, panels, orders):
@@ -1150,7 +1253,8 @@ class EstimConditionExplorer(QMainWindow):
                      'points': self.points_box.currentText(),
                      'compare': self.compare_box.currentText(),
                      'pairwise_test': self.pair_test_box.currentText(),
-                     'show_n': self.n_box.isChecked()},
+                     'show_n': self.n_box.isChecked(),
+                     'show_stats': self.stats_box.isChecked()},
             'style': self.plot_style(),
         }
 
@@ -1171,7 +1275,7 @@ class EstimConditionExplorer(QMainWindow):
             return
         plot = spec.get('plot', {})
         widgets = [self.trials_box, self.plot_box, self.test_box, self.points_box,
-                   self.compare_box, self.pair_test_box, self.n_box]
+                   self.compare_box, self.pair_test_box, self.n_box, self.stats_box]
         for w in widgets:
             w.blockSignals(True)
         if 'min_trials' in spec:
@@ -1183,6 +1287,8 @@ class EstimConditionExplorer(QMainWindow):
                 skipped.append(f"{key} {plot[key]!r}")
         if 'show_n' in plot:
             self.n_box.setChecked(bool(plot['show_n']))
+        if 'show_stats' in plot:
+            self.stats_box.setChecked(bool(plot['show_stats']))
         for w in widgets:
             w.blockSignals(False)
         if 'style' in spec:

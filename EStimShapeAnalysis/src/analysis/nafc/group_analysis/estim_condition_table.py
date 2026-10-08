@@ -268,7 +268,7 @@ def _sem(values):
 def summarize_groups(df, group_cols, nulls=None, alternative='two-sided'):
     """One row per combination of group_cols: n_conditions, n_sessions, effect
     (mean of per-session mean effects) ± effect_sem, the same for ON% / OFF%, trial
-    totals, and the permutation p-value (None without nulls). group_cols may be []
+    totals, and the permutation p-value (None without nulls) with its null size n_null. group_cols may be []
     (one group of everything)."""
     group_cols = list(group_cols)
     groups = df.groupby(group_cols, dropna=False, sort=True, observed=True) if group_cols else [((), df)]
@@ -278,14 +278,16 @@ def summarize_groups(df, group_cols, nulls=None, alternative='two-sided'):
         per_session = gdf.groupby('session_id')[[EFFECT_COL, ON_COL, OFF_COL]].mean()
         effect = float(per_session[EFFECT_COL].mean())
         row = dict(zip(group_cols, key))
+        null = grand_null(gdf, nulls) if nulls is not None and alternative else None
         row.update({
             'n_conditions': len(gdf), 'n_sessions': len(per_session),
             'effect': effect, 'effect_sem': _sem(per_session[EFFECT_COL]),
             'on': float(per_session[ON_COL].mean()), 'on_sem': _sem(per_session[ON_COL]),
             'off': float(per_session[OFF_COL].mean()), 'off_sem': _sem(per_session[OFF_COL]),
             'n_on_trials': int(gdf[N_ON_COL].sum()), 'n_off_trials': int(gdf[N_OFF_COL].sum()),
-            'p': (p_value(effect, grand_null(gdf, nulls), alternative)
-                  if nulls is not None and alternative else None),
+            'p': p_value(effect, null, alternative) if null is not None else None,
+            # null size: the smallest nonzero p is 1 / n_null
+            'n_null': len(null) if null is not None else None,
         })
         rows.append(row)
     return pd.DataFrame(rows)
