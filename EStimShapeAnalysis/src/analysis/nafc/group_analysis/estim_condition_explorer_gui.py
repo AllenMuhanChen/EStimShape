@@ -1089,13 +1089,15 @@ class EstimConditionExplorer(QMainWindow):
                 return rows
             lines += by_panel(bars)
         if pairs is not None:
+            # Holm over a single test is the raw p, so only say so when it matters
+            holm = ", Holm-corrected" if pairs['p'].notna().sum() > 1 else ""
             if PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][1] is ect.pairwise_welch:
                 lines += ["", "Pairwise: Welch t-test on per-session",
-                          "mean effects, Holm-corrected"]
+                          f"mean effects{holm}"]
             else:
                 lines += ["", "Pairwise: permutation, bar labels shuffled",
                           "within sessions (whole sessions when a",
-                          "session has only one bar), Holm-corrected"]
+                          f"session has only one bar){holm}"]
             compare = COMPARE_CHOICES[self.compare_box.currentIndex()][1]
             shown = pairs if len(pairs) <= MAX_STATS_PAIRS else \
                 pairs.nsmallest(MAX_STATS_PAIRS, 'p_holm')
