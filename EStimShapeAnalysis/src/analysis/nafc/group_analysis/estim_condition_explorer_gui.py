@@ -58,9 +58,9 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QEvent, QObject, Qt, QTimer
 from PyQt5.QtGui import QCursor, QImage
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
+from PyQt5.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
                              QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit,
                              QFileDialog, QListWidget, QListWidgetItem, QMainWindow,
                              QMenu, QPushButton, QScrollArea, QSpinBox, QVBoxLayout,
@@ -465,6 +465,23 @@ class RoleRow(QWidget):
         return labels, sorted(set(labels), key=_sort_key)
 
 
+class _PanelWheelGuard(QObject):
+    """Sends mouse-wheel events over a dropdown or number box in the side panel
+    to the panel's scroll bar, so scrolling never changes a setting."""
+
+    def __init__(self, panel, scroll):
+        super().__init__()
+        self.panel = panel
+        self.scroll = scroll
+
+    def eventFilter(self, obj, event):
+        if (event.type() == QEvent.Wheel and isinstance(obj, (QComboBox, QAbstractSpinBox))
+                and self.panel.isAncestorOf(obj)):
+            QApplication.sendEvent(self.scroll.verticalScrollBar(), event)
+            return True
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Main window
 # ---------------------------------------------------------------------------
@@ -670,6 +687,10 @@ class EstimConditionExplorer(QMainWindow):
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setFixedWidth(520)
+        # the wheel scrolls the side panel, never a dropdown / number box under
+        # the cursor (filters added later included, so filter app-wide)
+        self._wheel_guard = _PanelWheelGuard(side, scroll)
+        QApplication.instance().installEventFilter(self._wheel_guard)
 
         self.plot_area = QVBoxLayout()
         self.figure = Figure(figsize=(10, 7))
