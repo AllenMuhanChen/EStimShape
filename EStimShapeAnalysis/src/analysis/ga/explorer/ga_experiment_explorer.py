@@ -54,6 +54,7 @@ from src.startup import context
 def main():
     # ---------------------------------------------------------------- settings
     from src.analysis.ga.explorer.modules.delta_pair_viewer_module import DeltaPairViewerModule
+    from src.analysis.ga.explorer.modules.all_pair_explorer_module import AllPairExplorerModule
     from src.analysis.ga.explorer.modules.top_n_module import TopNModule
     from src.analysis.ga.explorer.modules.response_by_generation_module import \
         ResponseByGenerationModule
@@ -61,6 +62,7 @@ def main():
     # Modules shown in the left list, in order. Add your own here.
     MODULES = [
         DeltaPairViewerModule,
+        AllPairExplorerModule,
         TopNModule,
         ResponseByGenerationModule,
     ]
