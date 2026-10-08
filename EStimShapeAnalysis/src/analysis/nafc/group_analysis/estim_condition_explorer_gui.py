@@ -627,6 +627,7 @@ class EstimConditionExplorer(QMainWindow):
             spec_buttons.addWidget(b)
 
         form = QFormLayout()
+        self._form = form
         form.addRow(spec_buttons)
         form.addRow("Metric", self.metric_box)
         form.addRow("Algorithm label", self.algo_box)
@@ -1055,11 +1056,14 @@ class EstimConditionExplorer(QMainWindow):
 
     def _plot_mode_changed(self, *_):
         hist = PLOT_CHOICES[self.plot_box.currentIndex()][1] == 'hist'
+        # the histogram rows only show in histogram mode
         for w in (self.hist_unit_box, self.hist_bin_box, self.hist_y_box):
-            w.setEnabled(hist)
+            w.setVisible(hist)
+            self._form.labelForField(w).setVisible(hist)
         # histograms have no x tick labels (x labels name the rows) and no points
         for w in (self.rotation_box, self.points_box):
-            w.setEnabled(not hist)
+            w.setVisible(not hist)
+            self._form.labelForField(w).setVisible(not hist)
 
     @staticmethod
     def _colors(color_order):
