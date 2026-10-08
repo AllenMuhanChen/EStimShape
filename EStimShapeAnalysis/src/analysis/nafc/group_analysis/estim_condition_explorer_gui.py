@@ -19,8 +19,11 @@ Left panel:
     point left to right (comma separated, or ';' if a label has a comma; blank
     keeps that tick's value; \\n breaks a line). "fill" puts the current ticks in
     the box to edit. Cleared when the X-axis column changes.
-  - Plot: effect bars (mean of per-session mean effects ± SEM across sessions) or
-    ON vs OFF dots, with the permutation test against the stored
+  - Plot: effect bars (mean of per-session mean effects ± SEM across sessions),
+    ON vs OFF dots, or an effect histogram (effect on the x-axis; one row per
+    X-axis value, a column per panel, colours overlaid; counts per condition or
+    per-session mean, set bin width; dashed line at 0; pairs are listed in the
+    stats box rather than drawn), with the permutation test against the stored
     EStimPermutationTests nulls (two-sided / greater / less / off).
   - Stats box (on by default): to the right of the plot, the test used and each
     bar's p-value, plus the pairwise tests (Holm-corrected p) when Compare is on.
@@ -77,7 +80,11 @@ HIDDEN_COLUMNS = {'conditions', ect.EFFECT_COL, ect.ON_COL, ect.OFF_COL}
 # (label, alternative) — None = no test
 TEST_CHOICES = (('two-sided', 'two-sided'), ('one-sided: ON > OFF', 'greater'),
                 ('one-sided: ON < OFF', 'less'), ('off', None))
-PLOT_CHOICES = (('effect bars (ON − OFF)', 'bars'), ('ON vs OFF dots', 'dots'))
+PLOT_CHOICES = (('effect bars (ON − OFF)', 'bars'), ('ON vs OFF dots', 'dots'),
+                ('effect histogram', 'hist'))
+# what one histogram count is: (label, unit)
+HIST_UNIT_CHOICES = (('per condition', 'condition'), ('per-session mean', 'session'))
+DEFAULT_HIST_BIN_WIDTH = 5.0
 # individual points over each bar: (label, unit) — None = off
 POINT_CHOICES = (('none', None), ('one per session', 'session'),
                  ('one per condition', 'condition'))
@@ -530,6 +537,21 @@ class EstimConditionExplorer(QMainWindow):
         self._x_ticks, self._x_names = [], {}
         self.plot_box = _compact(QComboBox())
         self.plot_box.addItems([c[0] for c in PLOT_CHOICES])
+        self.hist_unit_box = _compact(QComboBox())
+        self.hist_unit_box.addItems([c[0] for c in HIST_UNIT_CHOICES])
+        self.hist_unit_box.setToolTip("Effect histogram: count each condition, or "
+                                      "each session's mean over its conditions")
+        self.hist_bin_box = QDoubleSpinBox()
+        self.hist_bin_box.setRange(0.1, 100)
+        self.hist_bin_box.setDecimals(1)
+        self.hist_bin_box.setSuffix(" %")
+        self.hist_bin_box.setValue(DEFAULT_HIST_BIN_WIDTH)
+        self.hist_bin_box.setKeyboardTracking(False)
+        self.hist_bin_box.setToolTip("Effect histogram bin width (bins are aligned "
+                                     "to 0)")
+        self.hist_unit_box.currentIndexChanged.connect(self.schedule_redraw)
+        self.hist_bin_box.valueChanged.connect(self.schedule_redraw)
+        self.plot_box.currentIndexChanged.connect(self._plot_mode_changed)
         self.test_box = _compact(QComboBox())
         self.test_box.addItems([c[0] for c in TEST_CHOICES])
         self.points_box = _compact(QComboBox())
@@ -610,6 +632,8 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Panels by", self.panel_role)
         form.addRow(QLabel("<b>Plot</b>"))
         form.addRow("Plot", self.plot_box)
+        form.addRow("Histogram of", self.hist_unit_box)
+        form.addRow("Histogram bin", self.hist_bin_box)
         form.addRow("Test", self.test_box)
         form.addRow("Points", self.points_box)
         form.addRow("Compare pairs", self.compare_box)
@@ -650,6 +674,7 @@ class EstimConditionExplorer(QMainWindow):
         central.setLayout(root)
         self.setCentralWidget(central)
 
+        self._plot_mode_changed()
         self.metric_box.currentIndexChanged.connect(self.reload)
         self.algo_box.activated.connect(self.reload)
         self.reload(first=True)
@@ -854,13 +879,64 @@ class EstimConditionExplorer(QMainWindow):
         self._x_ticks = [x for x in orders['__x'] if (summary['__x'] == x).any()]
         custom = _parse_tick_labels(self.xlabels_edit.text())
         self._x_names = {x: c for x, c in zip(self._x_ticks, custom) if c}
-        n_cols = min(len(panels), 3)
-        n_rows = math.ceil(len(panels) / n_cols)
-        axes = self.figure.subplots(n_rows, n_cols, squeeze=False, sharey=True)
         colors = self._colors(orders['__color'])
         mode = PLOT_CHOICES[self.plot_box.currentIndex()][1]
         pairs = self._pairwise(df, summary, panels, orders)
         st = self.plot_style()
+        legend = None
+        if mode == 'hist':
+            self._draw_hist(df, summary, panels, colors)
+            if self._legend_handles:
+                legend = self.figure.legend(
+                    handles=self._legend_handles, loc='upper center',
+                    ncol=len(self._legend_handles), fontsize=st['legend'],
+                    title=self.color_role.column() or None,
+                    title_fontsize=st['legend'], frameon=False)
+        else:
+            self._draw_bars(df, summary, panels, orders, colors, mode, pairs)
+        right = 1.0
+        if self.stats_box.isChecked():
+            text = self._stats_text(summary, pairs, panels, alternative)
+            box = self.figure.text(0.995, 0.5, text, ha='right', va='center',
+                                   multialignment='left', fontsize=st['stats'],
+                                   bbox=dict(boxstyle='round,pad=0.5', fc='white',
+                                             ec='#999999', lw=0.8))
+            # shrink the text if the box would take more than MAX_STATS_WIDTH of
+            # the figure or overflow its height, then give the plot the rest
+            renderer = self.canvas.get_renderer()
+            fig_w, fig_h = self.figure.bbox.width, self.figure.bbox.height
+            while True:
+                ext = box.get_window_extent(renderer)
+                if (ext.width <= MAX_STATS_WIDTH * fig_w and ext.height <= 0.97 * fig_h) \
+                        or box.get_fontsize() <= 6:
+                    break
+                box.set_fontsize(box.get_fontsize() - 1)
+            right = max(1 - MAX_STATS_WIDTH, 1 - ext.width / fig_w - 0.02)
+        top = 1.0
+        if legend is not None:
+            # centre the legend over the plot area and keep the grid below it
+            legend.set_bbox_to_anchor((right / 2, 1.0))
+            renderer = self.canvas.get_renderer()
+            top = 1 - legend.get_window_extent(renderer).height / self.figure.bbox.height
+        self.figure.tight_layout(rect=(0, 0, right, top))
+        self.canvas.draw_idle()
+
+        filt = [d for d in (r.describe() for r in self.filter_rows) if d]
+        self.status.setText(
+            f"{len(df)} of {len(self.df)} conditions, {df['session_id'].nunique()} sessions "
+            f"pass the filters.\nFilters: {'; '.join(filt) if filt else 'none'}"
+            + ("" if alternative else "\nTest off.")
+            + (self._pairwise_note(pairs) if pairs is not None else "")
+            + (f"\nx labels: {len(custom)} given for {len(self._x_ticks)} x points."
+               if custom and len(custom) != len(self._x_ticks) else ""))
+
+    def _draw_bars(self, df, summary, panels, orders, colors, mode, pairs):
+        """Bars / ON vs OFF dots: a panel per Panels-by value, x positions from
+        X-axis by, colours side by side."""
+        st = self.plot_style()
+        n_cols = min(len(panels), 3)
+        n_rows = math.ceil(len(panels) / n_cols)
+        axes = self.figure.subplots(n_rows, n_cols, squeeze=False, sharey=True)
         positions = {}
         for ax, panel in zip(axes.flat, panels):
             positions[panel] = self._draw_panel(ax, summary[summary['__panel'] == panel],
@@ -890,35 +966,82 @@ class EstimConditionExplorer(QMainWindow):
                           else '% chose hypothesized', fontsize=st['axis_label'])
         for ax in axes[-1, :]:
             ax.set_xlabel(self.x_role.column(), fontsize=st['axis_label'])
-        right = 1.0
-        if self.stats_box.isChecked():
-            text = self._stats_text(summary, pairs, panels, alternative)
-            box = self.figure.text(0.995, 0.5, text, ha='right', va='center',
-                                   multialignment='left', fontsize=st['stats'],
-                                   bbox=dict(boxstyle='round,pad=0.5', fc='white',
-                                             ec='#999999', lw=0.8))
-            # shrink the text if the box would take more than MAX_STATS_WIDTH of
-            # the figure or overflow its height, then give the plot the rest
-            renderer = self.canvas.get_renderer()
-            fig_w, fig_h = self.figure.bbox.width, self.figure.bbox.height
-            while True:
-                ext = box.get_window_extent(renderer)
-                if (ext.width <= MAX_STATS_WIDTH * fig_w and ext.height <= 0.97 * fig_h) \
-                        or box.get_fontsize() <= 6:
-                    break
-                box.set_fontsize(box.get_fontsize() - 1)
-            right = max(1 - MAX_STATS_WIDTH, 1 - ext.width / fig_w - 0.02)
-        self.figure.tight_layout(rect=(0, 0, right, 1))
-        self.canvas.draw_idle()
 
-        filt = [d for d in (r.describe() for r in self.filter_rows) if d]
-        self.status.setText(
-            f"{len(df)} of {len(self.df)} conditions, {df['session_id'].nunique()} sessions "
-            f"pass the filters.\nFilters: {'; '.join(filt) if filt else 'none'}"
-            + ("" if alternative else "\nTest off.")
-            + (self._pairwise_note(pairs) if pairs is not None else "")
-            + (f"\nx labels: {len(custom)} given for {len(self._x_ticks)} x points."
-               if custom and len(custom) != len(self._x_ticks) else ""))
+    def _draw_hist(self, df, summary, panels, colors):
+        """Effect histograms: effect on the x-axis, one row per X-axis value and a
+        column per panel, colours overlaid. Shared bins (aligned to 0) and axes."""
+        st = self.plot_style()
+        unit = HIST_UNIT_CHOICES[self.hist_unit_box.currentIndex()][1]
+        groups = {}
+        for key, sub in df.groupby(['__panel', '__x', '__color'], observed=True):
+            vals = (sub.groupby('session_id')[ect.EFFECT_COL].mean() if unit == 'session'
+                    else sub[ect.EFFECT_COL])
+            vals = pd.to_numeric(vals, errors='coerce').dropna().to_numpy(dtype=float)
+            if len(vals):
+                groups[key] = vals
+        everything = np.concatenate(list(groups.values())) if groups else np.zeros(1)
+        width = self.hist_bin_box.value()
+        lo = math.floor(min(everything.min(), 0) / width) * width
+        hi = math.ceil(max(everything.max(), 0) / width) * width
+        bins = np.arange(lo, max(hi, lo + width) + width / 2, width)
+        rows = self._x_ticks
+        axes = self.figure.subplots(len(rows), len(panels), squeeze=False,
+                                    sharex=True, sharey=True)
+        overlaid = len(colors) > 1
+        for ri, x in enumerate(rows):
+            for ci, panel in enumerate(panels):
+                ax = axes[ri, ci]
+                n_lines = []
+                for c, color in colors.items():
+                    vals = groups.get((panel, x, c))
+                    if vals is None:
+                        continue
+                    ax.hist(vals, bins, color=color, alpha=0.55 if overlaid else 0.85,
+                            edgecolor='black', linewidth=0.4)
+                    r = summary[(summary['__panel'] == panel) & (summary['__x'] == x)
+                                & (summary['__color'] == c)].iloc[0]
+                    n_lines.append((color if overlaid else '#555555',
+                                    f"n = {r['n_conditions']}/{r['n_sessions']} "
+                                    f"{ect.significance_marker(r['p'])}".rstrip()))
+                ax.axvline(0, color='black', lw=0.8, ls='--')
+                if self.n_box.isChecked():
+                    for i, (color, text) in enumerate(n_lines):
+                        ax.annotate(text, (1, 1), xycoords='axes fraction',
+                                    xytext=(-4, -4 - i * 1.4 * st['n_label']),
+                                    textcoords='offset points', ha='right', va='top',
+                                    fontsize=st['n_label'], color=color)
+                if not self.panel_role.column():
+                    ax.set_title(self._x_name(x), loc='left', fontsize=st['title'])
+                elif ri == 0:
+                    ax.set_title(f"{self.panel_role.column()} = {panel}",
+                                 fontsize=st['title'], fontweight='bold')
+                ax.tick_params(labelsize=st['tick'])
+                ax.grid(True, axis='y', alpha=0.3)
+                ax.spines[['top', 'right']].set_visible(False)
+        self._legend_handles = self._legend(colors, 'hist')
+        if self.n_box.isChecked():
+            # headroom above the tallest bar for the n labels (y is shared, so
+            # setting it on one panel sets them all)
+            y_lo, y_hi = axes[0, 0].get_ylim()
+            axes[0, 0].set_ylim(y_lo, y_hi * (1.1 + 0.12 * len(colors)))
+        # the colour legend goes in a row above the grid (see _draw), clear of
+        # the n labels
+        count = 'sessions' if unit == 'session' else 'conditions'
+        for x, ax in zip(rows, axes[:, 0]):
+            # with panel titles on top, the rows are named on the left instead
+            ax.set_ylabel(f"{self._x_name(x)}\n{count}" if self.panel_role.column()
+                          else count, fontsize=st['axis_label'])
+        # one x label, under the middle column
+        axes[-1, len(panels) // 2].set_xlabel('EStim effect: ON − OFF (%)',
+                                               fontsize=st['axis_label'])
+
+    def _plot_mode_changed(self, *_):
+        hist = PLOT_CHOICES[self.plot_box.currentIndex()][1] == 'hist'
+        for w in (self.hist_unit_box, self.hist_bin_box):
+            w.setEnabled(hist)
+        # histograms have no x tick labels (x labels name the rows) and no points
+        for w in (self.rotation_box, self.points_box):
+            w.setEnabled(not hist)
 
     @staticmethod
     def _colors(color_order):
@@ -1265,7 +1388,9 @@ class EstimConditionExplorer(QMainWindow):
                      'compare': self.compare_box.currentText(),
                      'pairwise_test': self.pair_test_box.currentText(),
                      'show_n': self.n_box.isChecked(),
-                     'show_stats': self.stats_box.isChecked()},
+                     'show_stats': self.stats_box.isChecked(),
+                     'hist_unit': self.hist_unit_box.currentText(),
+                     'hist_bin_width': self.hist_bin_box.value()},
             'style': self.plot_style(),
         }
 
@@ -1286,20 +1411,25 @@ class EstimConditionExplorer(QMainWindow):
             return
         plot = spec.get('plot', {})
         widgets = [self.trials_box, self.plot_box, self.test_box, self.points_box,
-                   self.compare_box, self.pair_test_box, self.n_box, self.stats_box]
+                   self.compare_box, self.pair_test_box, self.n_box, self.stats_box,
+                   self.hist_unit_box, self.hist_bin_box]
         for w in widgets:
             w.blockSignals(True)
         if 'min_trials' in spec:
             self.trials_box.setValue(int(spec['min_trials']))
         for box, key in ((self.plot_box, 'plot'), (self.test_box, 'test'),
                          (self.points_box, 'points'), (self.compare_box, 'compare'),
-                         (self.pair_test_box, 'pairwise_test')):
+                         (self.pair_test_box, 'pairwise_test'),
+                         (self.hist_unit_box, 'hist_unit')):
             if key in plot and not _set_combo_text(box, plot[key]):
                 skipped.append(f"{key} {plot[key]!r}")
         if 'show_n' in plot:
             self.n_box.setChecked(bool(plot['show_n']))
         if 'show_stats' in plot:
             self.stats_box.setChecked(bool(plot['show_stats']))
+        if 'hist_bin_width' in plot:
+            self.hist_bin_box.setValue(float(plot['hist_bin_width']))
+        self._plot_mode_changed()
         for w in widgets:
             w.blockSignals(False)
         if 'style' in spec:
