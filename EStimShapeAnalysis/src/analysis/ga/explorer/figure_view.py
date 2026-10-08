@@ -22,8 +22,12 @@ def _is_plotly(fig) -> bool:
 
 
 class FigureView(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, keep_size=False):
+        """keep_size: show matplotlib figures at their own size (scrolling if
+        needed) instead of stretching them to the window, so what you see is
+        what gets saved. Use it for layout-sensitive figures."""
         super().__init__(parent)
+        self._keep_size = keep_size
         self._fig = None
         self._pixmap: QPixmap | None = None
 
@@ -64,9 +68,22 @@ class FigureView(QWidget):
         box = QWidget()
         lay = QVBoxLayout(box)
         lay.setContentsMargins(0, 0, 0, 0)
+        size_in = fig.get_size_inches().copy()
         canvas = FigureCanvas(fig)
         lay.addWidget(NavigationToolbar(canvas, box))
-        lay.addWidget(canvas, stretch=1)
+        if self._keep_size:
+            # Pin the canvas to the figure's own size; the scroll area absorbs
+            # any difference with the window.
+            ratio = canvas.devicePixelRatioF() or 1.0
+            fig.set_size_inches(size_in)
+            w, h = (int(round(v * fig.dpi / ratio)) for v in size_in)
+            canvas.setFixedSize(w, h)
+            scroll = QScrollArea()
+            scroll.setWidget(canvas)
+            scroll.setStyleSheet("background: white;")
+            lay.addWidget(scroll, stretch=1)
+        else:
+            lay.addWidget(canvas, stretch=1)
         canvas.draw_idle()
         return box
 

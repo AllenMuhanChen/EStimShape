@@ -118,6 +118,9 @@ class ExplorerModule:
         # Set by the explorer: call this to report progress / results in the
         # status bar, e.g. self.status("12 pairs, 4 included").
         self.status: Callable[[str], None] = print
+        # Set by the explorer: root folder for anything the module saves.
+        # Use new_output_folder(self.save_root, ...) to get a fresh folder.
+        self.save_root: Optional[str] = None
 
     # -- declared by the module ------------------------------------------
     def params(self) -> list[Param]:
@@ -171,6 +174,17 @@ class FigureModule(ExplorerModule):
 
     def save(self, folder):
         return self._view.save(folder, basename=_slug(self.name))
+
+
+def new_output_folder(save_root: str, session_id: str, name: str) -> str:
+    """Create and return a NEW folder
+    <save_root>/<session_id>/ga_explorer/<name>_<YYYYmmdd_HHMMSS>/ (never reused)."""
+    import os
+    from datetime import datetime
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    folder = os.path.join(save_root, session_id, "ga_explorer", f"{_slug(name)}_{stamp}")
+    os.makedirs(folder, exist_ok=False)
+    return folder
 
 
 def _slug(text: str) -> str:

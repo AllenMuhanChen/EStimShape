@@ -46,20 +46,21 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
 
 sys.path.insert(0, str(Path(__file__).parents[4]))
 
-from src.analysis.ga.explorer.explorer_module import ExplorerModule, SessionState, _slug
+from src.analysis.ga.explorer.explorer_module import (ExplorerModule, SessionState, _slug,
+                                                      new_output_folder)
 from src.startup import context
 
 
 def main():
     # ---------------------------------------------------------------- settings
-    from src.analysis.ga.explorer.modules.delta_curation_module import DeltaCurationModule
+    from src.analysis.ga.explorer.modules.delta_pair_viewer_module import DeltaPairViewerModule
     from src.analysis.ga.explorer.modules.top_n_module import TopNModule
     from src.analysis.ga.explorer.modules.response_by_generation_module import \
         ResponseByGenerationModule
 
     # Modules shown in the left list, in order. Add your own here.
     MODULES = [
-        DeltaCurationModule,
+        DeltaPairViewerModule,
         TopNModule,
         ResponseByGenerationModule,
     ]
@@ -178,6 +179,7 @@ class GAExperimentExplorer(QMainWindow):
         self.view_stack = QStackedWidget()
         for idx, m in enumerate(self.modules):
             m.status = self._set_status
+            m.save_root = self.save_root
             self.param_stack.addWidget(self._build_param_page(idx, m))
             self.view_stack.addWidget(m.create_view(self.view_stack))
             self._stale.append(True)
@@ -450,11 +452,9 @@ class GAExperimentExplorer(QMainWindow):
         if idx < 0 or self.session is None:
             return
         module = self.modules[idx]
-        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        folder = os.path.join(self.save_root, self.session.session_id, "ga_explorer",
-                              f"{_slug(module.name)}_{stamp}")
+        folder = None
         try:
-            os.makedirs(folder, exist_ok=False)
+            folder = new_output_folder(self.save_root, self.session.session_id, module.name)
             files = module.save(folder)
             if not files:
                 path = os.path.join(folder, f"{_slug(module.name)}.png")
@@ -474,7 +474,7 @@ class GAExperimentExplorer(QMainWindow):
                 json.dump(config, f, indent=2, default=str)
         except Exception as exc:
             traceback.print_exc()
-            if os.path.isdir(folder) and not os.listdir(folder):
+            if folder and os.path.isdir(folder) and not os.listdir(folder):
                 os.rmdir(folder)
             QMessageBox.critical(self, "Save failed", str(exc))
             return
