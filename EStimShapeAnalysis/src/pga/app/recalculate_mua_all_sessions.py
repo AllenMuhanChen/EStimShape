@@ -57,7 +57,7 @@ def run_all_sessions(session_ids=None, exclude_session_ids=(), rerun_already_don
 
     done, recalculated, failed, would_run = [], [], [], []
     try:
-        for session_id in session_ids:
+        for session_id in session_ids[::-1]:
             print(f"\n========== {session_id} ==========")
             try:
                 apply_session_context(session_id)
