@@ -216,13 +216,14 @@ def plot_spi_histogram(table: pd.DataFrame):
     with_spi = table.dropna(subset=["mean_spi"])
     groups = [g for g in SPI_SIG_ORDER if (with_spi["spi_sig"] == g).any()]
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(8.5, 4))
     ax.hist([with_spi.loc[with_spi["spi_sig"] == g, "mean_spi"] for g in groups],
             bins=np.linspace(-1, 1, 21), stacked=True,
             color=[SPI_SIG_COLORS[g] for g in groups],
             label=[SPI_SIG_LABELS[g] for g in groups],
             edgecolor="white", linewidth=2)
-    ax.legend(loc="upper left", frameon=True, facecolor="white", edgecolor="none", framealpha=1, title=f"Combined GA channels, p < {SIGNIFICANCE_ALPHA}")
+    # Outside the axes, right of the plot, so it never covers bars.
+    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0, frameon=False, title=f"Combined GA channels, p < {SIGNIFICANCE_ALPHA}")
     ax.axvline(0, color="#888888", linewidth=1, linestyle="--", zorder=0)
     ax.set_xlim(-1, 1)
     ax.set_xlabel("Mean solid preference index over GA channels  (2D ← → 3D)")
