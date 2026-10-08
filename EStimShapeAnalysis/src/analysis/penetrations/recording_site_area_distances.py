@@ -277,7 +277,7 @@ def plot_distance_heatmap(df: pd.DataFrame, areas: List[str], out_path: str, tit
     cb.ax.tick_params(labelsize=11)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
-    plt.close(fig)
+    return fig
 
 
 def main():
@@ -292,6 +292,7 @@ def main():
     PER_SESSION_CORRECTIONS = True       # viewer's "Sess.Corr: ON" (its default)
     PEN_TABLE = None                     # None -> config's penetration_table
     FINAL_SITE_COLOR = "red"
+    SHOW_PLOTS = True                    # open the figure in a window after saving
     # Area -> atlas label name(s) to match (case-insensitive, whole name or
     # any comma-separated token of the D99 label).
     AREAS = {
@@ -322,7 +323,7 @@ def main():
         json.dump(dict(
             timestamp=ts, run_tag=RUN_TAG, mri_config=os.path.abspath(MRI_CONFIG),
             corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
-            pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS,
+            pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
             area_label_indices=df.attrs['area_indices'],
             sources=geom['sources'],
             subject_correction=geom['subj_corr'].tolist(),
@@ -334,6 +335,8 @@ def main():
     plot_distance_heatmap(df, list(AREAS), os.path.join(out_dir, 'site_area_distances.png'),
                           f"Final recording site distance to area ({table}, {len(df)} sites)")
     print(f"Wrote {len(df)} sites from {df['session_id'].nunique()} sessions -> {out_dir}")
+    if SHOW_PLOTS:
+        plt.show()
 
 
 if __name__ == "__main__":
