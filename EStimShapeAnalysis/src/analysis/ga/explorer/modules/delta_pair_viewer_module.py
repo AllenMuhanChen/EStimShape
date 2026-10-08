@@ -10,8 +10,11 @@ column, with their mean responses and the delta/variant ratio. For each pair:
     pairs as a standalone figure (e.g. good examples of a component or a
     combination of components), which you can save.
 
-Nothing is written to the GA database. Thresholds that decided inclusion for
-the experiment are not used here: all delta-parent pairs are shown.
+Nothing is written to the GA database. No pair is rejected: the deltas come
+from the session's StimGaInfo (every REGIME_ESTIM_DELTA the GA generated),
+paired with their parent_id. Responses come from the repository import; a
+delta or parent without response data is still shown, with "n/a" and a gray
+border. Thresholds that decided inclusion for the experiment are not used.
 
 The red overlay on deltas marks the hypothesized component(s); it needs the
 comp-map thumbnails that only some experiments generate, and silently does
@@ -87,26 +90,75 @@ FIGURE_THUMB_PX = 300
 # Pairs
 # ---------------------------------------------------------------------------
 
-def compute_all_pairs(data: pd.DataFrame, response_col: str) -> pd.DataFrame | None:
-    """Every REGIME_ESTIM_DELTA stim paired with its parent, with mean
-    responses. No thresholds. Columns: StimSpecId (delta), PairedVariantId
-    (parent), Delta Response, Variant Response, Ratio."""
-    data = data[data["StimType"] != "BASELINE"]
-    mean_resp = data.groupby("StimSpecId")[response_col].mean()
-    info = data.drop_duplicates("StimSpecId").set_index("StimSpecId")
-    deltas = info[info["StimType"] == DELTA_STIM_TYPE]
-    rows = []
-    for delta_id, parent_id in deltas["ParentId"].items():
-        if parent_id not in mean_resp.index:
-            continue
-        rows.append({"StimSpecId": int(delta_id), "PairedVariantId": int(parent_id),
-                     "Delta Response": float(mean_resp[delta_id]),
-                     "Variant Response": float(mean_resp[parent_id])})
-    if not rows:
+def read_generated_stims() -> pd.DataFrame | None:
+    """Every stim the GA generated, from this session's StimGaInfo:
+    StimSpecId, ParentId, StimType, GenId (one row per stim, latest gen).
+    None if the table can't be read."""
+    from clat.util.connection import Connection
+    try:
+        conn = Connection(context.ga_database)
+        conn.execute("SELECT stim_id, parent_id, stim_type, gen_id FROM StimGaInfo")
+        rows = conn.fetch_all()
+    except Exception as exc:
+        print(f"Could not read StimGaInfo from {context.ga_database}: {exc}")
         return None
-    pairs = pd.DataFrame(rows)
+    df = pd.DataFrame(rows, columns=["StimSpecId", "ParentId", "StimType", "GenId"])
+    if df.empty:
+        return df
+    df = df.astype({"StimSpecId": "int64", "ParentId": "int64"})
+    return df.sort_values("GenId").drop_duplicates("StimSpecId", keep="last")
+
+
+def compute_all_pairs(data: pd.DataFrame, response_col: str,
+                      generated: pd.DataFrame | None = None) -> pd.DataFrame | None:
+    """Every REGIME_ESTIM_DELTA stim paired with its parent. No thresholds and
+    no rejection: a delta (or parent) without response data is kept with a
+    NaN response.
+
+    Deltas come from ``generated`` (the GA DB's StimGaInfo) when given, so
+    pairs that never made it into the repository still show; otherwise from
+    the repository ``data``. Columns: StimSpecId (delta), PairedVariantId
+    (parent), Delta Response, Variant Response, Ratio, HasData.
+    """
+    mean_resp = data[data["StimType"] != "BASELINE"].groupby("StimSpecId")[response_col].mean()
+    if generated is not None:
+        deltas = generated[generated["StimType"] == DELTA_STIM_TYPE][["StimSpecId", "ParentId"]]
+    else:
+        info = data.drop_duplicates("StimSpecId")
+        deltas = info[info["StimType"] == DELTA_STIM_TYPE][["StimSpecId", "ParentId"]]
+    if deltas.empty:
+        return None
+    pairs = pd.DataFrame({"StimSpecId": deltas["StimSpecId"].astype(int).to_numpy(),
+                          "PairedVariantId": deltas["ParentId"].astype(int).to_numpy()})
+    pairs["Delta Response"] = pairs["StimSpecId"].map(mean_resp).astype(float)
+    pairs["Variant Response"] = pairs["PairedVariantId"].map(mean_resp).astype(float)
     pairs["Ratio"] = pairs["Delta Response"] / pairs["Variant Response"].replace(0, np.nan)
-    return pairs
+    pairs["HasData"] = pairs["Delta Response"].notna() & pairs["Variant Response"].notna()
+    return pairs.reset_index(drop=True)
+
+
+def read_stim_paths(stim_ids) -> dict:
+    """{stim_id: thumbnail path} from StimSpec, the same way ThumbnailField
+    does it; for stims that aren't in the repository data."""
+    import xmltodict
+    from clat.util.connection import Connection
+    result = {}
+    try:
+        conn = Connection(context.ga_database)
+        for sid in stim_ids:
+            conn.execute("SELECT spec FROM StimSpec WHERE id = %s", (int(sid),))
+            xml = conn.fetch_one()
+            if not xml:
+                continue
+            path = xmltodict.parse(xml)["StimSpec"]["path"]
+            if "sftp:host=" in path:
+                path = path[path.find("/home/"):]
+            if path.endswith(".png"):
+                thumb = path[:-4] + "_thumbnail.png"
+                result[int(sid)] = thumb if os.path.exists(thumb) else path
+    except Exception as exc:
+        print(f"Could not read stim paths: {exc}")
+    return result
 
 
 def read_estim_included_pairs() -> set | None:
@@ -228,7 +280,9 @@ class ThumbnailRenderer:
 
     @staticmethod
     def border_color(response, vmin, vmax):
-        if vmax > vmin and response is not None and not pd.isna(response):
+        if response is None or pd.isna(response):
+            return (160, 160, 160)  # gray = no response data
+        if vmax > vmin:
             norm = max(0.0, min(1.0, (response - vmin) / (vmax - vmin)))
         else:
             norm = 0.5
@@ -273,6 +327,14 @@ class ThumbnailRenderer:
         pix = pil_to_pixmap(img)
         self._pixmap_cache[key] = pix
         return pix
+
+
+def _none_if_nan(value):
+    return None if value is None or pd.isna(value) else float(value)
+
+
+def _fmt(prefix, value, spec=".1f"):
+    return f"{prefix}n/a" if value is None or pd.isna(value) else f"{prefix}{value:{spec}}"
 
 
 def pil_to_pixmap(img: Image.Image) -> QPixmap:
@@ -359,7 +421,8 @@ def make_pairs_figure(rows: list[dict], *, title="", pairs_per_row=0, show_value
     per_row = n if pairs_per_row <= 0 else min(pairs_per_row, n)
     n_bands = int(np.ceil(n / per_row))
     resp = [r["delta_resp"] for r in rows] + [r["variant_resp"] for r in rows]
-    vmin, vmax = float(np.nanmin(resp)), float(np.nanmax(resp))
+    resp = [x for x in resp if x is not None and not pd.isna(x)]
+    vmin, vmax = (float(min(resp)), float(max(resp))) if resp else (0.0, 1.0)
     renderer = ThumbnailRenderer(FIGURE_THUMB_PX)
 
     label_h = 0.35 if show_values else 0.0
@@ -386,7 +449,7 @@ def make_pairs_figure(rows: list[dict], *, title="", pairs_per_row=0, show_value
             for spine in ax.spines.values():
                 spine.set_visible(False)
             if show_values:
-                ax.set_xlabel(f"{value:.1f}", fontsize=11, labelpad=2)
+                ax.set_xlabel(_fmt("", value), fontsize=11, labelpad=2)
             if col == 0:
                 ax.set_ylabel(role, fontsize=13, fontweight="bold")
     if title:
@@ -463,6 +526,7 @@ class DeltaPairViewerModule(ExplorerModule):
         self.gen_map: dict = {}
         self.hypothesized_map: dict = {}
         self.has_included_table = False
+        self.from_ga_db = False
         # session_id -> set of (delta_id, variant_id) picked for the figure.
         self.selections: dict[str, set] = {}
         self.values: dict = {}
@@ -545,7 +609,10 @@ class DeltaPairViewerModule(ExplorerModule):
         prepared = ResponseSpec(channel, use_baseline_correction=bool(v["baseline"])).apply(
             compiled_data, spike_rates_col=spike_rates_col)
 
-        pairs = compute_all_pairs(prepared.data, prepared.response_col)
+        generated = read_generated_stims()
+        self.from_ga_db = generated is not None and not generated.empty
+        pairs = compute_all_pairs(prepared.data, prepared.response_col,
+                                  generated if self.from_ga_db else None)
         if pairs is None:
             self.pairs = None
             self._show_message("No deltas in this session.")
@@ -556,9 +623,18 @@ class DeltaPairViewerModule(ExplorerModule):
         pairs["Included"] = [(d, p) in (included or set())
                              for d, p in zip(pairs["StimSpecId"], pairs["PairedVariantId"])]
 
-        info = prepared.data.drop_duplicates("StimSpecId").set_index("StimSpecId")
-        self.thumb_map = info["ThumbnailPath"].to_dict()
+        # Thumbnails / generations: repository data first (unfiltered, so stims
+        # without a response still have a path), then the GA DB for the rest.
+        info = compiled_data.drop_duplicates("StimSpecId").set_index("StimSpecId")
+        self.thumb_map = info["ThumbnailPath"].dropna().to_dict()
         self.gen_map = info["GenId"].to_dict() if "GenId" in info.columns else {}
+        if self.from_ga_db:
+            for sid, gen in zip(generated["StimSpecId"], generated["GenId"]):
+                self.gen_map.setdefault(int(sid), gen)
+        all_ids = set(pairs["StimSpecId"]) | set(pairs["PairedVariantId"])
+        missing = [sid for sid in all_ids if sid not in self.thumb_map]
+        if missing:
+            self.thumb_map.update(read_stim_paths(missing))
         self.pairs = pairs
         self.hypothesized_map = read_hypothesized_comps(pairs["StimSpecId"].unique())
         self.thumbs.clear()  # border colors depend on the new response range
@@ -583,9 +659,9 @@ class DeltaPairViewerModule(ExplorerModule):
                 continue
             rows.append({
                 "delta_id": key[0], "variant_id": key[1],
-                "delta_resp": float(r["Delta Response"]),
-                "variant_resp": float(r["Variant Response"]),
-                "ratio": float(r["Ratio"]),
+                "delta_resp": _none_if_nan(r["Delta Response"]),
+                "variant_resp": _none_if_nan(r["Variant Response"]),
+                "ratio": _none_if_nan(r["Ratio"]),
                 "included_in_estim": bool(r["Included"]),
                 "comps": self.hypothesized_map.get(key[0]),
                 "delta_path": self.thumb_map.get(key[0]),
@@ -684,7 +760,9 @@ class DeltaPairViewerModule(ExplorerModule):
             return
         self.view.message.hide()
         vmin, vmax = self._response_range()
-        variant_max = float(self.pairs["Variant Response"].max())
+        variant_max = float(self.pairs["Variant Response"].max(skipna=True))
+        if pd.isna(variant_max):
+            variant_max = 0.0
         show_comps = self.values.get("show_comps", True)
         size = self.thumbs.thumb_size
 
@@ -709,13 +787,14 @@ class DeltaPairViewerModule(ExplorerModule):
                 d_pix = self.thumbs.pixmap(self.thumb_map.get(delta_id), d_resp, vmin, vmax, comps)
                 v_pix = self.thumbs.pixmap(self.thumb_map.get(variant_id), v_resp, vmin, vmax)
 
-                w["ratio"].setText(f"ratio {float(ratios[pos]):.2f}")
+                w["ratio"].setText(_fmt("ratio ", ratios[pos], ".2f"))
                 self._set_image(w["delta_img"], d_pix, f"delta\n{delta_id}", size)
                 comp_txt = f"\ncomp {','.join(map(str, comps))}" if comps else ""
-                w["delta_info"].setText(f"Δ {d_resp:.1f}\ngen {self._gen_label(delta_id)}"
+                w["delta_info"].setText(f"{_fmt('Δ ', d_resp)}\ngen {self._gen_label(delta_id)}"
                                         f"\nd{delta_id}{comp_txt}")
                 self._set_image(w["variant_img"], v_pix, f"variant\n{variant_id}", size)
-                w["variant_info"].setText(f"V {v_resp:.1f} ({pct:.0f}% max)\n"
+                pct_txt = f" ({pct:.0f}% max)" if not pd.isna(pct) else ""
+                w["variant_info"].setText(f"{_fmt('V ', v_resp)}{pct_txt}\n"
                                           f"gen {self._gen_label(variant_id)}\nv{variant_id}")
                 inc = bool(incs[pos])
                 w["included"].setChecked(inc)
@@ -763,6 +842,11 @@ class DeltaPairViewerModule(ExplorerModule):
         baseline = " (baseline-corrected)" if v.get("baseline") else ""
         inc_txt = (f"{n_inc} in estim exp" if self.has_included_table
                    else "no IncludedDeltas table")
+        n_nodata = int((~self.pairs["HasData"]).sum())
+        if n_nodata:
+            inc_txt += f", {n_nodata} without response data"
+        if not self.from_ga_db:
+            inc_txt += ", deltas from repository (StimGaInfo unreadable)"
         shown = f"{n_shown} shown, " if n_shown is not None and n_shown != n_total else ""
         return (f"Channel: {channel}{baseline}   |   {n_total} pairs ({shown}{inc_txt}), "
                 f"{len(self.selected)} selected")
