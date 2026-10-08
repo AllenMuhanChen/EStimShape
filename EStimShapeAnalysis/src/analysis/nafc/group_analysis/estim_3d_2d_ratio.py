@@ -15,20 +15,29 @@ Prints one row per session: n_3d, n_2d, n_unknown, ratio_3d_2d, frac_3d, categor
 Each session is categorized as "3D" when it has more 3D than 2D base stimuli, otherwise
 "2D" (a 50/50 split counts as 2D). Sessions with no 2D or 3D base stimuli at all are
 "unknown". A pie chart shows how many sessions fall in each category.
+
+Each session also gets mean_spi: its solid preference index (SolidPreferenceIndices)
+averaged over its GA channels (the latest-generation ClusterInfo channels), plotted as a
+histogram across sessions. Both figures are shown and saved to SAVE_DIR.
 """
 
 from __future__ import annotations
 
+import os
 import traceback
 
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from clat.util.connection import Connection
 
+from src.analysis.channel_data_loaders import ClusterChannelLoader, SolidPreferenceLoader
 from src.pga.stim_types import THREE_D_TEXTURES
 from src.startup.startup_system import ExperimentManager
 
 TWO_D_TEXTURE = "2D"
+
+SAVE_DIR = "/home/connorlab/Documents/plots/across_experiments/"
 
 CATEGORY_COLORS = {"3D": "#2a78d6", "2D": "#eb6834", "unknown": "#a9a9a9"}
 
@@ -93,6 +102,16 @@ def categorize(n_3d: int, n_2d: int) -> str:
     return "3D" if n_3d > n_2d else "2D"
 
 
+def mean_ga_channel_spi(repo_conn, session_id: str) -> tuple[float, int]:
+    """Solid preference index averaged over the session's GA channels, and how many
+    GA channels had an SPI. NaN when none did."""
+    ga_channels = ClusterChannelLoader(session_id, repo_conn).load()
+    spi_by_channel = SolidPreferenceLoader(session_id, repo_conn).load()
+    values = [spi_by_channel[ch] for ch in ga_channels
+              if ch in spi_by_channel and spi_by_channel[ch] is not None]
+    return (float(np.mean(values)) if values else float("nan")), len(values)
+
+
 def compute_ratio_table(session_ids=None) -> pd.DataFrame:
     """One row per session. Sessions whose GA database can't be read are reported and skipped."""
     repo_conn = Connection("allen_data_repository")
@@ -111,6 +130,12 @@ def compute_ratio_table(session_ids=None) -> pd.DataFrame:
             continue
         counts = count_textures(stim_ids, textures)
         counts["category"] = categorize(counts["n_3d"], counts["n_2d"])
+        try:
+            counts["mean_spi"], counts["n_spi_channels"] = mean_ga_channel_spi(repo_conn, sid)
+        except Exception:
+            print(f"[3d/2d] could not load SPI for session {sid}:")
+            traceback.print_exc()
+            counts["mean_spi"], counts["n_spi_channels"] = float("nan"), 0
         rows.append({"session_id": sid, **counts})
 
     return pd.DataFrame(rows)
@@ -141,6 +166,32 @@ def plot_category_pie(table: pd.DataFrame):
     return fig
 
 
+def plot_spi_histogram(table: pd.DataFrame):
+    """Histogram across sessions of the GA-channel-averaged solid preference index."""
+    spi = table["mean_spi"].dropna()
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.hist(spi, bins=np.linspace(-1, 1, 21), color=CATEGORY_COLORS["3D"],
+            edgecolor="white", linewidth=2)
+    ax.axvline(0, color="#888888", linewidth=1, linestyle="--", zorder=0)
+    ax.set_xlim(-1, 1)
+    ax.set_xlabel("Mean solid preference index over GA channels  (2D ← → 3D)")
+    ax.set_ylabel("Sessions")
+    ax.set_title(f"Solid preference index per EStim session (n = {len(spi)})")
+    ax.yaxis.get_major_locator().set_params(integer=True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    fig.tight_layout()
+    return fig
+
+
+def save_figure(fig, name: str):
+    os.makedirs(SAVE_DIR, exist_ok=True)
+    path = os.path.join(SAVE_DIR, name)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    print(f"Saved {path}")
+
+
 def main():
     # Edit this list to target specific sessions; None = every session in EStimShapeTrials.
     session_ids = None
@@ -153,6 +204,8 @@ def main():
     # Pooled row: sums the per-session counts (a stimulus id is only unique within its GA db).
     total = summarize(*(int(table[c].sum()) for c in ("n_3d", "n_2d", "n_unknown")))
     total["category"] = ""
+    total["mean_spi"] = table["mean_spi"].mean()
+    total["n_spi_channels"] = int(table["n_spi_channels"].sum())
     printed = pd.concat([table, pd.DataFrame([{"session_id": "ALL", **total}])], ignore_index=True)
 
     with pd.option_context("display.max_rows", None, "display.width", 120):
@@ -160,7 +213,8 @@ def main():
     print()
     print(table["category"].value_counts().to_string())
 
-    plot_category_pie(table)
+    save_figure(plot_category_pie(table), "estim_3d_2d_category_pie.png")
+    save_figure(plot_spi_histogram(table), "estim_session_spi_histogram.png")
     plt.show()
 
 
