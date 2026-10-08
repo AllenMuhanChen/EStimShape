@@ -1069,8 +1069,12 @@ class EstimConditionExplorer(QMainWindow):
         if alternative is None:
             lines.append("Per-bar test: off")
         else:
-            lines += ["Per-bar test: permutation vs.",
-                      f"stored EStim nulls ({side[alternative]})"]
+            n_null = pd.to_numeric(summary.get('n_null'), errors='coerce').min() \
+                if 'n_null' in summary else np.nan
+            shuffles = f", {int(n_null):,} shuffles" if pd.notna(n_null) else ""
+            lines += [f"Per-bar test: permutation ({side[alternative]})",
+                      "EStim ON/OFF trial labels shuffled",
+                      f"within each condition{shuffles}"]
 
             def bars(panel):
                 rows = []
@@ -1085,8 +1089,13 @@ class EstimConditionExplorer(QMainWindow):
                 return rows
             lines += by_panel(bars)
         if pairs is not None:
-            test = PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][0]
-            lines += ["", f"Pairwise: {test.split(' (')[0]},", "Holm-corrected"]
+            if PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][1] is ect.pairwise_welch:
+                lines += ["", "Pairwise: Welch t-test on per-session",
+                          "mean effects, Holm-corrected"]
+            else:
+                lines += ["", "Pairwise: permutation, bar labels shuffled",
+                          "within sessions (whole sessions when a",
+                          "session has only one bar), Holm-corrected"]
             compare = COMPARE_CHOICES[self.compare_box.currentIndex()][1]
             shown = pairs if len(pairs) <= MAX_STATS_PAIRS else \
                 pairs.nsmallest(MAX_STATS_PAIRS, 'p_holm')
