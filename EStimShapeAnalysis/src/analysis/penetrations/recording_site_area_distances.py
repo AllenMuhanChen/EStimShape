@@ -403,6 +403,16 @@ def plot_rf_map(df: pd.DataFrame, areas: List[str], out_path: str, title: str,
     return fig
 
 
+def filter_by_start_date(pens: List[dict], start_date: Optional[str]) -> List[dict]:
+    """Keep sessions whose id date (YYMMDD prefix, e.g. 260402_0) is on/after start_date."""
+    if not start_date:
+        return pens
+    start = str(start_date).replace('-', '')[-6:]   # accepts "260401" or "2026-04-01"
+    kept = [p for p in pens if str(p['session_id'])[:6] >= start]
+    print(f"  START_DATE {start_date}: kept {len(kept)} of {len(pens)} red sites")
+    return kept
+
+
 def main():
     # ---- PARAMETERS ------------------------------------------------------
     OUT_BASE = "/home/connorlab/Documents/penetration_optimization_plots/recording_site_area_distances"
@@ -432,6 +442,7 @@ def main():
     RF_CHANNEL = 'SUPRA-000'             # which channel's RF to draw per session
     LABEL_SESSIONS = False               # session id next to each RF center
     PRINT_AREAS = ['TEO']                # print sessions in (or nearest to) these areas
+    START_DATE = None                    # e.g. "260401" (YYMMDD) -> only sessions on/after; None = all
     DB = dict(database="allen_data_repository", user="xper_rw",
               password="up2nite", host="172.30.6.61")
     # ----------------------------------------------------------------------
@@ -446,7 +457,7 @@ def main():
     table = PEN_TABLE or geom['cfg'].get('penetration_table', 'Penetrations')
 
     conn = Connection(**DB)
-    pens = fetch_red_penetrations(conn, table, FINAL_SITE_COLOR)
+    pens = filter_by_start_date(fetch_red_penetrations(conn, table, FINAL_SITE_COLOR), START_DATE)
     df = compute_site_distances(pens, geom, AREAS, PER_SESSION_CORRECTIONS)
 
     with open(os.path.join(out_dir, 'config.json'), 'w') as f:
@@ -455,7 +466,7 @@ def main():
             corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
             pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
             plot_rf_map=PLOT_RF_MAP, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
-            print_areas=PRINT_AREAS,
+            print_areas=PRINT_AREAS, start_date=START_DATE,
             area_label_indices=df.attrs['area_indices'],
             sources=geom['sources'],
             subject_correction=geom['subj_corr'].tolist(),
