@@ -72,6 +72,8 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
             )
         # remove baseline
         compiled_data = compiled_data[compiled_data['StimType'] != 'BASELINE']
+        # remove side-test stims (shuffles, lighting)
+        compiled_data = drop_side_test_stims(compiled_data)
 
         compiled_data = rank_within_lineage(compiled_data, prepared.response_col)
 
@@ -224,6 +226,18 @@ class PlotTopNAnalysis(Analysis, LiveCompilable):
         # Remove Catch
         data_for_all_tasks = data_for_all_tasks[data_for_all_tasks['ThumbnailPath'].apply(lambda x: x is not None)]
         return data_for_all_tasks
+
+# StimType substrings dropped from top-N plots: side-test stims, not GA
+# stimuli (matches suffixed types like SHUFFLE_PIXEL / LIGHTING_*).
+EXCLUDED_STIM_TYPE_TOKENS = ("SHUFFLE", "LIGHTING")
+
+
+def drop_side_test_stims(compiled_data: pd.DataFrame) -> pd.DataFrame:
+    """Drop rows whose StimType contains any EXCLUDED_STIM_TYPE_TOKENS."""
+    stim_types = compiled_data['StimType'].fillna('').astype(str).str.upper()
+    excluded = stim_types.apply(lambda t: any(tok in t for tok in EXCLUDED_STIM_TYPE_TOKENS))
+    return compiled_data[~excluded]
+
 
 def rank_within_lineage(compiled_data: pd.DataFrame, response_col: str) -> pd.DataFrame:
     """Add RankWithinLineage column based on the mean of `response_col` per (Lineage, StimSpecId).

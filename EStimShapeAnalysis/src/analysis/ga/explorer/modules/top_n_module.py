@@ -1,7 +1,8 @@
 """
 Top-N stimuli per lineage: the explorer version of plot_top_n.PlotTopNAnalysis.
 
-Same steps as PlotTopNAnalysis.analyze (ResponseSpec -> drop BASELINE ->
+Same steps as PlotTopNAnalysis.analyze (ResponseSpec -> drop BASELINE,
+shuffle and lighting stims ->
 rank within lineage -> grouped-stimuli plot), with the hardcoded choices
 (4 lineages, top 20, publish mode, cell/border size) exposed as parameters.
 Nothing is written to disk unless you press Save in the explorer.
@@ -39,7 +40,8 @@ class TopNModule(FigureModule):
         ]
 
     def make_figure(self, session, values):
-        from src.analysis.ga.plot_top_n import get_top_n_lineages, rank_within_lineage
+        from src.analysis.ga.plot_top_n import (drop_side_test_stims, get_top_n_lineages,
+                                                rank_within_lineage)
         from src.analysis.ga.response_spec import ResponseSpec
         from src.analysis.modules.grouped_stims_by_response import (
             GroupedStimuliInputHandler, GroupedStimuliPlotter)
@@ -61,6 +63,7 @@ class TopNModule(FigureModule):
             data = data.sort_values(by=["Lineage", prepared.response_col],
                                     ascending=[True, False])
         data = data[data["StimType"] != "BASELINE"]
+        data = drop_side_test_stims(data)  # no shuffles / lighting
         if data.empty:
             self.status("No non-baseline stimuli with a response.")
             return None
