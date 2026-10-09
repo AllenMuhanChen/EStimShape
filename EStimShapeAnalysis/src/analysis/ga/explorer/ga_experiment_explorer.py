@@ -56,6 +56,7 @@ def main():
     from src.analysis.ga.explorer.modules.delta_pair_viewer_module import DeltaPairViewerModule
     from src.analysis.ga.explorer.modules.all_pair_explorer_module import AllPairExplorerModule
     from src.analysis.ga.explorer.modules.top_n_module import TopNModule
+    from src.analysis.ga.explorer.modules.top_per_gen_module import TopPerGenModule
     from src.analysis.ga.explorer.modules.response_by_generation_module import \
         ResponseByGenerationModule
 
@@ -64,6 +65,7 @@ def main():
         DeltaPairViewerModule,
         AllPairExplorerModule,
         TopNModule,
+        TopPerGenModule,
         ResponseByGenerationModule,
     ]
     # Session to open with, e.g. "260426_0". None = the session context.py
