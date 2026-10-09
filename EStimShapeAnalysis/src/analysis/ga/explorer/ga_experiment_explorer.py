@@ -58,6 +58,7 @@ def main():
     from src.analysis.ga.explorer.modules.top_n_module import TopNModule
     from src.analysis.ga.explorer.modules.top_per_gen_module import TopPerGenModule
     from src.analysis.ga.explorer.modules.estim_summary_module import EStimSummaryModule
+    from src.analysis.ga.explorer.modules.solid_preference_module import SolidPreferenceModule
     from src.analysis.ga.explorer.modules.response_by_generation_module import \
         ResponseByGenerationModule
 
@@ -68,6 +69,7 @@ def main():
         TopNModule,
         TopPerGenModule,
         EStimSummaryModule,
+        SolidPreferenceModule,
         ResponseByGenerationModule,
     ]
     # Session to open with, e.g. "260426_0". None = the session context.py
