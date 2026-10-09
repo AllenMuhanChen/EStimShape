@@ -147,10 +147,10 @@ def main():
         # PlotTopNAnalysis(),
         # StimulusSelectivityAnalysis(),
         # LightnessAnalysis(),
-        MixedGaborsAnalysis(data_type="mua"),
+        # MixedGaborsAnalysis(data_type="mua"),
         # ShuffleAnalysis(),
         # PlotGenerationsAnalysis(),
-        # ChoicePeriodEStimAnalysis(),  # NAFC choice-period EStim ON vs OFF -> NafcChoicePeriodResponses
+        ChoicePeriodEStimAnalysis(),
     ]
     # Initialize analysis modules
 
