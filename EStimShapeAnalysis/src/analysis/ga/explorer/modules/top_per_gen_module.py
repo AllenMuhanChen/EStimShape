@@ -287,7 +287,9 @@ class TopPerGenModule(ExplorerModule):
             return
 
         counts = data.groupby("Lineage")["StimSpecId"].nunique()
-        lineages = sorted(counts[counts > values["min_lineage_stims"]].index)
+        # Biggest lineage (most stims of the ticked types) first; ties by id.
+        big = counts[counts > values["min_lineage_stims"]]
+        lineages = sorted(big.index, key=lambda lin: (-big[lin], lin))
         if not lineages:
             self._nothing(f"No lineage has more than {values['min_lineage_stims']} stimuli "
                           "of the ticked trial types.")
