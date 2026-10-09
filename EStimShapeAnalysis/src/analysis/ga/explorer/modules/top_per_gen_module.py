@@ -14,6 +14,10 @@ one row per generation and one panel per lineage. Differences:
     figure").
   - Border width is a text box (pixels added around the original thumbnail
     before it is scaled to the cell size, as in plot_generations).
+  - On screen, panels are drawn directly with PIL in the plotter's layout
+    (thumbnails cached across redraws and sessions), which is much faster
+    than rendering plotly figures. Save also writes the plotter's own
+    figure as svg/pdf.
 
 Nothing is written to disk unless you press Save view: whole figure (png,
 svg, pdf) plus one png per lineage panel.
@@ -22,7 +26,6 @@ svg, pdf) plus one png per lineage panel.
 from __future__ import annotations
 
 import os
-import tempfile
 
 from PIL import Image
 from PyQt5.QtCore import Qt
@@ -61,21 +64,6 @@ def rank_within_generation(data, response_col):
                       on=["GenId", "StimSpecId"], how="left")
 
 
-def figures_to_images(figs) -> list[Image.Image]:
-    """Render plotly figures to PIL images in one kaleido session."""
-    import plotly.io as pio
-    with tempfile.TemporaryDirectory() as tmp:
-        paths = [os.path.join(tmp, f"{i}.png") for i in range(len(figs))]
-        pio.write_images(list(figs), paths, format="png",
-                         width=[f.layout.width for f in figs],
-                         height=[f.layout.height for f in figs])
-        images = []
-        for p in paths:
-            with Image.open(p) as im:
-                images.append(im.convert("RGB"))
-    return images
-
-
 def stack_vertically(images: list[Image.Image], gap=0) -> Image.Image:
     """Panels already start with the plotter's top margin, so no extra gap."""
     width = max(im.width for im in images)
@@ -92,6 +80,132 @@ def pil_to_qimage(img: Image.Image) -> QImage:
     img = img.convert("RGB")
     return QImage(img.tobytes("raw", "RGB"), img.width, img.height, 3 * img.width,
                   QImage.Format_RGB888).copy()
+
+
+# ---------------------------------------------------------------------------
+# Fast panel drawing (PIL), same layout as GroupedStimuliPlotter
+# ---------------------------------------------------------------------------
+
+# Thumbnails decoded once and kept small: path -> (original size, image with
+# its longest side at most THUMB_CACHE_PX). Shared by every session.
+THUMB_CACHE_PX = 600
+_thumb_cache: dict[str, tuple] = {}
+_cell_cache: dict[tuple, Image.Image] = {}
+
+
+def _load_thumb(path):
+    hit = _thumb_cache.get(path)
+    if hit is None:
+        try:
+            with Image.open(path) as im:
+                size = im.size
+                im = im.convert("RGB")
+                im.thumbnail((THUMB_CACHE_PX, THUMB_CACHE_PX), Image.LANCZOS)
+                hit = (size, im)
+        except Exception:
+            hit = (None, None)
+        _thumb_cache[path] = hit
+    return hit
+
+
+def bordered_cell(path, color, border, cell) -> Image.Image | None:
+    """Thumbnail with a ``border``-px border (in original-image pixels) of
+    ``color``, scaled to cell x cell: the same result as the plotter's
+    ImageOps.expand(img, border) followed by resize((cell, cell))."""
+    key = (path, border, cell)
+    inner = _cell_cache.get(key)
+    if inner is None:
+        size, src = _load_thumb(path)
+        if src is None:
+            return None
+        w, h = size
+        iw = max(1, round(cell * w / (w + 2 * border)))
+        ih = max(1, round(cell * h / (h + 2 * border)))
+        inner = (src.resize((iw, ih), Image.LANCZOS), ((cell - iw) // 2, (cell - ih) // 2))
+        _cell_cache[key] = inner
+    img, offset = inner
+    out = Image.new("RGB", (cell, cell), color)
+    out.paste(img, offset)
+    return out
+
+
+def border_color(value, vmin, vmax):
+    """Black -> red, as the plotter's 'intensity' color mode."""
+    if vmax == vmin:
+        norm = 0.5
+    else:
+        norm = min(1.0, max(0.0, (value - vmin) / (vmax - vmin)))
+    return (int(255 * norm), 0, 0)
+
+
+def _font(size):
+    from matplotlib import font_manager
+    from PIL import ImageFont
+    try:
+        return ImageFont.truetype(font_manager.findfont("DejaVu Sans"), size)
+    except Exception:
+        return ImageFont.load_default()
+
+
+def draw_panel(cells: dict, row_values, col_values, *, cell, border, spacing, vmin, vmax,
+               colorbar=True, labels=False) -> Image.Image:
+    """One lineage panel. ``cells``: (row value, col value) -> (thumbnail
+    path, mean response). Geometry follows GroupedStimuliPlotter.compute for
+    one subgroup (margins, spacing, cell size)."""
+    from PIL import ImageDraw
+    hs, vs = spacing
+    left = 200 if labels else 50
+    right = 200 if colorbar else 50
+    top = 100
+    content_w = len(col_values) * (cell + hs)
+    content_h = len(row_values) * (cell + vs)
+    img = Image.new("RGB", (left + content_w + right, top + content_h), "white")
+    draw = ImageDraw.Draw(img)
+    label_font = _font(18)
+    for r, row in enumerate(row_values):
+        y = top + r * (cell + vs)
+        if labels:
+            draw.text((left - 6, y + cell / 2), str(row), fill="black", font=label_font,
+                      anchor="rm")
+        for c, col in enumerate(col_values):
+            x = left + c * (cell + hs)
+            if labels and r == 0:
+                draw.text((x + cell / 2, y - 4), str(col), fill="black", font=label_font,
+                          anchor="mb")
+            hit = cells.get((row, col))
+            if hit is None:
+                continue
+            path, value = hit
+            tile = bordered_cell(path, border_color(value, vmin, vmax), border, cell)
+            if tile is None:
+                draw.text((x + cell / 2, y + cell / 2), "Image not found", fill="black",
+                          font=_font(12), anchor="mm")
+            else:
+                img.paste(tile, (x, y))
+    if colorbar:
+        _draw_colorbar(img, draw, left + content_w + 10, top, content_h, vmin, vmax)
+    return img
+
+
+def _draw_colorbar(img, draw, x, top, height, vmin, vmax):
+    """Vertical black -> red bar, 80% of the panel height, ticks + 'Response'."""
+    import numpy as np
+    from matplotlib.ticker import MaxNLocator
+    bar_h = max(20, int(height * 0.8))
+    y0 = top + (height - bar_h) // 2
+    thickness = 20
+    ramp = np.linspace(255, 0, bar_h).astype("uint8")
+    bar = np.zeros((bar_h, thickness, 3), dtype="uint8")
+    bar[:, :, 0] = ramp[:, None]
+    img.paste(Image.fromarray(bar), (x, y0))
+    font = _font(32)
+    draw.text((x, y0 - 24), "Response", fill="#2a3f5f", font=font, anchor="lb")
+    if vmax > vmin:
+        for t in MaxNLocator(nbins=6).tick_values(vmin, vmax):
+            if vmin <= t <= vmax:
+                y = y0 + bar_h - (t - vmin) / (vmax - vmin) * bar_h
+                draw.text((x + thickness + 6, y), f"{t:g}", fill="#2a3f5f", font=font,
+                          anchor="lm")
 
 
 # ---------------------------------------------------------------------------
@@ -327,13 +441,23 @@ class TopPerGenModule(ExplorerModule):
 
         self.status(f"Drawing {len(whole['subgroup_values'])} lineage panels…")
         QApplication.processEvents()
-        figs = []
+        # Mean response per shown stim (as the plotter: mean over its trials).
+        shown_data = whole["data"]
+        values_per_row = shown_data.apply(scale._get_response_value, axis=1) \
+            if shown_data[whole["response_col"]].dtype == object \
+            else shown_data[whole["response_col"]].astype(float)
+        means = (shown_data.assign(_resp=values_per_row)
+                 .groupby(["Lineage", "GenId", "RankWithinGeneration"])
+                 .agg(path=("ThumbnailPath", "first"), resp=("_resp", "mean")))
+        images = []
         for lineage in whole["subgroup_values"]:
-            one = dict(whole)
-            one["data"] = whole["data"][whole["data"]["Lineage"] == lineage]
-            one["subgroup_values"] = [lineage]  # rows stay = every generation shown
-            figs.append(plotter(vmin, vmax).compute(one))
-        images = figures_to_images(figs)
+            sub = means.loc[lineage] if lineage in means.index.get_level_values(0) else None
+            cells = {} if sub is None else {
+                (gen, rank): (row.path, row.resp) for (gen, rank), row in sub.iterrows()}
+            images.append(draw_panel(
+                cells, whole["row_values"], whole["col_values"],
+                cell=values["cell_size"], border=border, spacing=SUBPLOT_SPACING,
+                vmin=vmin, vmax=vmax, colorbar=values["colorbar"], labels=labels))
 
         n_stims = {lin: int(counts[lin]) for lin in whole["subgroup_values"]}
         self.panels = [(f"Lineage {lin}  ({n_stims[lin]} stims)", img)
