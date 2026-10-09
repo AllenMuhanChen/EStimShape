@@ -12,6 +12,7 @@ from src.analysis.isogabor.isochromatic_luminant_score import IsoChromaticLumina
 from src.analysis.isogabor.isogabor_raster_pipeline import IsogaborAnalysis, IsochromaticIndexAnalysis
 from src.analysis.isogabor.mixed_gabors_analysis import MixedGaborsAnalysis
 from src.analysis.lightness.lightness_analysis import LightnessAnalysis
+from src.analysis.nafc.neural.choice_period_response import ChoicePeriodEStimAnalysis
 from src.analysis.shuffle.shuffle_analysis import ShuffleAnalysis
 from src.analysis.spi_vs_ici.isoluminant_comparison import IsoluminantComparisonAnalysis
 from src.repository.good_channels import read_cluster_channels
@@ -149,6 +150,7 @@ def main():
         MixedGaborsAnalysis(data_type="mua"),
         # ShuffleAnalysis(),
         # PlotGenerationsAnalysis(),
+        # ChoicePeriodEStimAnalysis(),  # NAFC choice-period EStim ON vs OFF -> NafcChoicePeriodResponses
     ]
     # Initialize analysis modules
 
