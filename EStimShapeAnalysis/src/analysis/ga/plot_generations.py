@@ -17,14 +17,15 @@ def main():
     channel = "A-002"
     analysis = PlotGenerationsAnalysis()
     # compiled_data = None
-    compiled_data = plot_top_n.compile_and_export()
+    # compiled_data = plot_top_n.compile_and_export()
 
     session_id, _ = read_session_id_and_date_from_db_name(context.ga_database)
     # session_id = "260115_0"
     channel = read_cluster_channels(session_id)
     # channel = ["A-009", "A-000", "A-006", "A-009", "A-015", "A-022", "A-024"]
-    data_type = "GA" if channel == "GA" else "raw"
-    analysis.run(session_id, data_type, channel, compiled_data=compiled_data)
+    # data_type = "GA" if channel == "GA" else "raw"
+    data_type="mua"
+    analysis.run(session_id, data_type, channel, compiled_data=None)
 
 
 class PlotGenerationsAnalysis(PlotTopNAnalysis):
