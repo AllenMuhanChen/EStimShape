@@ -765,13 +765,14 @@ def main():
     distance_fit_bootstraps = 1000    # session-resampling bootstraps for CIs (0 = no CIs)
     current_metrics = ["total_current"]  # panels added to the distance figure, one row each;
                                       # also "current_per_second"; [] = none
-    near_field_um = 65.0              # "near EStim" = within this distance (65 um = 1 channel)
+    near_field_um = 250.0             # "near EStim" = within this distance (65 um = 1 channel)
     split_by_polarity = True          # near-EStim panel: cathodic / anodic sessions, own fits
     binned_stat = "mean"              # distance plot: "mean" (+- SEM), "median" (IQR) or None,
     distance_bin_um = 65.0            # per distance bin of this width (65 um = one channel)
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
-        "total_current": None,        # are left out of that metric's two panels and their
-    }                                 # correlation only. None = all; either end may be None
+        "current_per_second": (0, 5000),  # are left out of that metric's two panels and their
+        "total_current": None,        # correlation only. None = all; either end may be None
+    }
     min_trials_per_group = 3          # channel needs this many trials in a sample x choice group
     output_root = "/home/connorlab/Documents/plots/across_experiments/choice_period_estim"
     show_plots = True
