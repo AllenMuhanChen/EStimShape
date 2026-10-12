@@ -25,9 +25,8 @@ Contiguous extent, done separately up and down the probe:
   channels (centre to centre), so it includes the span of the GA channels themselves.
 
 Left: the probe, top -> bottom, each channel coloured by ρ; GA channels are stars,
-channels >= ρ* have a thick outline. Middle: ρ by probe position (same rows), with the
-ρ* line, the walk's stopping channels (x) and the extent shaded. Right: the extent
-(up, down, total) recomputed over a sweep of ρ*, to show how much it depends on ρ*.
+channels >= ρ* have a thick outline. Right: ρ by probe position (same rows), with the
+ρ* line, the walk's stopping channels (x) and the extent shaded.
 """
 
 import json
@@ -166,15 +165,6 @@ def contiguous_extent(channel_strs, positions_um, rho_n, ga_strs, *, rho_thresho
     }
 
 
-def extent_sweep(channel_strs, positions_um, rho_n, ga_strs, thresholds, *,
-                 n_misses_to_stop=2):
-    """[(ρ*, extent dict)] for each ρ* in thresholds."""
-    return [(float(t), contiguous_extent(channel_strs, positions_um, rho_n, ga_strs,
-                                         rho_threshold=t,
-                                         n_misses_to_stop=n_misses_to_stop))
-            for t in thresholds]
-
-
 # ---------------------------------------------------------------- plotting
 
 def _row_y(n_rows, idx):
@@ -262,49 +252,17 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
     ax.spines[['top', 'right']].set_visible(False)
 
 
-def _plot_sweep(ax, sweep, rho_threshold):
-    """Extent (µm) vs ρ*. Open markers: that ρ* reaches the probe end on at least one
-    side, so the extent is a lower bound."""
-    t = np.array([s[0] for s in sweep])
-    series = (('extent_total_um', 'total', 'black', 'o'),
-              ('extent_up_um', 'up', 'tab:blue', '^'),
-              ('extent_down_um', 'down', 'tab:orange', 'v'))
-    end = np.array([e['up_reached_end'] or e['down_reached_end'] for _, e in sweep])
-    for key, label, color, marker in series:
-        v = np.array([e[key] for _, e in sweep], dtype=float)
-        ax.plot(t, v, '-', color=color, lw=1.8, label=label)
-        ax.scatter(t[~end], v[~end], marker=marker, s=55, color=color, zorder=3)
-        ax.scatter(t[end], v[end], marker=marker, s=55, facecolor='white',
-                   edgecolor=color, lw=1.5, zorder=3)
-    ax.axvline(rho_threshold, color='tab:red', lw=2, ls='--')
-    ax.set_xlabel('ρ*', fontsize=13)
-    ax.set_ylabel('Extent (µm)', fontsize=13)
-    ax.set_ylim(bottom=0)
-    ax.tick_params(labelsize=11)
-    ax.set_title('Extent vs ρ*', fontsize=13, fontweight='bold')
-    handles, _ = ax.get_legend_handles_labels()
-    if end.any():
-        handles.append(Line2D([0], [0], marker='o', color='w', markerfacecolor='white',
-                              markeredgecolor='black', markersize=8,
-                              label='reaches probe end'))
-    ax.legend(handles=handles, loc='upper center', bbox_to_anchor=(0.5, -0.09),
-              ncol=2, fontsize=11, frameon=False)
-    ax.spines[['top', 'right']].set_visible(False)
-
-
-def plot_extent_figure(session_id, ext, sweep, channel_strs, ga_strs, *,
+def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
                        n_misses_to_stop):
     ext = dict(ext, ga_strs=set(ga_strs))
-    fig = plt.figure(figsize=(19, 11))
-    # colorbar gets its own row so the probe panels keep the same height (rows line up)
-    gs = GridSpec(2, 3, width_ratios=[1, 4, 2.6], height_ratios=[40, 1], wspace=0.5,
+    fig = plt.figure(figsize=(13, 11))
+    # colorbar gets its own row so both panels keep the same height (rows line up)
+    gs = GridSpec(2, 2, width_ratios=[1, 4], height_ratios=[40, 1], wspace=0.25,
                   hspace=0.08, figure=fig)
     ax_col = fig.add_subplot(gs[0, 0])
     ax_prof = fig.add_subplot(gs[0, 1], sharey=ax_col)
-    ax_sweep = fig.add_subplot(gs[0, 2])
     ref = _plot_probe_column(ax_col, ext, channel_strs, ga_strs)
     _plot_profile(ax_prof, ext, channel_strs, n_misses_to_stop)
-    _plot_sweep(ax_sweep, sweep, ext['rho_threshold'])
     if ref is not None:
         cbar = fig.colorbar(ref, cax=fig.add_subplot(gs[1, 0]),
                             orientation='horizontal')
@@ -348,7 +306,6 @@ def load_session_rhos(session_id, *, method='spearman',
 
 
 def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
-                                    sweep_thresholds=np.arange(0.3, 0.701, 0.05),
                                     n_misses_to_stop=2, method='spearman',
                                     vector_type='ga_mean_response', output_root=None):
     """Compute and plot one session's contiguous extent. Returns the extent dict."""
@@ -357,10 +314,8 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
     ext = contiguous_extent(channel_strs, positions_um, rho_n, ga_with_data,
                             rho_threshold=rho_threshold,
                             n_misses_to_stop=n_misses_to_stop)
-    sweep = extent_sweep(channel_strs, positions_um, rho_n, ga_with_data,
-                         sweep_thresholds, n_misses_to_stop=n_misses_to_stop)
     print_extent(session_id, ext, ga_with_data)
-    fig = plot_extent_figure(session_id, ext, sweep, channel_strs, ga_with_data,
+    fig = plot_extent_figure(session_id, ext, channel_strs, ga_with_data,
                              n_misses_to_stop=n_misses_to_stop)
 
     if output_root:
@@ -368,7 +323,6 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
         os.makedirs(out_dir, exist_ok=True)
         with open(os.path.join(out_dir, "config.json"), "w") as f:
             json.dump({'session_id': session_id, 'rho_threshold': rho_threshold,
-                       'sweep_thresholds': [round(float(t), 4) for t in sweep_thresholds],
                        'n_misses_to_stop': n_misses_to_stop,
                        'method': method, 'vector_type': vector_type,
                        'ga_channels': ga_with_data,
@@ -376,8 +330,7 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
                        'extent_up_um': ext['extent_up_um'],
                        'extent_down_um': ext['extent_down_um'],
                        'up_reached_probe_end': ext['up_reached_end'],
-                       'down_reached_probe_end': ext['down_reached_end'],
-                       'sweep_extent_total_um': [e['extent_total_um'] for _, e in sweep]},
+                       'down_reached_probe_end': ext['down_reached_end']},
                       f, indent=2)
         for ext_name in ('png', 'svg'):
             fig.savefig(os.path.join(out_dir, f"cluster_corr_spread.{ext_name}"),
@@ -402,13 +355,11 @@ def print_extent(session_id, ext, ga_strs):
 def main():
     session_id = "260702_0"
     rho_threshold = 0.5      # ρ* : channels with ρ >= ρ* count as part of the cluster
-    sweep_thresholds = np.arange(0.3, 0.701, 0.05)  # ρ* values for the sweep panel
     n_misses_to_stop = 2     # channels in a row below ρ* that end the walk
     method = 'spearman'      # 'spearman' or 'pearson'
     output_root = f"/home/connorlab/Documents/plots/{session_id}/cluster_corr_spread"
 
     plot_cluster_correlation_spread(session_id, rho_threshold=rho_threshold,
-                                    sweep_thresholds=sweep_thresholds,
                                     n_misses_to_stop=n_misses_to_stop, method=method,
                                     output_root=output_root)
 
