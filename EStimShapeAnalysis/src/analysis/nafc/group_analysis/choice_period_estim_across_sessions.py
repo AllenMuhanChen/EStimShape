@@ -685,7 +685,9 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
         result["current"] = {
             m: _plot_current_panels(ax_c, ax_d, sub, m, near_field_um, fig, sharey_with=ax,
                                     current_range=(current_ranges or {}).get(m),
-                                    joint_fit=joint_fit, n_boot=n_boot)
+                                    joint_fit=joint_fit, n_boot=n_boot,
+                                    binned_stat=binned_stat,
+                                    distance_bin_um=distance_bin_um)
             for m, (ax_c, ax_d) in zip(current_metrics, current_axes)}
     fig.tight_layout()
     return fig, result
@@ -693,7 +695,9 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
 
 def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
                          near_field_um: float, fig, sharey_with=None, current_range=None,
-                         joint_fit: bool = False, n_boot: int = 0) -> dict:
+                         joint_fit: bool = False, n_boot: int = 0,
+                         binned_stat: Optional[str] = "mean",
+                         distance_bin_um: float = 65.0) -> dict:
     """Middle: the distance scatter colored by the session's value of metric.
     Right: per session, the mean MI of channels within near_field_um of an EStim
     channel vs metric (one point per session, sessions independent)."""
@@ -711,9 +715,11 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
         cur = cur[~outside]
     order = cur.sort_values(metric)  # high current drawn on top
     sc = ax_scatter.scatter(order["distance_to_estim_um"], order["modulation_index"], s=50,
-                            c=order[metric], cmap="viridis", alpha=0.85,
+                            c=order[metric], cmap="viridis",
+                            alpha=0.35 if (joint_fit and binned_stat) else 0.85,
                             edgecolor="white", linewidth=0.5)
     cbar = fig.colorbar(sc, ax=ax_scatter, pad=0.02)
+    cbar.solids.set_alpha(1)  # colorbar stays solid when points are faded
     cbar.set_label(f"{label} ({unit})", fontsize=13)
     cbar.ax.tick_params(labelsize=11)
     ax_scatter.axhline(0, color="black", linewidth=1, linestyle="--")
@@ -731,16 +737,25 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
         else:
             if n_boot:
                 joint["ci"] = bootstrap_joint(cur, metric, n_boot)
-            # Curves at the 10th / 50th / 90th percentile of the sessions' current,
-            # in the same colors as the points.
-            levels = np.percentile(cur.groupby("session_id")[metric].first(), [10, 50, 90])
+            # Sessions split into current thirds: each third's binned mean (or
+            # median) and the joint fit evaluated at that third's median current,
+            # in the same color, so data and fit can be compared directly.
+            per_sess = cur.groupby("session_id")[metric].first()
+            thirds = pd.qcut(per_sess.rank(method="first"), 3, labels=False)
             xs = np.linspace(0, cur["distance_to_estim_um"].max(), 400)
             handles = []
-            for level in levels:
+            for i, name in enumerate(("Low", "Mid", "High")):
+                sids = thirds.index[thirds == i]
+                level = float(per_sess[sids].median())
+                color = sc.cmap(sc.norm(level))
                 ys = falloff_joint(xs, level, joint["k"], joint["c"], joint["r0"])
                 ax_scatter.plot(xs, ys, color="black", linewidth=4.2, zorder=4)
-                handles += ax_scatter.plot(xs, ys, color=sc.cmap(sc.norm(level)), linewidth=2.6,
-                                           zorder=5, label=f"Fit at {level:.0f} {unit}")
+                handles += ax_scatter.plot(xs, ys, color=color, linewidth=2.6, zorder=5,
+                                           label=f"{name} third (median {level:.0f} {unit})")
+                if binned_stat:
+                    _draw_binned(ax_scatter, cur[cur["session_id"].isin(sids)], binned_stat,
+                                 distance_bin_um, color=color, label="_nolegend_",
+                                 offset_um=(i - 1) * 0.12 * distance_bin_um)
             ax_scatter.legend(handles=handles, fontsize=11, frameon=False, loc="lower right",
                               title=f"k\u00b7I/r\u00b2 fit (half at {joint['r0']:.0f} um)",
                               title_fontsize=11)
@@ -799,7 +814,8 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
     return out
 
 
-def _draw_binned(ax, sub: pd.DataFrame, stat: str, bin_um: float):
+def _draw_binned(ax, sub: pd.DataFrame, stat: str, bin_um: float, color: str = "#1F1F1F",
+                 label: str = None, offset_um: float = 0.0):
     """Mean +- SEM (or median with 25-75th percentile) of MI at each distance,
     distances rounded to the nearest bin_um (65 um = one probe channel)."""
     binned = sub.assign(_bin=(sub["distance_to_estim_um"] / bin_um).round() * bin_um)
@@ -814,8 +830,10 @@ def _draw_binned(ax, sub: pd.DataFrame, stat: str, bin_um: float):
             lo = hi = mi.std(ddof=1) / np.sqrt(len(mi)) if len(mi) > 1 else 0.0
         rows.append((d, mid, lo, hi))
     d, mid, lo, hi = map(np.array, zip(*rows))
-    label = "Median (IQR)" if stat == "median" else "Mean \u00b1 SEM"
-    return ax.errorbar(d, mid, yerr=[lo, hi], fmt="s", color="#1F1F1F", markerfacecolor="white",
+    if label is None:
+        label = "Median (IQR)" if stat == "median" else "Mean \u00b1 SEM"
+    return ax.errorbar(d + offset_um, mid, yerr=[lo, hi], fmt="s", color=color,
+                       markerfacecolor="white",
                 markeredgewidth=1.8, markersize=7, capsize=3, linewidth=1.4, zorder=4,
                 label=label)
 
