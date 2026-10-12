@@ -755,18 +755,7 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
                                   color="black", linewidth=2.6, zorder=5,
                                   label=f"k/r\u00b2 fit (half at {joint['r0']:.0f} um)")
         if binned_stat:
-            # Binned mean (or median) per current third: if they overlap each other
-            # and the curve, the effect scales with current.
-            per_sess = shown.groupby("session_id")[metric].first()
-            thirds = pd.qcut(per_sess.rank(method="first"), 3, labels=False)
-            for i, name in enumerate(("Low", "Mid", "High")):
-                sids = thirds.index[thirds == i]
-                level = float(per_sess[sids].median())
-                handles.append(_draw_binned(
-                    ax_scatter, shown[shown["session_id"].isin(sids)], binned_stat,
-                    distance_bin_um, color=sc.cmap(sc.norm(level)),
-                    label=f"{name} third (median {level:.0f} {unit})",
-                    offset_um=(i - 1) * 0.12 * distance_bin_um))
+            handles.append(_draw_binned(ax_scatter, shown, binned_stat, distance_bin_um))
         ax_scatter.legend(handles=handles, fontsize=11, frameon=False, loc="lower right")
         # Low-current outliers can stretch the axis; keep it to the bulk of the data.
         lo, hi = np.nanpercentile(shown["modulation_index"], [1, 99])
