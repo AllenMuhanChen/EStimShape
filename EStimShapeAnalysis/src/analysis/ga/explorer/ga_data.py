@@ -43,6 +43,22 @@ def load_ga_repository_data(session: SessionState, data_type: str):
     return session.get_or_load(("ga_repository", data_type), loader)
 
 
+def load_side_test_data(session: SessionState, data_type: str):
+    """2D vs 3D side-test trials (repository table 2Dvs3DStimInfo: TestId,
+    TestType '2D'/'3D', ...) for this session, as
+    ``(compiled_data, spike_rates_col)``. Cached on the session."""
+    def loader():
+        import src.repository.import_from_repository as repo
+        from src.analysis.ga.plot_top_n import PlotTopNAnalysis
+        cfg = PlotTopNAnalysis(data_type=data_type)  # response table / MUA metric only
+        data = repo.import_from_repository(
+            session.session_id, "ga", "2Dvs3DStimInfo", cfg.response_table,
+            mua_method=cfg.mua_method if cfg.response_table == "MUASpikeResponses" else None)
+        return data, cfg.spike_rates_col
+
+    return session.get_or_load(("side_test_2d3d", data_type), loader)
+
+
 def parse_channel(text: str):
     """Channel box text -> what ResponseSpec expects: 'GA', 'Cluster',
     'A-006', or a list for 'A-000,A-006'."""
