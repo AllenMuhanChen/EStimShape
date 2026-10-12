@@ -140,6 +140,55 @@ def _nan_mean_sem(rates: list[np.ndarray], n_bins: int) -> tuple[np.ndarray, np.
     return mean, sem
 
 
+def event_gaps(data: pd.DataFrame) -> pd.DataFrame:
+    """Per trial, times of sample_off and choices_off relative to choices_on
+    (seconds). Used to check that t = 0 (choices_on) is when the sample turns
+    off and the choices come on."""
+    rows = []
+    for _, trial in data.iterrows():
+        neural = trial.get("NeuralData")
+        if not isinstance(neural, dict) or neural.get("choices_on") is None:
+            continue
+        c_on = neural["choices_on"]
+        s_off, c_off = neural.get("sample_off"), neural.get("choices_off")
+        rows.append({"estim_on": bool(trial.get("EStimEnabled")),
+                     "sample_off_rel": np.nan if s_off is None else s_off - c_on,
+                     "choices_off_rel": np.nan if c_off is None else c_off - c_on})
+    return pd.DataFrame(rows, columns=["estim_on", "sample_off_rel", "choices_off_rel"])
+
+
+def print_event_gaps(gaps: pd.DataFrame, label: str = "") -> None:
+    g = gaps["sample_off_rel"].dropna() * 1000
+    if g.empty:
+        print(f"{label}no trials with both sample_off and choices_on")
+        return
+    print(f"{label}sample_off relative to choices_on (t = 0): median {g.median():.1f} ms, "
+          f"range {g.min():.1f} to {g.max():.1f} ms, n = {len(g)} trials")
+
+
+def plot_event_gaps(gaps: pd.DataFrame, title: str):
+    """Histogram of sample_off - choices_on per trial, split by EStim."""
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(8, 5))
+    vals = gaps["sample_off_rel"].dropna() * 1000
+    if len(vals):
+        lo, hi = float(vals.min()), float(vals.max())
+        edges = np.linspace(lo - 1, hi + 1, 41) if hi - lo > 0.5 else np.linspace(lo - 5, hi + 5, 21)
+        for estim_on in (False, True):
+            v = gaps.loc[gaps["estim_on"] == estim_on, "sample_off_rel"].dropna() * 1000
+            ax.hist(v, bins=edges, color=ESTIM_COLORS[estim_on], alpha=0.6,
+                    label=f"{ESTIM_LABELS[estim_on]} (n={len(v)})")
+    ax.axvline(0, color="black", linewidth=1)
+    ax.set_xlabel("Sample off - choices on (ms)", fontsize=13)
+    ax.set_ylabel("Trials", fontsize=13)
+    ax.tick_params(labelsize=11)
+    ax.legend(fontsize=11, frameon=False)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.set_title(title, fontsize=14)
+    fig.tight_layout()
+    return fig
+
+
 def summarize_channel(data: pd.DataFrame, channel: str, *,
                       start_offset_s: float = 0.0,
                       max_duration_s: Optional[float] = None,
@@ -160,7 +209,10 @@ def summarize_channel(data: pd.DataFrame, channel: str, *,
     else:
         t_stat, p_value = None, None
 
+    gaps = event_gaps(data)
     out = {"channel": channel, "bins": bins, "t_stat": t_stat, "p_value": p_value,
+           "sample_off_rel": float(gaps["sample_off_rel"].median()) if len(gaps) else np.nan,
+           "choices_off_rel": float(gaps["choices_off_rel"].median()) if len(gaps) else np.nan,
            "conditions": {}}
     for estim_on in (False, True):
         r = rates.loc[rates["estim_on"] == estim_on]
@@ -312,7 +364,13 @@ def plot_channel(summary: dict, title: str):
         ax_psth.fill_between(centers, c["psth_mean"] - c["psth_sem"],
                              c["psth_mean"] + c["psth_sem"], color=color, alpha=0.2,
                              linewidth=0)
-    ax_psth.axvline(0, color="black", linewidth=1)
+    ax_psth.axvline(0, color="black", linewidth=1, label="Choices on (t = 0)")
+    for key, style, name in (("sample_off_rel", "--", "Sample off"),
+                             ("choices_off_rel", ":", "Choices off")):
+        t = summary.get(key)
+        if t is not None and not np.isnan(t) and bins[0] <= t <= bins[-1]:
+            ax_psth.axvline(t, color="#7A7A7A", linestyle=style, linewidth=1.5,
+                            label=f"{name} (median {t * 1000:+.0f} ms)")
     ax_psth.set_xlabel("Time from choices on (s)", fontsize=13)
     ax_psth.set_ylabel("Firing rate (spikes/s)", fontsize=13)
     ax_psth.legend(fontsize=11, frameon=False)
@@ -433,6 +491,7 @@ class ChoicePeriodEStimAnalysis(Analysis):
         print(f"{context.nafc_database}: {len(data)} choice trials, "
               f"{int(has_neural.sum())} with neural data "
               f"({len(neural_field._index)} recording folders found)")
+        print_event_gaps(event_gaps(data[has_neural]), f"{context.nafc_database}: ")
         if not has_neural.any():
             print(f"SKIP {context.nafc_database}: recording folders exist but none matched a "
                   f"trial's stimSpecId or parsed")
@@ -516,6 +575,8 @@ def main():
     apply_session_context(session_id)
     analysis = ChoicePeriodEStimAnalysis(export=export, show_plots=show_plots)
     analysis.compile_and_export()
+    if show_plots and analysis._data is not None and not analysis._data.empty:
+        plot_event_gaps(event_gaps(analysis._data), f"{session_id} event timing")
     for channel in channels or get_all_channels():
         analysis.run(session_id=session_id, channel=channel)
 
