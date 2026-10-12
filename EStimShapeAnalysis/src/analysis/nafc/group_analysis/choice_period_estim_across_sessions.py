@@ -33,16 +33,14 @@ undefined indices.
     (a1 > 0 in EStimParameters) in that session, over all EStim specs. MI vs
     distance is tested with a Pearson correlation across channels (channels
     from one session are not independent, so treat p as descriptive).
-    Plotted as its own figure (plot_distance_to_estim). Fitted with the
-    falloff of a point current source: potential ~ 1/r, field and current
-    density ~ 1/r^2, with r = sqrt(d^2 + r0^2) (d = distance along the probe,
-    r0 = fitted offset to the activated tissue):
-        MI(d) = A (r0 / sqrt(d^2 + r0^2))^n + C,
-    n = 2 (current density), n = 1 (potential), or n fitted. A is the MI at
-    d = 0 above the far-field level C. Least squares on all channels; 95% CIs
-    by resampling whole sessions (1000 bootstraps). Reported: the distance at
-    which the effect is half its d = 0 value, r0 sqrt(2^(2/n) - 1), and AIC
-    to compare models (lower = better; the linear fit's AIC is listed too).
+    Plotted as its own figure (plot_distance_to_estim), fitted with the
+    falloff of current density from a point source (~ 1/r^2), with
+    r = sqrt(d^2 + r0^2) (d = distance along the probe, r0 = fitted offset to
+    the activated tissue, which keeps the curve finite at d = 0):
+        MI(d) = A r0^2 / (d^2 + r0^2) + C.
+    A is the MI at d = 0 above the far-field level C, and r0 is also the
+    distance at which the effect is half its d = 0 value. Least squares on all
+    channels; 95% CIs by resampling whole sessions (1000 bootstraps).
 
 Figure: population PSTHs aligned to choices_on (t = 0).
   1. EStim ON vs EStim OFF, all trials.
@@ -456,73 +454,45 @@ def add_estim_distance(table: pd.DataFrame, coords: dict, estim_channels_by_sess
     return table
 
 
-# Point-source falloff. A point current source in a uniform medium gives a
-# potential ~ 1/r and a field / current density ~ 1/r^2, r = distance from the
-# source. A recorded neuron is never exactly at the source, so
-# r = sqrt(d^2 + r0^2), where d is the distance along the probe and r0 (fitted)
-# is the effective offset to the activated tissue. Normalised so A is the
-# modulation at d = 0 above the far-field level C:
-#     MI(d) = A * (r0 / sqrt(d^2 + r0^2))^n + C
-# n = 1 (potential), n = 2 (current density), or n fitted.
-FALLOFF_MODELS = {"1/r^2": 2.0, "1/r": 1.0, "free n": None}
-FALLOFF_STYLES = {"1/r^2": ("black", "-"), "1/r": ("#555555", "--"), "free n": ("#8E44AD", ":")}
+def falloff(d, a, c, r0):
+    """Current density from a point source, MI(d) = A r0^2 / (d^2 + r0^2) + C."""
+    d = np.asarray(d, dtype=float)
+    return a * r0 ** 2 / (d ** 2 + r0 ** 2) + c
 
 
-def falloff(d, a, c, r0, n):
-    return a * (r0 / np.sqrt(np.asarray(d, dtype=float) ** 2 + r0 ** 2)) ** n + c
-
-
-def half_distance(r0: float, n: float) -> float:
-    """Distance at which the falloff term is half its d = 0 value."""
-    return float(r0 * np.sqrt(2 ** (2 / n) - 1))
-
-
-def fit_falloff(d: np.ndarray, mi: np.ndarray, n_fixed):
-    """Least-squares fit; returns dict of a, c, r0, n, d_half, aic (None if it fails)."""
+def fit_falloff(d: np.ndarray, mi: np.ndarray):
+    """Least-squares fit; returns dict of a, c, r0 (None if it fails)."""
     from scipy.optimize import curve_fit
     d, mi = np.asarray(d, dtype=float), np.asarray(mi, dtype=float)
-    a0 = float(np.mean(mi[d <= np.min(d) + 1e-9]) - np.median(mi))
     c0 = float(np.median(mi))
+    a0 = float(np.mean(mi[d <= np.min(d) + 1e-9])) - c0
     try:
-        if n_fixed is None:
-            popt, _ = curve_fit(falloff, d, mi, p0=[a0, c0, 100.0, 2.0],
-                                bounds=([-2, -1, 1, 0.1], [2, 1, 2000, 8]), maxfev=20000)
-            a, c, r0, n = popt
-            k = 4
-        else:
-            popt, _ = curve_fit(lambda x, a, c, r0: falloff(x, a, c, r0, n_fixed), d, mi,
-                                p0=[a0, c0, 100.0], bounds=([-2, -1, 1], [2, 1, 2000]),
-                                maxfev=20000)
-            (a, c, r0), n, k = popt, n_fixed, 3
+        (a, c, r0), _ = curve_fit(falloff, d, mi, p0=[a0, c0, 100.0],
+                                  bounds=([-2, -1, 1], [2, 1, 2000]), maxfev=20000)
     except (RuntimeError, ValueError):
         return None
-    rss = float(np.sum((mi - falloff(d, a, c, r0, n)) ** 2))
-    aic = len(d) * np.log(rss / len(d)) + 2 * k
-    return {"a": float(a), "c": float(c), "r0": float(r0), "n": float(n),
-            "d_half": half_distance(r0, n), "aic": float(aic)}
+    return {"a": float(a), "c": float(c), "r0": float(r0)}
 
 
-def bootstrap_falloff(sub: pd.DataFrame, n_fixed, n_boot: int, seed: int = 0) -> dict:
+def bootstrap_falloff(sub: pd.DataFrame, n_boot: int, seed: int = 0) -> dict:
     """95% CIs by resampling whole sessions (channels within a session are not
     independent)."""
     rng = np.random.default_rng(seed)
     groups = {sid: g for sid, g in sub.groupby("session_id")}
     sids = list(groups)
-    keys = ("a", "c", "r0", "n", "d_half")
-    draws = {k: [] for k in keys}
+    draws = {k: [] for k in ("a", "c", "r0")}
     for _ in range(n_boot):
         boot = pd.concat([groups[s] for s in rng.choice(sids, len(sids), replace=True)])
-        fit = fit_falloff(boot["distance_to_estim_um"], boot["modulation_index"], n_fixed)
+        fit = fit_falloff(boot["distance_to_estim_um"], boot["modulation_index"])
         if fit is not None:
-            for k in keys:
+            for k in draws:
                 draws[k].append(fit[k])
     return {k: tuple(np.percentile(v, [2.5, 97.5])) if v else (np.nan, np.nan)
             for k, v in draws.items()}
 
 
 def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bool,
-                        fit_models: list = None, n_boot: int = 1000,
-                        show_linear_fit: bool = False):
+                        fit_curve: bool = True, n_boot: int = 1000):
     sub = table.dropna(subset=["distance_to_estim_um", "modulation_index"])
     fig, ax = plt.subplots(figsize=(10, 7))
     for sig, color in SIG_COLORS.items():
@@ -541,32 +511,20 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
     if len(sub) >= 3:
         d, mi = sub["distance_to_estim_um"].to_numpy(), sub["modulation_index"].to_numpy()
         r, p = stats.pearsonr(d, mi)
-        slope, intercept = np.polyfit(d, mi, 1)
-        xs = np.linspace(0, d.max(), 400)
-        fit_lines = []
-        if show_linear_fit:
-            fit_lines += ax.plot(xs, intercept + slope * xs, color="#999999", linewidth=1.5,
-                                 label="linear")
         ax.text(0.02, 0.97, f"Pearson r = {r:.2f}, {_p_text(p)}", transform=ax.transAxes,
                 fontsize=13, va="top")
-        result = {"n": len(sub), "r": float(r), "p": float(p),
-                  "slope_mi_per_mm": float(slope * 1000), "fits": {}}
-        rss_lin = float(np.sum((mi - (intercept + slope * d)) ** 2))
-        result["linear_aic"] = len(d) * np.log(rss_lin / len(d)) + 2 * 2
-        for name in fit_models or []:
-            fit = fit_falloff(d, mi, FALLOFF_MODELS[name])
-            if fit is None:
-                print(f"{name} fit did not converge")
-                continue
+        result = {"n": len(sub), "r": float(r), "p": float(p), "fit": None}
+        fit = fit_falloff(d, mi) if fit_curve else None
+        if fit_curve and fit is None:
+            print("1/r^2 fit did not converge")
+        if fit is not None:
             if n_boot:
-                fit["ci"] = bootstrap_falloff(sub, FALLOFF_MODELS[name], n_boot)
-            result["fits"][name] = fit
-            color, style = FALLOFF_STYLES[name]
-            fit_lines += ax.plot(xs, falloff(xs, fit["a"], fit["c"], fit["r0"], fit["n"]),
-                                 color=color, linestyle=style, linewidth=2.4,
-                                 label=f"{name} (half at {fit['d_half']:.0f} um)")
-        if fit_lines:
-            ax.legend(handles=fit_lines, fontsize=11, frameon=False, loc="upper right")
+                fit["ci"] = bootstrap_falloff(sub, n_boot)
+            result["fit"] = fit
+            xs = np.linspace(0, d.max(), 400)
+            line = ax.plot(xs, falloff(xs, fit["a"], fit["c"], fit["r0"]), color="black",
+                           linewidth=2.4, label=f"1/r\u00b2 fit (half at {fit['r0']:.0f} um)")
+            ax.legend(handles=line, fontsize=11, frameon=False, loc="upper right")
             ax.add_artist(sig_legend)
 
     ax.set_xlabel("Distance to nearest EStim channel (um)", fontsize=14)
@@ -578,21 +536,16 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
     return fig, result
 
 
-def falloff_text(result: dict) -> str:
-    lines = [f"Falloff fits, MI(d) = A (r0 / sqrt(d^2 + r0^2))^n + C "
-             f"(95% CI: bootstrap over sessions); linear AIC = {result['linear_aic']:.1f}"]
-    for name, f in result["fits"].items():
-        ci = f.get("ci", {})
+def falloff_text(fit: dict) -> str:
+    ci = fit.get("ci", {})
 
-        def fmt(k, spec):
-            lo, hi = ci.get(k, (np.nan, np.nan))
-            return f"{f[k]:{spec}}" + (f" [{lo:{spec}}, {hi:{spec}}]" if ci else "")
+    def fmt(k, spec):
+        lo, hi = ci.get(k, (np.nan, np.nan))
+        return f"{fit[k]:{spec}}" + (f" [{lo:{spec}}, {hi:{spec}}]" if ci else "")
 
-        lines.append(f"  {name}: A = {fmt('a', '+.3f')}, C = {fmt('c', '+.3f')}, "
-                     f"r0 = {fmt('r0', '.0f')} um, "
-                     f"n = {fmt('n', '.2f') if FALLOFF_MODELS[name] is None else format(f['n'], 'g')}, "
-                     f"half-effect distance = {fmt('d_half', '.0f')} um, AIC = {f['aic']:.1f}")
-    return "\n".join(lines)
+    return (f"1/r^2 fit, MI(d) = A r0^2 / (d^2 + r0^2) + C (95% CI: bootstrap over sessions): "
+            f"A = {fmt('a', '+.3f')}, C = {fmt('c', '+.3f')}, "
+            f"r0 (half-effect distance) = {fmt('r0', '.0f')} um")
 
 
 def main():
@@ -607,9 +560,8 @@ def main():
     normalize_psth = True             # divide each channel's PSTH by its OFF choice-period rate
     plot_distance_to_estim = True     # MI vs distance to the nearest stimulated channel
     show_point_labels = False         # session/channel label on each distance-plot point
-    distance_fits = ["1/r^2", "1/r", "free n"]  # point-source falloff models; [] = none
+    fit_distance_falloff = True       # fit current-density falloff (1/r^2) to MI vs distance
     distance_fit_bootstraps = 1000    # session-resampling bootstraps for CIs (0 = no CIs)
-    show_linear_fit = False           # also draw the straight-line fit
     min_trials_per_group = 3          # channel needs this many trials in a sample x choice group
     output_root = "/home/connorlab/Documents/plots/across_experiments/choice_period_estim"
     show_plots = True
@@ -645,14 +597,13 @@ def main():
         table = add_estim_distance(table, coords, estim_by_session)
         all_channels = add_estim_distance(all_channels, coords, estim_by_session)
         distance_fig, distance_result = plot_mi_vs_distance(
-            table, alpha, show_point_labels, distance_fits, distance_fit_bootstraps,
-            show_linear_fit)
+            table, alpha, show_point_labels, fit_distance_falloff, distance_fit_bootstraps)
         if distance_result:
             text += (f"\nPearson correlation, MI vs distance to EStim (channels): "
                      f"r = {distance_result['r']:.2f}, {_p_text(distance_result['p'])}, "
                      f"n = {distance_result['n']}")
-            if distance_result["fits"]:
-                text += "\n" + falloff_text(distance_result)
+            if distance_result["fit"]:
+                text += "\n" + falloff_text(distance_result["fit"])
     print(text)
 
     out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -669,7 +620,7 @@ def main():
             "normalize_psth": normalize_psth,
             "min_trials_per_group": min_trials_per_group,
             "plot_distance_to_estim": plot_distance_to_estim,
-            "distance_fits": distance_fits,
+            "fit_distance_falloff": fit_distance_falloff,
             "distance_fit_bootstraps": distance_fit_bootstraps,
         }, f, indent=2)
     with open(os.path.join(out_dir, "stats.txt"), "w") as f:
