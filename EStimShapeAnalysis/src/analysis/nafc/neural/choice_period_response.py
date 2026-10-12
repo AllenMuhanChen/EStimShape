@@ -10,7 +10,8 @@ Per channel and condition (ON / OFF) it saves one row to the data
 repository table ``NafcChoicePeriodResponses``:
   - mean / std / SEM of the per-trial choice-period firing rate,
   - the per-trial rates themselves (so across-session scripts can redo stats),
-  - a PSTH aligned to choices_on (mean and SEM across trials),
+  - a PSTH aligned to choices_on (mean and SEM across trials), also split
+    by whether the monkey picked the hypothesized choice (IsHypothesized),
   - a Welch t-test of ON vs OFF trial rates (same value on both rows).
 
 Methods
@@ -123,8 +124,11 @@ def trial_psths(data: pd.DataFrame, channel: str, bins: np.ndarray,
             outside = (bins[:-1] < lo - 1e-9) | (bins[1:] > hi + 1e-9)
             rate = rate.astype(float)
             rate[outside] = np.nan
-        rows.append({"estim_on": bool(trial.get("EStimEnabled")), "rate": rate})
-    return pd.DataFrame(rows, columns=["estim_on", "rate"])
+        is_hyp = trial.get("IsHypothesized")
+        rows.append({"estim_on": bool(trial.get("EStimEnabled")),
+                     "is_hyp": None if is_hyp is None or pd.isna(is_hyp) else bool(is_hyp),
+                     "rate": rate})
+    return pd.DataFrame(rows, columns=["estim_on", "is_hyp", "rate"])
 
 
 def _nan_mean_sem(rates: list[np.ndarray], n_bins: int) -> tuple[np.ndarray, np.ndarray]:
@@ -165,8 +169,14 @@ def summarize_channel(data: pd.DataFrame, channel: str, *,
     for estim_on in (False, True):
         r = rates.loc[rates["estim_on"] == estim_on]
         trial_rates = r["rate_hz"].to_numpy()
-        psth_mean, psth_sem = _nan_mean_sem(
-            list(psths.loc[psths["estim_on"] == estim_on, "rate"]), len(bins) - 1)
+        cond_psths = psths[psths["estim_on"] == estim_on]
+        psth_mean, psth_sem = _nan_mean_sem(list(cond_psths["rate"]), len(bins) - 1)
+        # PSTH split by whether the monkey picked the hypothesized choice.
+        by_choice = {}
+        for is_hyp in (True, False):
+            grp = cond_psths[cond_psths["is_hyp"] == is_hyp]
+            m, e = _nan_mean_sem(list(grp["rate"]), len(bins) - 1)
+            by_choice[is_hyp] = {"n_trials": len(grp), "psth_mean": m, "psth_sem": e}
         n = len(trial_rates)
         out["conditions"][estim_on] = {
             "n_trials": n,
@@ -177,6 +187,7 @@ def summarize_channel(data: pd.DataFrame, channel: str, *,
             "trial_rates": trial_rates,
             "psth_mean": psth_mean,
             "psth_sem": psth_sem,
+            "by_choice": by_choice,
         }
     return out
 
@@ -224,6 +235,13 @@ CREATE_TABLE_SQL = f"""
         psth_clipped          BOOLEAN,
         psth_mean             LONGTEXT,   -- comma-separated spikes/s per bin
         psth_sem              LONGTEXT,
+        -- PSTH split by choice (IsHypothesized)
+        n_trials_hyp          INT,
+        psth_mean_hyp         LONGTEXT,
+        psth_sem_hyp          LONGTEXT,
+        n_trials_not_hyp      INT,
+        psth_mean_not_hyp     LONGTEXT,
+        psth_sem_not_hyp      LONGTEXT,
 
         PRIMARY KEY (session_id, channel, spike_source, is_estim_on),
         FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
@@ -236,7 +254,15 @@ _COLUMNS = [
     "n_trials", "mean_rate", "std_rate", "sem_rate", "mean_duration_s", "trial_rates",
     "t_stat", "p_value", "window_start_offset_s", "window_max_duration_s",
     "psth_align", "psth_start_s", "psth_bin_size_s", "psth_clipped", "psth_mean", "psth_sem",
+    "n_trials_hyp", "psth_mean_hyp", "psth_sem_hyp",
+    "n_trials_not_hyp", "psth_mean_not_hyp", "psth_sem_not_hyp",
 ]
+
+# Columns added after the table was first created (ensure_table adds them).
+_ADDED_COLUMNS = {
+    "n_trials_hyp": "INT", "psth_mean_hyp": "LONGTEXT", "psth_sem_hyp": "LONGTEXT",
+    "n_trials_not_hyp": "INT", "psth_mean_not_hyp": "LONGTEXT", "psth_sem_not_hyp": "LONGTEXT",
+}
 
 
 def summary_to_rows(session_id: str, summary: dict, *, spike_source: str,
@@ -266,6 +292,12 @@ def summary_to_rows(session_id: str, summary: dict, *, spike_source: str,
             "psth_clipped": bool(clip_to_choice_period),
             "psth_mean": encode_array(c["psth_mean"]),
             "psth_sem": encode_array(c["psth_sem"]),
+            "n_trials_hyp": c["by_choice"][True]["n_trials"],
+            "psth_mean_hyp": encode_array(c["by_choice"][True]["psth_mean"]),
+            "psth_sem_hyp": encode_array(c["by_choice"][True]["psth_sem"]),
+            "n_trials_not_hyp": c["by_choice"][False]["n_trials"],
+            "psth_mean_not_hyp": encode_array(c["by_choice"][False]["psth_mean"]),
+            "psth_sem_not_hyp": encode_array(c["by_choice"][False]["psth_sem"]),
         }
         rows.append(tuple(row[col] for col in _COLUMNS))
     return rows
@@ -273,6 +305,11 @@ def summary_to_rows(session_id: str, summary: dict, *, spike_source: str,
 
 def ensure_table(conn) -> None:
     conn.execute(CREATE_TABLE_SQL)
+    for col, sql_type in _ADDED_COLUMNS.items():
+        try:
+            conn.execute(f"ALTER TABLE {TABLE_NAME} ADD COLUMN {col} {sql_type}")
+        except Exception:
+            pass  # column already exists
 
 
 def clear_session(conn, session_id: str, spike_source: str) -> None:
@@ -405,7 +442,7 @@ class ChoicePeriodEStimAnalysis(Analysis):
     def compile(self) -> pd.DataFrame:
         from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
         from clat.util.connection import Connection
-        from src.analysis.nafc.nafc_database_fields import EStimEnabledField
+        from src.analysis.nafc.nafc_database_fields import EStimEnabledField, IsHypothesizedField
         from src.analysis.nafc.nafc_neural_database_fields import NafcNeuralDataField
         from src.analysis.nafc.psychometric_curves import collect_choice_trials
         from src.startup import context
@@ -426,6 +463,7 @@ class ChoicePeriodEStimAnalysis(Analysis):
 
         fields = CachedFieldList()
         fields.append(EStimEnabledField(exp_conn))
+        fields.append(IsHypothesizedField(exp_conn))
         fields.append(neural_field)
         data = fields.to_data(trial_tstamps)
 
