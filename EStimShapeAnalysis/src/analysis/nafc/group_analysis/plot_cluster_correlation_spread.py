@@ -1,6 +1,6 @@
 """
 One session's GA cluster correlation spread: how far along the probe channels keep
-responding like the GA cluster, measured with a hard (significance) cutoff on ρ.
+responding like the GA cluster, measured with a fixed (hard) cutoff on ρ.
 
 Reference: the GA cluster channels (ClusterInfo, latest gen). Each channel's GA
 response vector (ga_mean_response) is correlated (Spearman) with the AVERAGE response
@@ -8,26 +8,26 @@ of the GA channels (each z-scored across stimuli first, so one high-rate channel
 doesn't dominate). A GA channel is compared with the average of the OTHER GA channels
 (leave-one-out), so it isn't correlated with itself.
 
-Cutoff: ρ_crit = the smallest ρ that is significantly > 0 at ALPHA for that channel's
-number of stimuli n (t-test of a correlation: t = ρ·√((n−2)/(1−ρ²)), df = n−2;
-one-sided by default because only positive correlation counts as "like the cluster").
-ρ_crit depends only on n, so it is an absolute threshold, not one relative to the
-session's min/max correlation.
+Cutoff: a fixed ρ* (default 0.5, the conventional "strong correlation" boundary). A
+channel with ρ >= ρ* counts as part of the cluster. ρ* is the same for every session,
+so it is not relative to a session's own min/max correlation. (A p-value cutoff was
+rejected: with 100+ stimuli almost every channel is weakly but significantly
+correlated, since nearby V4 columns share tuning.)
 
 Contiguous extent, done separately up and down the probe:
   start at the top-most (bottom-most) GA channel and walk up (down) one channel at a
-  time; channels without data are skipped. A channel with ρ > ρ_crit is significant.
-  The walk stops after N_MISSES_TO_STOP non-significant channels in a row; the edge of
-  the cluster is the last significant channel before them. If the walk reaches the end
-  of the probe without stopping, that side is flagged as reaching the probe end
-  (the true extent may be larger).
+  time; channels without data are skipped. The walk stops after N_MISSES_TO_STOP
+  channels in a row below ρ*; the edge of the cluster is the last channel >= ρ* before
+  them. If the walk reaches the end of the probe without stopping, that side is
+  flagged as reaching the probe end (the true extent may be larger).
   extent_up / extent_down = distance (µm) from the GA channels' edge to that side's
   boundary channel. Total extent = distance between the upper and lower boundary
   channels (centre to centre), so it includes the span of the GA channels themselves.
 
 Left: the probe, top -> bottom, each channel coloured by ρ; GA channels are stars,
-significant channels have a thick outline. Right: ρ by probe position (same rows),
-with the ρ_crit line, the walk's stopping channels (x) and the extent shaded.
+channels >= ρ* have a thick outline. Middle: ρ by probe position (same rows), with the
+ρ* line, the walk's stopping channels (x) and the extent shaded. Right: the extent
+(up, down, total) recomputed over a sweep of ρ*, to show how much it depends on ρ*.
 """
 
 import json
@@ -56,7 +56,7 @@ from src.cluster.probe_mapping import DBCChannelMapper
 from src.startup.apply_session_context import apply_session_context
 
 
-# ---------------------------------------------------------------- correlation / cutoff
+# ---------------------------------------------------------------- correlation
 
 def zscore_average(response_matrix, channel_strs):
     """{stim_id: mean z-scored response across channel_strs}. Each channel is z-scored
@@ -92,16 +92,6 @@ def correlate(vec, target, method='spearman', min_common=3):
     return float(corr(a, b)[0]), n
 
 
-def critical_rho(n, alpha=0.05, one_sided=True):
-    """Smallest ρ significantly > 0 at alpha with n stimuli:
-    ρ_crit = t_crit / √(n − 2 + t_crit²), t_crit from a t distribution with n − 2 df."""
-    if n is None or n < 4:
-        return np.nan
-    q = 1 - alpha if one_sided else 1 - alpha / 2
-    t = stats.t.ppf(q, n - 2)
-    return float(t / np.sqrt(n - 2 + t ** 2))
-
-
 def ga_reference_rhos(response_matrix, ga_strs, method='spearman'):
     """{channel: (ρ, n)} vs the average GA response. GA channels are compared with the
     average of the other GA channels (leave-one-out); with a single GA channel it has
@@ -123,14 +113,14 @@ def ga_reference_rhos(response_matrix, ga_strs, method='spearman'):
 
 # ---------------------------------------------------------------- contiguous extent
 
-def _walk(indices, significant, has_data, n_misses_to_stop):
-    """Walk channel indices in order. Returns (last significant index or None,
+def _walk(indices, above, has_data, n_misses_to_stop):
+    """Walk channel indices in order. Returns (last index >= ρ* or None,
     [indices of the misses that stopped the walk], reached_probe_end)."""
     last_sig, misses = None, []
     for i in indices:
         if not has_data[i]:
             continue
-        if significant[i]:
+        if above[i]:
             last_sig, misses = i, []
         else:
             misses.append(i)
@@ -139,9 +129,9 @@ def _walk(indices, significant, has_data, n_misses_to_stop):
     return last_sig, misses, True
 
 
-def contiguous_extent(channel_strs, positions_um, rho_n, ga_strs, *, alpha=0.05,
-                      one_sided=True, n_misses_to_stop=2):
-    """Bidirectional contiguous extent of significant correlation around the GA channels.
+def contiguous_extent(channel_strs, positions_um, rho_n, ga_strs, *, rho_threshold=0.5,
+                      n_misses_to_stop=2):
+    """Bidirectional contiguous extent of ρ >= rho_threshold around the GA channels.
 
     channel_strs: probe channels top -> bottom; positions_um: their position along the
     probe (µm); rho_n: {channel: (ρ, n)}. Returns a dict (see module docstring), or None
@@ -154,18 +144,17 @@ def contiguous_extent(channel_strs, positions_um, rho_n, ga_strs, *, alpha=0.05,
 
     rho = np.array([rho_n.get(ch, (np.nan, 0))[0] for ch in channel_strs], dtype=float)
     n = np.array([rho_n.get(ch, (np.nan, 0))[1] for ch in channel_strs], dtype=int)
-    rho_crit = np.array([critical_rho(k, alpha, one_sided) for k in n], dtype=float)
-    has_data = np.isfinite(rho) & np.isfinite(rho_crit)
-    significant = has_data & (rho > rho_crit)
+    has_data = np.isfinite(rho)
+    above = has_data & (rho >= rho_threshold)
 
-    up_sig, up_miss, up_end = _walk(range(top - 1, -1, -1), significant, has_data,
+    up_sig, up_miss, up_end = _walk(range(top - 1, -1, -1), above, has_data,
                                     n_misses_to_stop)
-    dn_sig, dn_miss, dn_end = _walk(range(bottom + 1, len(channel_strs)), significant,
+    dn_sig, dn_miss, dn_end = _walk(range(bottom + 1, len(channel_strs)), above,
                                     has_data, n_misses_to_stop)
     up_edge = top if up_sig is None else up_sig
     dn_edge = bottom if dn_sig is None else dn_sig
     return {
-        'rho': rho, 'n': n, 'rho_crit': rho_crit, 'significant': significant,
+        'rho': rho, 'n': n, 'rho_threshold': rho_threshold, 'above': above,
         'has_data': has_data, 'ga_top': top, 'ga_bottom': bottom,
         'up_edge': up_edge, 'down_edge': dn_edge,
         'up_stop': up_miss, 'down_stop': dn_miss,
@@ -175,6 +164,15 @@ def contiguous_extent(channel_strs, positions_um, rho_n, ga_strs, *, alpha=0.05,
         'extent_total_um': float(abs(pos[up_edge] - pos[dn_edge])),
         'ga_span_um': float(abs(pos[top] - pos[bottom])),
     }
+
+
+def extent_sweep(channel_strs, positions_um, rho_n, ga_strs, thresholds, *,
+                 n_misses_to_stop=2):
+    """[(ρ*, extent dict)] for each ρ* in thresholds."""
+    return [(float(t), contiguous_extent(channel_strs, positions_um, rho_n, ga_strs,
+                                         rho_threshold=t,
+                                         n_misses_to_stop=n_misses_to_stop))
+            for t in thresholds]
 
 
 # ---------------------------------------------------------------- plotting
@@ -191,7 +189,7 @@ def _plot_probe_column(ax, ext, channel_strs, ga_strs):
                              cmap=cmap, norm=norm, show_yticks=True)
     format_single_column_axis(ax)
     rows = len(channel_strs)
-    for i in np.where(ext['significant'])[0]:
+    for i in np.where(ext['above'])[0]:
         ax.scatter(0, _row_y(rows, i), marker='o', s=320, facecolors='none',
                    edgecolors='black', linewidths=2.0, zorder=20)
     ax.axhspan(_row_y(rows, ext['down_edge']) - 0.5, _row_y(rows, ext['up_edge']) + 0.5,
@@ -200,21 +198,17 @@ def _plot_probe_column(ax, ext, channel_strs, ga_strs):
     return ref
 
 
-def _plot_profile(ax, ext, channel_strs, positions_um, alpha, one_sided,
-                  n_misses_to_stop):
+def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
     rows = len(channel_strs)
     y = np.array([_row_y(rows, i) for i in range(rows)])
-    rho, crit = ext['rho'], ext['rho_crit']
+    rho, thr = ext['rho'], ext['rho_threshold']
     ok = ext['has_data']
-    sig = ext['significant']
+    sig = ext['above']
 
     ax.axhspan(_row_y(rows, ext['down_edge']) - 0.5, _row_y(rows, ext['up_edge']) + 0.5,
                color='gold', alpha=0.25, lw=0, zorder=0)
     ax.axvline(0, color='0.7', lw=0.8, zorder=1)
-    # ρ_crit per channel (constant unless channels have different stimulus counts)
-    if np.any(np.isfinite(crit)):
-        ax.plot(np.where(ok, crit, np.nan), y, color='tab:red', lw=2, ls='--',
-                drawstyle='steps-mid', zorder=2)
+    ax.axvline(thr, color='tab:red', lw=2, ls='--', zorder=2)
     ax.plot(np.where(ok, rho, np.nan), y, color='0.5', lw=1, zorder=3)
     ax.scatter(rho[ok & ~sig], y[ok & ~sig], s=60, facecolor='white',
                edgecolor='0.3', lw=1.2, zorder=4)
@@ -248,18 +242,14 @@ def _plot_profile(ax, ext, channel_strs, positions_um, alpha, one_sided,
     ax.tick_params(axis='y', left=False, labelleft=False)
     ax.set_xlabel('Spearman ρ with GA cluster response', fontsize=13)
     ax.tick_params(labelsize=11)
-    side = 'one-sided' if one_sided else 'two-sided'
     ax.set_title('Correlation along the probe', fontsize=13, fontweight='bold')
-    n_txt = (f"n = {int(np.median(ext['n'][ok]))} stimuli"
-             if ok.any() else 'no data')
-    crit_txt = (f"ρ_crit = {np.nanmedian(crit[ok]):.2f}" if ok.any() else 'ρ_crit')
     ax.legend(handles=[
         Line2D([0], [0], color='tab:red', ls='--', lw=2,
-               label=f"{crit_txt} (p < {alpha} {side}, {n_txt})"),
+               label=f"ρ* = {thr:.2f}"),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='black',
-               markersize=9, label='significant (ρ > ρ_crit)'),
+               markersize=9, label='ρ ≥ ρ*'),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='white',
-               markeredgecolor='0.3', markersize=9, label='not significant'),
+               markeredgecolor='0.3', markersize=9, label='ρ < ρ*'),
         Line2D([0], [0], marker='*', color='w', markerfacecolor='lightcoral',
                markeredgecolor='black', markersize=15,
                label='GA channel (vs other GA channels)'),
@@ -272,18 +262,49 @@ def _plot_profile(ax, ext, channel_strs, positions_um, alpha, one_sided,
     ax.spines[['top', 'right']].set_visible(False)
 
 
-def plot_extent_figure(session_id, ext, channel_strs, positions_um, ga_strs, *,
-                       alpha, one_sided, n_misses_to_stop):
+def _plot_sweep(ax, sweep, rho_threshold):
+    """Extent (µm) vs ρ*. Open markers: that ρ* reaches the probe end on at least one
+    side, so the extent is a lower bound."""
+    t = np.array([s[0] for s in sweep])
+    series = (('extent_total_um', 'total', 'black', 'o'),
+              ('extent_up_um', 'up', 'tab:blue', '^'),
+              ('extent_down_um', 'down', 'tab:orange', 'v'))
+    end = np.array([e['up_reached_end'] or e['down_reached_end'] for _, e in sweep])
+    for key, label, color, marker in series:
+        v = np.array([e[key] for _, e in sweep], dtype=float)
+        ax.plot(t, v, '-', color=color, lw=1.8, label=label)
+        ax.scatter(t[~end], v[~end], marker=marker, s=55, color=color, zorder=3)
+        ax.scatter(t[end], v[end], marker=marker, s=55, facecolor='white',
+                   edgecolor=color, lw=1.5, zorder=3)
+    ax.axvline(rho_threshold, color='tab:red', lw=2, ls='--')
+    ax.set_xlabel('ρ*', fontsize=13)
+    ax.set_ylabel('Extent (µm)', fontsize=13)
+    ax.set_ylim(bottom=0)
+    ax.tick_params(labelsize=11)
+    ax.set_title('Extent vs ρ*', fontsize=13, fontweight='bold')
+    handles, _ = ax.get_legend_handles_labels()
+    if end.any():
+        handles.append(Line2D([0], [0], marker='o', color='w', markerfacecolor='white',
+                              markeredgecolor='black', markersize=8,
+                              label='reaches probe end'))
+    ax.legend(handles=handles, loc='upper center', bbox_to_anchor=(0.5, -0.09),
+              ncol=2, fontsize=11, frameon=False)
+    ax.spines[['top', 'right']].set_visible(False)
+
+
+def plot_extent_figure(session_id, ext, sweep, channel_strs, ga_strs, *,
+                       n_misses_to_stop):
     ext = dict(ext, ga_strs=set(ga_strs))
-    fig = plt.figure(figsize=(13, 11))
-    # colorbar gets its own row so both panels keep the same height (rows line up)
-    gs = GridSpec(2, 2, width_ratios=[1, 4], height_ratios=[40, 1], wspace=0.25,
+    fig = plt.figure(figsize=(19, 11))
+    # colorbar gets its own row so the probe panels keep the same height (rows line up)
+    gs = GridSpec(2, 3, width_ratios=[1, 4, 2.6], height_ratios=[40, 1], wspace=0.5,
                   hspace=0.08, figure=fig)
     ax_col = fig.add_subplot(gs[0, 0])
     ax_prof = fig.add_subplot(gs[0, 1], sharey=ax_col)
+    ax_sweep = fig.add_subplot(gs[0, 2])
     ref = _plot_probe_column(ax_col, ext, channel_strs, ga_strs)
-    _plot_profile(ax_prof, ext, channel_strs, positions_um, alpha, one_sided,
-                  n_misses_to_stop)
+    _plot_profile(ax_prof, ext, channel_strs, n_misses_to_stop)
+    _plot_sweep(ax_sweep, sweep, ext['rho_threshold'])
     if ref is not None:
         cbar = fig.colorbar(ref, cax=fig.add_subplot(gs[1, 0]),
                             orientation='horizontal')
@@ -291,14 +312,16 @@ def plot_extent_figure(session_id, ext, channel_strs, positions_um, ga_strs, *,
     flag = ''
     if ext['up_reached_end'] or ext['down_reached_end']:
         flag = ' (reaches probe end)'
-    fig.suptitle(f"{session_id}: GA cluster extent = {ext['extent_total_um']:.0f} µm"
-                 f"{flag}", fontsize=15, fontweight='bold')
+    fig.suptitle(f"{session_id}: GA cluster extent = {ext['extent_total_um']:.0f} µm "
+                 f"at ρ* = {ext['rho_threshold']:.2f}{flag}",
+                 fontsize=15, fontweight='bold')
     return fig
 
 
 # ---------------------------------------------------------------- session driver
 
-def plot_cluster_correlation_spread(session_id, *, alpha=0.05, one_sided=True,
+def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
+                                    sweep_thresholds=np.arange(0.3, 0.701, 0.05),
                                     n_misses_to_stop=2, method='spearman',
                                     vector_type='ga_mean_response', output_root=None):
     """Compute and plot one session's contiguous extent. Returns the extent dict
@@ -322,26 +345,29 @@ def plot_cluster_correlation_spread(session_id, *, alpha=0.05, one_sided=True,
 
     rho_n = ga_reference_rhos(response_matrix, ga_with_data, method=method)
     ext = contiguous_extent(channel_strs, positions_um, rho_n, ga_with_data,
-                            alpha=alpha, one_sided=one_sided,
+                            rho_threshold=rho_threshold,
                             n_misses_to_stop=n_misses_to_stop)
+    sweep = extent_sweep(channel_strs, positions_um, rho_n, ga_with_data,
+                         sweep_thresholds, n_misses_to_stop=n_misses_to_stop)
     print_extent(session_id, ext, ga_with_data)
-    fig = plot_extent_figure(session_id, ext, channel_strs, positions_um, ga_with_data,
-                             alpha=alpha, one_sided=one_sided,
+    fig = plot_extent_figure(session_id, ext, sweep, channel_strs, ga_with_data,
                              n_misses_to_stop=n_misses_to_stop)
 
     if output_root:
         out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
         os.makedirs(out_dir, exist_ok=True)
         with open(os.path.join(out_dir, "config.json"), "w") as f:
-            json.dump({'session_id': session_id, 'alpha': alpha,
-                       'one_sided': one_sided, 'n_misses_to_stop': n_misses_to_stop,
+            json.dump({'session_id': session_id, 'rho_threshold': rho_threshold,
+                       'sweep_thresholds': [round(float(t), 4) for t in sweep_thresholds],
+                       'n_misses_to_stop': n_misses_to_stop,
                        'method': method, 'vector_type': vector_type,
                        'ga_channels': ga_with_data,
                        'extent_total_um': ext['extent_total_um'],
                        'extent_up_um': ext['extent_up_um'],
                        'extent_down_um': ext['extent_down_um'],
                        'up_reached_probe_end': ext['up_reached_end'],
-                       'down_reached_probe_end': ext['down_reached_end']},
+                       'down_reached_probe_end': ext['down_reached_end'],
+                       'sweep_extent_total_um': [e['extent_total_um'] for _, e in sweep]},
                       f, indent=2)
         for ext_name in ('png', 'svg'):
             fig.savefig(os.path.join(out_dir, f"cluster_corr_spread.{ext_name}"),
@@ -353,9 +379,8 @@ def plot_cluster_correlation_spread(session_id, *, alpha=0.05, one_sided=True,
 
 def print_extent(session_id, ext, ga_strs):
     ok = ext['has_data']
-    crit = np.nanmedian(ext['rho_crit'][ok]) if ok.any() else np.nan
-    print(f"{session_id}: GA channels {ga_strs}; ρ_crit ≈ {crit:.3f}; "
-          f"{int(ext['significant'].sum())}/{int(ok.sum())} channels significant")
+    print(f"{session_id}: GA channels {ga_strs}; ρ* = {ext['rho_threshold']:.2f}; "
+          f"{int(ext['above'].sum())}/{int(ok.sum())} channels with ρ ≥ ρ*")
     print(f"  extent up = {ext['extent_up_um']:.0f} µm"
           f"{' (probe end)' if ext['up_reached_end'] else ''}, "
           f"down = {ext['extent_down_um']:.0f} µm"
@@ -366,13 +391,14 @@ def print_extent(session_id, ext, ga_strs):
 
 def main():
     session_id = "260702_0"
-    alpha = 0.05             # significance level that sets ρ_crit
-    one_sided = True         # only positive correlation counts as "like the cluster"
-    n_misses_to_stop = 2     # non-significant channels in a row that end the walk
+    rho_threshold = 0.5      # ρ* : channels with ρ >= ρ* count as part of the cluster
+    sweep_thresholds = np.arange(0.3, 0.701, 0.05)  # ρ* values for the sweep panel
+    n_misses_to_stop = 2     # channels in a row below ρ* that end the walk
     method = 'spearman'      # 'spearman' or 'pearson'
     output_root = f"/home/connorlab/Documents/plots/{session_id}/cluster_corr_spread"
 
-    plot_cluster_correlation_spread(session_id, alpha=alpha, one_sided=one_sided,
+    plot_cluster_correlation_spread(session_id, rho_threshold=rho_threshold,
+                                    sweep_thresholds=sweep_thresholds,
                                     n_misses_to_stop=n_misses_to_stop, method=method,
                                     output_root=output_root)
 
