@@ -222,9 +222,7 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
     for y_end in (y_up, y_dn):
         ax.plot([x_arrow - tick, x_arrow + tick], [y_end, y_end], color='black',
                 lw=1.5, clip_on=False)
-    reached = ext['up_reached_end'] or ext['down_reached_end']
-    ax.text(x_arrow + 0.04, 0.5 * (y_up + y_dn),
-            f"{ext['extent_total_um']:.0f} µm" + ('\n(probe end)' if reached else ''),
+    ax.text(x_arrow + 0.04, 0.5 * (y_up + y_dn), f"{ext['extent_total_um']:.0f} µm",
             va='center', ha='left', fontsize=11, color='darkgoldenrod', clip_on=False)
 
     ax.set_xlim(-1, 1)
@@ -266,11 +264,8 @@ def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
         cbar = fig.colorbar(ref, cax=fig.add_subplot(gs[1, 0]),
                             orientation='horizontal')
         cbar.set_label('Spearman ρ', fontsize=11)
-    flag = ''
-    if ext['up_reached_end'] or ext['down_reached_end']:
-        flag = ' (reaches probe end)'
     fig.suptitle(f"{session_id}: GA cluster extent = {ext['extent_total_um']:.0f} µm "
-                 f"at ρ threshold = {ext['rho_threshold']:.2f}{flag}",
+                 f"at ρ threshold = {ext['rho_threshold']:.2f}",
                  fontsize=15, fontweight='bold')
     return fig
 
