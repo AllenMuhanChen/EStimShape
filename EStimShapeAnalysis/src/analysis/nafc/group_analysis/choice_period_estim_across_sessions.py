@@ -26,6 +26,13 @@ undefined indices.
   - Population (sessions): channels recorded together are not independent,
     so as a conservative check we average MI within each session and run a
     one-sample t-test of the session means against 0.
+  - MI to percent change: ON / OFF = (1 + MI) / (1 - MI), so MI = -0.076
+    means ON = 0.859 x OFF, a 14% lower rate (not 7.6%).
+  - Distance to EStim: each recorded channel's distance along the probe
+    (65 um spacing, DBCChannelMapper) to the nearest channel stimulated
+    (a1 > 0 in EStimParameters) in that session, over all EStim specs. MI vs
+    distance is tested with a Pearson correlation across channels (channels
+    from one session are not independent, so treat p as descriptive).
 
 The population PSTH averages each channel's choices_on-aligned PSTH (mean
 across trials), optionally after dividing by that channel's OFF choice-period
@@ -40,6 +47,7 @@ from __future__ import annotations
 
 import json
 import os
+import warnings
 from datetime import datetime
 
 import matplotlib.pyplot as plt
@@ -107,6 +115,7 @@ def add_derived(table: pd.DataFrame, alpha: float) -> pd.DataFrame:
     on, off = table["mean_rate_on"], table["mean_rate_off"]
     table["diff_hz"] = on - off
     table["modulation_index"] = (on - off) / (on + off)
+    table["percent_change"] = 100 * (on - off) / off
     sig = table["p_value"] < alpha
     table["significance"] = np.where(sig & (table["diff_hz"] < 0), "decrease",
                                      np.where(sig & (table["diff_hz"] > 0), "increase", "n.s."))
@@ -141,6 +150,11 @@ def population_stats(table: pd.DataFrame) -> dict:
     return out
 
 
+def mi_to_percent_change(mi):
+    """MI = (ON - OFF) / (ON + OFF)  ->  100 * (ON - OFF) / OFF."""
+    return 100 * 2 * np.asarray(mi) / (1 - np.asarray(mi))
+
+
 def _p_text(p: float) -> str:
     return "p < 0.001" if p < 0.001 else f"p = {p:.3f}"
 
@@ -153,7 +167,8 @@ def stats_text(pop: dict, alpha: float) -> str:
                      f"t({s['df']}) = {s['t']:.2f}, {_p_text(s['p'])}")
     if "mi_t" in pop:
         s = pop["mi_t"]
-        lines.append(f"One-sample t-test, MI vs 0 (channels): mean {s['mean_mi']:+.3f}, "
+        lines.append(f"One-sample t-test, MI vs 0 (channels): mean {s['mean_mi']:+.3f} "
+                     f"(ON {mi_to_percent_change(s['mean_mi']):+.1f}% vs OFF), "
                      f"t({s['df']}) = {s['t']:.2f}, {_p_text(s['p'])}")
     if "session_mi_t" in pop:
         s = pop["session_mi_t"]
@@ -194,7 +209,8 @@ def population_psth(table: pd.DataFrame, normalize: bool):
             curves.append(curve)
         arr = np.vstack(curves) if curves else np.full((1, n_bins), np.nan)
         n = np.sum(~np.isnan(arr), axis=0)
-        with np.errstate(invalid="ignore", divide="ignore"):
+        with np.errstate(invalid="ignore", divide="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN pre-period bins
             mean = np.nanmean(arr, axis=0)
             sem = np.nanstd(arr, axis=0, ddof=1) / np.sqrt(n)
         out[estim_on] = (mean, sem, len(curves))
@@ -289,6 +305,78 @@ def plot_summary(table: pd.DataFrame, pop: dict, alpha: float, normalize_psth: b
     return fig
 
 
+# ---------------------------------------------------------------------------
+# Distance to the stimulated channel(s)
+# ---------------------------------------------------------------------------
+
+def probe_coordinates() -> dict[str, np.ndarray]:
+    """Channel name ('A-012') -> probe position (um), from DBCChannelMapper."""
+    from src.cluster.probe_mapping import DBCChannelMapper
+    mapper = DBCChannelMapper("A")
+    return {ch.value: np.asarray(mapper.get_coordinates(ch), dtype=float)
+            for ch in mapper.channels_top_to_bottom}
+
+
+def estim_channels_for_session(session_id: str) -> list[str]:
+    """Every channel that delivered current (a1 > 0) in any EStim spec."""
+    from src.cluster.cluster_isolation_score import fetch_active_estim_channels_by_spec
+    by_spec = fetch_active_estim_channels_by_spec(session_id)
+    return sorted({ch.value for chs in by_spec.values() for ch in chs})
+
+
+def add_estim_distance(table: pd.DataFrame, coords: dict, estim_channels_by_session: dict
+                       ) -> pd.DataFrame:
+    """Add distance_to_estim_um: distance from each channel to the nearest
+    stimulated channel of its session (NaN if unknown)."""
+    table = table.copy()
+
+    def nearest(row):
+        estim = [coords[c] for c in estim_channels_by_session.get(row["session_id"], [])
+                 if c in coords]
+        if not estim or row["channel"] not in coords:
+            return np.nan
+        return min(float(np.linalg.norm(coords[row["channel"]] - e)) for e in estim)
+
+    table["distance_to_estim_um"] = table.apply(nearest, axis=1)
+    table["is_estim_channel"] = table["distance_to_estim_um"] == 0
+    return table
+
+
+def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bool):
+    sub = table.dropna(subset=["distance_to_estim_um", "modulation_index"])
+    fig, ax = plt.subplots(figsize=(10, 7))
+    for sig, color in SIG_COLORS.items():
+        g = sub[sub["significance"] == sig]
+        ax.scatter(g["distance_to_estim_um"], g["modulation_index"], s=50, color=color,
+                   alpha=0.8, edgecolor="white", linewidth=0.5, label=f"{sig} (n={len(g)})")
+    if show_point_labels:
+        for _, r in sub.iterrows():
+            ax.annotate(f"{r['session_id']} {r['channel']}",
+                        (r["distance_to_estim_um"], r["modulation_index"]), fontsize=7)
+    ax.axhline(0, color="black", linewidth=1, linestyle="--")
+
+    result = None
+    if len(sub) >= 3:
+        r, p = stats.pearsonr(sub["distance_to_estim_um"], sub["modulation_index"])
+        slope, intercept = np.polyfit(sub["distance_to_estim_um"], sub["modulation_index"], 1)
+        xs = np.array([0, sub["distance_to_estim_um"].max()])
+        ax.plot(xs, intercept + slope * xs, color="black", linewidth=2)
+        ax.text(0.02, 0.97, f"Pearson r = {r:.2f}, {_p_text(p)}", transform=ax.transAxes,
+                fontsize=13, va="top")
+        result = {"n": len(sub), "r": float(r), "p": float(p),
+                  "slope_mi_per_mm": float(slope * 1000)}
+
+    ax.set_xlabel("Distance to nearest EStim channel (um)", fontsize=14)
+    ax.set_ylabel("Modulation index (ON - OFF) / (ON + OFF)", fontsize=14)
+    ax.set_title("EStim modulation vs distance", fontsize=15)
+    ax.tick_params(labelsize=12)
+    ax.legend(fontsize=11, frameon=False, loc="lower right", title=f"Welch p < {alpha:g}",
+              title_fontsize=11)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+    return fig, result
+
+
 def main():
     # ---- parameters ----
     session_ids = None                # None = every session in the table; or ["260518_0", ...]
@@ -300,6 +388,7 @@ def main():
     normalize_psth = True             # divide each channel's PSTH by its OFF choice-period rate
     n_hist_bins = 30
     show_point_labels = False
+    plot_distance_to_estim = True     # MI vs distance to the nearest stimulated channel
     output_root = "/home/connorlab/Documents/plots/across_experiments/choice_period_estim"
     show_plots = True
     # --------------------
@@ -322,6 +411,22 @@ def main():
 
     pop = population_stats(table)
     text = stats_text(pop, alpha)
+
+    distance_result = None
+    if plot_distance_to_estim:
+        estim_by_session = {sid: estim_channels_for_session(sid)
+                            for sid in table["session_id"].unique()}
+        for sid, chs in estim_by_session.items():
+            if not chs:
+                print(f"{sid}: no EStimParameters channels with a1 > 0, no distance")
+        coords = probe_coordinates()
+        table = add_estim_distance(table, coords, estim_by_session)
+        all_channels = add_estim_distance(all_channels, coords, estim_by_session)
+        distance_fig, distance_result = plot_mi_vs_distance(table, alpha, show_point_labels)
+        if distance_result:
+            text += (f"\nPearson correlation, MI vs distance to EStim (channels): "
+                     f"r = {distance_result['r']:.2f}, {_p_text(distance_result['p'])}, "
+                     f"n = {distance_result['n']}")
     print(text)
 
     out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -337,6 +442,7 @@ def main():
             "alpha": alpha,
             "normalize_psth": normalize_psth,
             "n_hist_bins": n_hist_bins,
+            "plot_distance_to_estim": plot_distance_to_estim,
         }, f, indent=2)
     with open(os.path.join(out_dir, "stats.txt"), "w") as f:
         f.write(text + "\n")
@@ -348,6 +454,11 @@ def main():
     fig = plot_summary(table, pop, alpha, normalize_psth, n_hist_bins, show_point_labels)
     fig.savefig(os.path.join(out_dir, "choice_period_estim.png"), dpi=150, bbox_inches="tight")
     fig.savefig(os.path.join(out_dir, "choice_period_estim.svg"), bbox_inches="tight")
+    if distance_result is not None:
+        distance_fig.savefig(os.path.join(out_dir, "mi_vs_estim_distance.png"), dpi=150,
+                             bbox_inches="tight")
+        distance_fig.savefig(os.path.join(out_dir, "mi_vs_estim_distance.svg"),
+                             bbox_inches="tight")
     print(f"Saved to {out_dir}")
     if show_plots:
         plt.show()
