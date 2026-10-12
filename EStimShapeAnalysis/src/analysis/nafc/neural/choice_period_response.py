@@ -413,18 +413,30 @@ class ChoicePeriodEStimAnalysis(Analysis):
         exp_conn = Connection(context.nafc_database)
         trial_tstamps = collect_choice_trials(exp_conn)
         if not trial_tstamps:
-            raise RuntimeError(f"No NAFC choice trials in {context.nafc_database}")
+            print(f"SKIP {context.nafc_database}: no NAFC choice trials")
+            return pd.DataFrame()
+
+        # Check for recordings before compiling, so a session without neural
+        # data (or an unmounted Intan drive) doesn't cache NeuralData=None.
+        neural_field = NafcNeuralDataField(self.nafc_intan_path(), exp_conn, parser=self.parser)
+        if not neural_field._index:
+            print(f"SKIP {context.nafc_database}: no Intan recording folders under "
+                  f"{self.nafc_intan_path()}")
+            return pd.DataFrame()
 
         fields = CachedFieldList()
         fields.append(EStimEnabledField(exp_conn))
-        fields.append(NafcNeuralDataField(self.nafc_intan_path(), exp_conn, parser=self.parser))
+        fields.append(neural_field)
         data = fields.to_data(trial_tstamps)
 
         has_neural = data["NeuralData"].apply(lambda d: isinstance(d, dict))
         print(f"{context.nafc_database}: {len(data)} choice trials, "
-              f"{int(has_neural.sum())} with neural data")
+              f"{int(has_neural.sum())} with neural data "
+              f"({len(neural_field._index)} recording folders found)")
         if not has_neural.any():
-            raise RuntimeError(f"No neural recordings matched under {self.nafc_intan_path()}")
+            print(f"SKIP {context.nafc_database}: recording folders exist but none matched a "
+                  f"trial's stimSpecId or parsed")
+            return pd.DataFrame()
         return data[has_neural].reset_index(drop=True)
 
     def compile_and_export(self):
@@ -432,6 +444,8 @@ class ChoicePeriodEStimAnalysis(Analysis):
         self._data = self.compile()
         self._data_session_id = session_id
         self.summaries = {}
+        if self._data.empty:
+            return
         if self.export:
             from clat.util.connection import Connection
             repo_conn = Connection("allen_data_repository")
@@ -446,6 +460,8 @@ class ChoicePeriodEStimAnalysis(Analysis):
             if self._data is None or self._data_session_id != self.session_id:
                 self.compile_and_export()
             compiled_data = self._data
+        if compiled_data.empty:
+            return None  # session skipped in compile_and_export (no neural data)
 
         summary = summarize_channel(
             compiled_data, channel,
