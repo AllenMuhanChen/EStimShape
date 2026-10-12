@@ -713,10 +713,30 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
               + ", ".join(f"{sid} ({c:g})" for sid, c in cur.loc[outside].groupby("session_id")
                           [metric].first().items()))
         cur = cur[~outside]
-    order = cur.sort_values(metric)  # high current drawn on top
+    joint = None
+    if joint_fit and cur["session_id"].nunique() >= 3:
+        joint = fit_joint(cur["distance_to_estim_um"], cur[metric], cur["modulation_index"])
+        if joint is None:
+            print(f"Joint fit with {metric} did not converge")
+        elif n_boot:
+            joint["ci"] = bootstrap_joint(cur, metric, n_boot)
+
+    if joint is not None:
+        # Collapse: (MI - C) / I. If MI = k I r0^2/(d^2 + r0^2) + C holds, every
+        # session falls on the same curve k r0^2/(d^2 + r0^2) whatever its current.
+        # C (the far-field level) is subtracted first because it doesn't scale
+        # with current. Low-current sessions are noisier here (noise / I).
+        shown = cur.assign(modulation_index=1000 * (cur["modulation_index"] - joint["c"])
+                           / cur[metric])
+        ylabel = f"(MI - C) per 1000 {unit}"
+        title = f"Modulation per unit {label.lower()}"
+    else:
+        shown, ylabel, title = cur, "Modulation index (ON - OFF) / (ON + OFF)", \
+            f"Colored by {label.lower()}"
+    faded = joint is not None and bool(binned_stat)
+    order = shown.sort_values(metric)  # high current drawn on top
     sc = ax_scatter.scatter(order["distance_to_estim_um"], order["modulation_index"], s=50,
-                            c=order[metric], cmap="viridis",
-                            alpha=0.35 if (joint_fit and binned_stat) else 0.85,
+                            c=order[metric], cmap="viridis", alpha=0.35 if faded else 0.85,
                             edgecolor="white", linewidth=0.5)
     cbar = fig.colorbar(sc, ax=ax_scatter, pad=0.02)
     cbar.solids.set_alpha(1)  # colorbar stays solid when points are faded
@@ -724,41 +744,34 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
     cbar.ax.tick_params(labelsize=11)
     ax_scatter.axhline(0, color="black", linewidth=1, linestyle="--")
     ax_scatter.set_xlabel("Distance to nearest EStim channel (um)", fontsize=14)
-    ax_scatter.set_ylabel("Modulation index (ON - OFF) / (ON + OFF)", fontsize=14)
-    ax_scatter.set_title(f"Colored by {label.lower()}", fontsize=15)
-    if sharey_with is not None:
+    ax_scatter.set_ylabel(ylabel, fontsize=14)
+    ax_scatter.set_title(title, fontsize=15)
+    if joint is None and sharey_with is not None:
         ax_scatter.set_ylim(sharey_with.get_ylim())
 
-    joint = None
-    if joint_fit and cur["session_id"].nunique() >= 3:
-        joint = fit_joint(cur["distance_to_estim_um"], cur[metric], cur["modulation_index"])
-        if joint is None:
-            print(f"Joint fit with {metric} did not converge")
-        else:
-            if n_boot:
-                joint["ci"] = bootstrap_joint(cur, metric, n_boot)
-            # Sessions split into current thirds: each third's binned mean (or
-            # median) and the joint fit evaluated at that third's median current,
-            # in the same color, so data and fit can be compared directly.
-            per_sess = cur.groupby("session_id")[metric].first()
+    if joint is not None:
+        xs = np.linspace(0, cur["distance_to_estim_um"].max(), 400)
+        handles = ax_scatter.plot(xs, 1000 * falloff(xs, joint["k"], 0.0, joint["r0"]),
+                                  color="black", linewidth=2.6, zorder=5,
+                                  label=f"k/r\u00b2 fit (half at {joint['r0']:.0f} um)")
+        if binned_stat:
+            # Binned mean (or median) per current third: if they overlap each other
+            # and the curve, the effect scales with current.
+            per_sess = shown.groupby("session_id")[metric].first()
             thirds = pd.qcut(per_sess.rank(method="first"), 3, labels=False)
-            xs = np.linspace(0, cur["distance_to_estim_um"].max(), 400)
-            handles = []
             for i, name in enumerate(("Low", "Mid", "High")):
                 sids = thirds.index[thirds == i]
                 level = float(per_sess[sids].median())
-                color = sc.cmap(sc.norm(level))
-                ys = falloff_joint(xs, level, joint["k"], joint["c"], joint["r0"])
-                ax_scatter.plot(xs, ys, color="black", linewidth=4.2, zorder=4)
-                handles += ax_scatter.plot(xs, ys, color=color, linewidth=2.6, zorder=5,
-                                           label=f"{name} third (median {level:.0f} {unit})")
-                if binned_stat:
-                    _draw_binned(ax_scatter, cur[cur["session_id"].isin(sids)], binned_stat,
-                                 distance_bin_um, color=color, label="_nolegend_",
-                                 offset_um=(i - 1) * 0.12 * distance_bin_um)
-            ax_scatter.legend(handles=handles, fontsize=11, frameon=False, loc="lower right",
-                              title=f"k\u00b7I/r\u00b2 fit (half at {joint['r0']:.0f} um)",
-                              title_fontsize=11)
+                handles.append(_draw_binned(
+                    ax_scatter, shown[shown["session_id"].isin(sids)], binned_stat,
+                    distance_bin_um, color=sc.cmap(sc.norm(level)),
+                    label=f"{name} third (median {level:.0f} {unit})",
+                    offset_um=(i - 1) * 0.12 * distance_bin_um))
+        ax_scatter.legend(handles=handles, fontsize=11, frameon=False, loc="lower right")
+        # Low-current outliers can stretch the axis; keep it to the bulk of the data.
+        lo, hi = np.nanpercentile(shown["modulation_index"], [1, 99])
+        pad = 0.1 * (hi - lo)
+        ax_scatter.set_ylim(lo - pad, hi + pad)
 
     near = cur[cur["distance_to_estim_um"] <= near_field_um]
     if "polarity" not in near.columns:
