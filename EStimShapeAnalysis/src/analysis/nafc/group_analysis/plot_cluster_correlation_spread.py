@@ -250,9 +250,12 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
 
 
 def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
-                       n_misses_to_stop):
+                       n_misses_to_stop, fig=None):
+    """fig: a matplotlib Figure to draw into (e.g. matplotlib.figure.Figure for the
+    GA explorer); None makes a pyplot figure."""
     ext = dict(ext, ga_strs=set(ga_strs))
-    fig = plt.figure(figsize=(13, 11))
+    if fig is None:
+        fig = plt.figure(figsize=(13, 11))
     # colorbar gets its own row so both panels keep the same height (rows line up)
     gs = GridSpec(2, 2, width_ratios=[1, 4], height_ratios=[40, 1], wspace=0.25,
                   hspace=0.08, figure=fig)
@@ -273,13 +276,15 @@ def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
 # ---------------------------------------------------------------- session driver
 
 def load_session_rhos(session_id, *, method='spearman',
-                      vector_type='ga_mean_response'):
+                      vector_type='ga_mean_response', switch_context=True):
     """Everything the extent needs for one session: (rho_n, channel_strs, positions_um,
     ga_strs). rho_n = {channel: (ρ vs GA response, n stimuli)}; channel_strs /
     positions_um are the probe channels top -> bottom and their positions (µm);
     ga_strs = GA cluster channels that have response data. Raises RuntimeError if the
-    session has no response vectors or no GA channel with data."""
-    apply_session_context(session_id)
+    session has no response vectors or no GA channel with data. switch_context=False
+    when the caller (e.g. the GA explorer) has already switched to this session."""
+    if switch_context:
+        apply_session_context(session_id)
     repo_conn = Connection("allen_data_repository")
     response_matrix = ChannelResponseVectorLoader(session_id, repo_conn,
                                                   vector_type=vector_type).load()
