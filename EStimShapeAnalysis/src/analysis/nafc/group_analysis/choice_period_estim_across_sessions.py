@@ -554,11 +554,15 @@ def session_current_metrics(session_id: str) -> dict:
 
 
 def _polarity_label(polarity) -> Optional[str]:
+    """EStimParameters.polarity is NegativeFirst (cathodic-first) or
+    PositiveFirst (anodic-first)."""
     text = str(polarity or "").lower()
-    if "cath" in text:
+    if text.startswith("negative") or "cath" in text:
         return "cathodic"
-    if "anod" in text:
+    if text.startswith("positive") or "anod" in text:
         return "anodic"
+    if text:
+        print(f"Unrecognized EStim polarity {polarity!r}, session not split")
     return None
 
 
