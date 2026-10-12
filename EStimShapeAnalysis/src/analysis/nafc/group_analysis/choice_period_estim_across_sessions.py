@@ -551,6 +551,191 @@ def bootstrap_joint(sub: pd.DataFrame, metric: str, n_boot: int, seed: int = 0) 
             for key, v in draws.items()}
 
 
+# ---------------------------------------------------------------------------
+# Superposition: field at each recorded channel from every stimulated channel
+# ---------------------------------------------------------------------------
+
+def session_stim_charges(session_id: str) -> dict:
+    """{stim channel: charge (a1 x pulses, uA x pulses)} for the session.
+
+    Per (spec, sample_length) group of ON trials (EStimShapeTrials), each
+    channel with a1 > 0 delivers a1 x n_pulses, n_pulses from estim_hyperparameters
+    (total_current / (a1 x num_channels)). The field is linear in current, so the
+    trial-averaged field equals the field of the ON-trial-weighted mean charge
+    per channel, which is what is returned."""
+    from clat.util.connection import Connection
+    from src.analysis.nafc.estim_hyperparameters import get_base_params, get_estim_hyperparameters
+    conn = Connection("allen_data_repository")
+    conn.execute("SELECT estim_spec_id, sample_length, COUNT(*) FROM EStimShapeTrials "
+                 "WHERE session_id = %s AND is_estim_on = 1 AND estim_spec_id IS NOT NULL "
+                 "GROUP BY estim_spec_id, sample_length", params=(session_id,))
+    groups = conn.fetch_all()
+    totals, n_total = {}, 0
+    for spec_id, sample_length, n in groups:
+        base = get_base_params(session_id, int(spec_id)) or {}
+        total = get_estim_hyperparameters(session_id, int(spec_id),
+                                          sample_duration_ms=sample_length).get("total_current")
+        a1, nch = base.get("a1"), base.get("num_channels")
+        if total is None or not a1 or not nch:
+            continue
+        n_pulses = float(total) / (float(a1) * float(nch))
+        conn.execute("SELECT channel, a1 FROM EStimParameters WHERE session_id = %s "
+                     "AND estim_spec_id = %s AND a1 > 0", params=(session_id, int(spec_id)))
+        from src.cluster.cluster_isolation_score import _parse_channel
+        for channel, ch_a1 in conn.fetch_all():
+            parsed = _parse_channel(str(channel))
+            if parsed is None:
+                continue
+            name = parsed.value
+            totals[name] = totals.get(name, 0.0) + int(n) * float(ch_a1) * n_pulses
+        n_total += int(n)
+    return {ch: q / n_total for ch, q in totals.items()} if n_total else {}
+
+
+def add_stim_sources(table: pd.DataFrame, coords: dict, charges_by_session: dict) -> pd.DataFrame:
+    """stim_sources: per recorded channel, a list of (charge, distance um) for every
+    stimulated channel of its session."""
+    table = table.copy()
+
+    def sources(row):
+        charges = charges_by_session.get(row["session_id"]) or {}
+        if row["channel"] not in coords:
+            return None
+        out = [(q, float(np.linalg.norm(coords[row["channel"]] - coords[ch])))
+               for ch, q in charges.items() if ch in coords]
+        return out or None
+
+    table["stim_sources"] = table.apply(sources, axis=1)
+    return table
+
+
+def _source_arrays(sources_list):
+    rows, q, d = [], [], []
+    for i, srcs in enumerate(sources_list):
+        for qi, di in srcs:
+            rows.append(i)
+            q.append(qi)
+            d.append(di)
+    return np.asarray(rows), np.asarray(q, dtype=float), np.asarray(d, dtype=float)
+
+
+def effective_field(arrays, n_rows: int, r0: float) -> np.ndarray:
+    """Sum over stimulated channels of charge x r0^2 / (d^2 + r0^2): the 1/r^2
+    current-density falloff, in uA x pulses delivered at d = 0."""
+    rows, q, d = arrays
+    return np.bincount(rows, weights=q * r0 ** 2 / (d ** 2 + r0 ** 2), minlength=n_rows)
+
+
+def superposition_model(arrays, n_rows, k, c, r0, beta=1.0):
+    return k * (effective_field(arrays, n_rows, r0) / JOINT_I_REF) ** beta + c
+
+
+def fit_superposition(sub: pd.DataFrame):
+    """MI = k (F / I_ref)^beta + C with F the summed field (effective_field);
+    beta free, and beta = 1 plus the constant-amplitude falloff (nearest
+    electrode) fitted to the same channels for AIC comparison."""
+    from scipy.optimize import curve_fit
+    sub = sub.dropna(subset=["stim_sources"])
+    if sub["session_id"].nunique() < 3:
+        return None
+    mi = sub["modulation_index"].to_numpy(dtype=float)
+    n = len(mi)
+    arrays = _source_arrays(sub["stim_sources"])
+    idx = np.arange(n, dtype=float)
+    const = fit_falloff(sub["distance_to_estim_um"], mi)
+    if const is None:
+        return None
+    try:
+        (k1, c1, r01), _ = curve_fit(lambda _, k, c, r0: superposition_model(arrays, n, k, c, r0),
+                                     idx, mi, p0=[const["a"], const["c"], const["r0"]],
+                                     bounds=([-10, -1, 1], [10, 1, 2000]), maxfev=20000)
+        (k, c, r0, beta), _ = curve_fit(
+            lambda _, k, c, r0, beta: superposition_model(arrays, n, k, c, r0, beta), idx, mi,
+            p0=[k1, c1, r01, 1.0], bounds=([-10, -1, 1, 0], [10, 1, 2000, 3]), maxfev=20000)
+    except (RuntimeError, ValueError):
+        return None
+
+    def rss(pred):
+        return float(np.sum((mi - pred) ** 2))
+
+    return {"k": float(k), "c": float(c), "r0": float(r0), "beta": float(beta), "n": n,
+            "aic": _aic(rss(superposition_model(arrays, n, k, c, r0, beta)), n, 4),
+            "aic_linear": _aic(rss(superposition_model(arrays, n, k1, c1, r01)), n, 3),
+            "aic_const": _aic(rss(falloff(sub["distance_to_estim_um"].to_numpy(dtype=float),
+                                          const["a"], const["c"], const["r0"])), n, 3)}
+
+
+def bootstrap_superposition(sub: pd.DataFrame, n_boot: int, seed: int = 0) -> dict:
+    rng = np.random.default_rng(seed)
+    groups = {sid: g for sid, g in sub.dropna(subset=["stim_sources"]).groupby("session_id")}
+    sids = list(groups)
+    keys = ("k", "c", "r0", "beta")
+    draws = {key: [] for key in keys + ("d_aic_const", "d_aic_linear")}
+    for _ in range(n_boot):
+        boot = pd.concat([groups[s] for s in rng.choice(sids, len(sids), replace=True)])
+        fit = fit_superposition(boot)
+        if fit is not None:
+            for key in keys:
+                draws[key].append(fit[key])
+            draws["d_aic_const"].append(fit["aic"] - fit["aic_const"])
+            draws["d_aic_linear"].append(fit["aic"] - fit["aic_linear"])
+    return {key: tuple(np.percentile(v, [2.5, 97.5])) if v else (np.nan, np.nan)
+            for key, v in draws.items()}
+
+
+def plot_superposition(ax, sub: pd.DataFrame, fit: dict, binned_stat, fig):
+    """MI vs the summed field at each channel (log x). If the model holds the
+    points follow k (F / I_ref)^beta + C."""
+    sub = sub.dropna(subset=["stim_sources"])
+    n = len(sub)
+    field = effective_field(_source_arrays(sub["stim_sources"]), n, fit["r0"])
+    mi = sub["modulation_index"].to_numpy(dtype=float)
+    ok = field > 0
+    sc = ax.scatter(field[ok], mi[ok], s=40, c=sub["distance_to_estim_um"].to_numpy()[ok],
+                    cmap="viridis_r", alpha=0.35 if binned_stat else 0.85,
+                    edgecolor="white", linewidth=0.5)
+    cbar = fig.colorbar(sc, ax=ax, pad=0.02)
+    cbar.solids.set_alpha(1)
+    cbar.set_label("Distance to nearest EStim channel (um)", fontsize=13)
+    cbar.ax.tick_params(labelsize=11)
+    ax.set_xscale("log")
+    xs = np.logspace(np.log10(field[ok].min()), np.log10(field[ok].max()), 300)
+    handles = ax.plot(xs, fit["k"] * (xs / JOINT_I_REF) ** fit["beta"] + fit["c"],
+                      color="black", linewidth=2.6, zorder=5,
+                      label=f"k F^\u03b2 + C (\u03b2 = {fit['beta']:.2f}, r0 = {fit['r0']:.0f} um)")
+    if binned_stat:
+        edges = np.logspace(np.log10(field[ok].min()), np.log10(field[ok].max()) + 1e-9, 13)
+        which = np.digitize(field[ok], edges) - 1
+        mids, centers, errs = [], [], []
+        for b in range(len(edges) - 1):
+            vals = mi[ok][which == b]
+            if len(vals) < 3:
+                continue
+            centers.append(np.sqrt(edges[b] * edges[b + 1]))
+            if binned_stat == "median":
+                m = np.median(vals)
+                errs.append((m - np.percentile(vals, 25), np.percentile(vals, 75) - m))
+            else:
+                m = vals.mean()
+                e = vals.std(ddof=1) / np.sqrt(len(vals))
+                errs.append((e, e))
+            mids.append(m)
+        if mids:
+            errs = np.array(errs).T
+            handles.append(ax.errorbar(centers, mids, yerr=errs, fmt="s", color="#1F1F1F",
+                                       markerfacecolor="white", markeredgewidth=1.8,
+                                       markersize=7, capsize=3, linewidth=1.4, zorder=6,
+                                       label="Median (IQR)" if binned_stat == "median"
+                                       else "Mean \u00b1 SEM"))
+    ax.axhline(0, color="black", linewidth=1, linestyle="--")
+    ax.set_xlabel("Summed field at channel, F (uA x pulses at d = 0)", fontsize=14)
+    ax.set_ylabel("Modulation index (ON - OFF) / (ON + OFF)", fontsize=14)
+    ax.set_title("Modulation vs field summed over EStim channels", fontsize=15)
+    ax.legend(handles=handles, fontsize=11, frameon=False, loc="lower left")
+    ax.tick_params(labelsize=12)
+    ax.spines[["top", "right"]].set_visible(False)
+
+
 def bootstrap_falloff(sub: pd.DataFrame, n_boot: int, seed: int = 0) -> dict:
     """95% CIs by resampling whole sessions (channels within a session are not
     independent)."""
@@ -638,7 +823,8 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
                         fit_curve: bool = True, n_boot: int = 1000,
                         current_metrics=(), near_field_um: float = 65.0,
                         current_ranges: dict = None, binned_stat: Optional[str] = "mean",
-                        distance_bin_um: float = 65.0, joint_fit: bool = True):
+                        distance_bin_um: float = 65.0, joint_fit: bool = True,
+                        joint_predictor: str = "superposition"):
     """Left: MI vs distance (with the 1/r^2 fit). For each metric in
     current_metrics with data, a row on the right: the same scatter colored by
     that metric, and per-session near-EStim MI vs the metric."""
@@ -702,7 +888,8 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
                                     current_range=(current_ranges or {}).get(m),
                                     joint_fit=joint_fit, n_boot=n_boot,
                                     binned_stat=binned_stat,
-                                    distance_bin_um=distance_bin_um)
+                                    distance_bin_um=distance_bin_um,
+                                    joint_predictor=joint_predictor)
             for m, (ax_c, ax_d) in zip(current_metrics, current_axes)}
     fig.tight_layout()
     return fig, result
@@ -712,7 +899,8 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
                          near_field_um: float, fig, sharey_with=None, current_range=None,
                          joint_fit: bool = False, n_boot: int = 0,
                          binned_stat: Optional[str] = "mean",
-                         distance_bin_um: float = 65.0) -> dict:
+                         distance_bin_um: float = 65.0,
+                         joint_predictor: str = "superposition") -> dict:
     """Middle: the distance scatter colored by the session's value of metric.
     Right: per session, the mean MI of channels within near_field_um of an EStim
     channel vs metric (one point per session, sessions independent)."""
@@ -729,53 +917,67 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
                           [metric].first().items()))
         cur = cur[~outside]
     joint = None
-    if joint_fit and cur["session_id"].nunique() >= 3:
+    superposed = (joint_fit and joint_predictor == "superposition"
+                  and "stim_sources" in cur.columns and cur["stim_sources"].notna().any())
+    if superposed:
+        joint = fit_superposition(cur)
+        if joint is None:
+            print("Superposition fit did not converge")
+        else:
+            joint["predictor"] = "superposition"
+            if n_boot:
+                joint["ci"] = bootstrap_superposition(cur, n_boot)
+            plot_superposition(ax_scatter, cur, joint, binned_stat, fig)
+    elif joint_fit and cur["session_id"].nunique() >= 3:
         joint = fit_joint(cur["distance_to_estim_um"], cur[metric], cur["modulation_index"])
         if joint is None:
             print(f"Joint fit with {metric} did not converge")
-        elif n_boot:
-            joint["ci"] = bootstrap_joint(cur, metric, n_boot)
+        else:
+            joint["predictor"] = metric
+            if n_boot:
+                joint["ci"] = bootstrap_joint(cur, metric, n_boot)
 
-    if joint is not None:
-        # Collapse: (MI - C) / (I / I_ref)^beta. If the joint fit holds, every
-        # session falls on the same curve k r0^2/(d^2 + r0^2) whatever its current.
-        # C (the far-field level) is subtracted first because it doesn't scale
-        # with current. Low-current sessions are noisier here.
-        shown = cur.assign(modulation_index=(cur["modulation_index"] - joint["c"])
-                           / (cur[metric] / JOINT_I_REF) ** joint["beta"])
-        ylabel = f"(MI - C) / (I / {JOINT_I_REF:g})^\u03b2"
-        title = f"Modulation scaled by {label.lower()} (\u03b2 = {joint['beta']:.2f})"
-    else:
-        shown, ylabel, title = cur, "Modulation index (ON - OFF) / (ON + OFF)", \
-            f"Colored by {label.lower()}"
-    faded = joint is not None and bool(binned_stat)
-    order = shown.sort_values(metric)  # high current drawn on top
-    sc = ax_scatter.scatter(order["distance_to_estim_um"], order["modulation_index"], s=50,
-                            c=order[metric], cmap="viridis", alpha=0.35 if faded else 0.85,
-                            edgecolor="white", linewidth=0.5)
-    cbar = fig.colorbar(sc, ax=ax_scatter, pad=0.02)
-    cbar.solids.set_alpha(1)  # colorbar stays solid when points are faded
-    cbar.set_label(f"{label} ({unit})", fontsize=13)
-    cbar.ax.tick_params(labelsize=11)
-    ax_scatter.axhline(0, color="black", linewidth=1, linestyle="--")
-    ax_scatter.set_xlabel("Distance to nearest EStim channel (um)", fontsize=14)
-    ax_scatter.set_ylabel(ylabel, fontsize=14)
-    ax_scatter.set_title(title, fontsize=15)
-    if joint is None and sharey_with is not None:
-        ax_scatter.set_ylim(sharey_with.get_ylim())
+    if not (superposed and joint is not None):
+        if joint is not None:
+            # Collapse: (MI - C) / (I / I_ref)^beta. If the joint fit holds, every
+            # session falls on the same curve k r0^2/(d^2 + r0^2) whatever its current.
+            # C (the far-field level) is subtracted first because it doesn't scale
+            # with current. Low-current sessions are noisier here.
+            shown = cur.assign(modulation_index=(cur["modulation_index"] - joint["c"])
+                               / (cur[metric] / JOINT_I_REF) ** joint["beta"])
+            ylabel = f"(MI - C) / (I / {JOINT_I_REF:g})^\u03b2"
+            title = f"Modulation scaled by {label.lower()} (\u03b2 = {joint['beta']:.2f})"
+        else:
+            shown, ylabel, title = cur, "Modulation index (ON - OFF) / (ON + OFF)", \
+                f"Colored by {label.lower()}"
+        faded = joint is not None and bool(binned_stat)
+        order = shown.sort_values(metric)  # high current drawn on top
+        sc = ax_scatter.scatter(order["distance_to_estim_um"], order["modulation_index"], s=50,
+                                c=order[metric], cmap="viridis", alpha=0.35 if faded else 0.85,
+                                edgecolor="white", linewidth=0.5)
+        cbar = fig.colorbar(sc, ax=ax_scatter, pad=0.02)
+        cbar.solids.set_alpha(1)  # colorbar stays solid when points are faded
+        cbar.set_label(f"{label} ({unit})", fontsize=13)
+        cbar.ax.tick_params(labelsize=11)
+        ax_scatter.axhline(0, color="black", linewidth=1, linestyle="--")
+        ax_scatter.set_xlabel("Distance to nearest EStim channel (um)", fontsize=14)
+        ax_scatter.set_ylabel(ylabel, fontsize=14)
+        ax_scatter.set_title(title, fontsize=15)
+        if joint is None and sharey_with is not None:
+            ax_scatter.set_ylim(sharey_with.get_ylim())
 
-    if joint is not None:
-        xs = np.linspace(0, cur["distance_to_estim_um"].max(), 400)
-        handles = ax_scatter.plot(xs, falloff(xs, joint["k"], 0.0, joint["r0"]),
-                                  color="black", linewidth=2.6, zorder=5,
-                                  label=f"k/r\u00b2 fit (half at {joint['r0']:.0f} um)")
-        if binned_stat:
-            handles.append(_draw_binned(ax_scatter, shown, binned_stat, distance_bin_um))
-        ax_scatter.legend(handles=handles, fontsize=11, frameon=False, loc="lower right")
-        # Low-current outliers can stretch the axis; keep it to the bulk of the data.
-        lo, hi = np.nanpercentile(shown["modulation_index"], [1, 99])
-        pad = 0.1 * (hi - lo)
-        ax_scatter.set_ylim(lo - pad, hi + pad)
+        if joint is not None:
+            xs = np.linspace(0, cur["distance_to_estim_um"].max(), 400)
+            handles = ax_scatter.plot(xs, falloff(xs, joint["k"], 0.0, joint["r0"]),
+                                      color="black", linewidth=2.6, zorder=5,
+                                      label=f"k/r\u00b2 fit (half at {joint['r0']:.0f} um)")
+            if binned_stat:
+                handles.append(_draw_binned(ax_scatter, shown, binned_stat, distance_bin_um))
+            ax_scatter.legend(handles=handles, fontsize=11, frameon=False, loc="lower right")
+            # Low-current outliers can stretch the axis; keep it to the bulk of the data.
+            lo, hi = np.nanpercentile(shown["modulation_index"], [1, 99])
+            pad = 0.1 * (hi - lo)
+            ax_scatter.set_ylim(lo - pad, hi + pad)
 
     near = cur[cur["distance_to_estim_um"] <= near_field_um]
     if "polarity" not in near.columns:
@@ -868,6 +1070,18 @@ def joint_text(metric: str, j: dict) -> str:
                 f"{other} better" if d_aic > 2 else "no clear difference")
 
     d_const, d_lin = j["aic"] - j["aic_const"], j["aic"] - j["aic_linear"]
+    if j.get("predictor") == "superposition":
+        return (f"Superposition fit, MI = k (F / {JOINT_I_REF:g})^beta + C, "
+                f"F = sum over EStim channels of charge (a1 x pulses) x r0^2 / (d^2 + r0^2) "
+                f"({j['n']} channels; 95% CI: bootstrap over sessions):\n"
+                f"  k (MI at F = {JOINT_I_REF:g} uA x pulses, minus C) = {fmt('k', j['k'], '+.3f')}, "
+                f"beta = {fmt('beta', j['beta'], '.2f')} (1 = proportional to field, "
+                f"< 1 = saturating), C = {fmt('c', j['c'], '+.3f')}, "
+                f"r0 = {fmt('r0', j['r0'], '.0f')} um\n"
+                f"  AIC - AIC constant-amplitude falloff = {fmt('d_aic_const', d_const, '+.1f')} "
+                f"({verdict(d_const, 'constant amplitude')})\n"
+                f"  AIC - AIC beta = 1 = {fmt('d_aic_linear', d_lin, '+.1f')} "
+                f"({verdict(d_lin, 'beta = 1')}); negative favors the beta fit")
     return (f"Joint fit, MI(d, I) = k (I / {JOINT_I_REF:g})^beta r0^2 / (d^2 + r0^2) + C, "
             f"I = {metric} ({j['n']} channels; 95% CI: bootstrap over sessions):\n"
             f"  k (amplitude at {JOINT_I_REF:g} {unit}) = {fmt('k', j['k'], '+.3f')}, "
@@ -912,7 +1126,10 @@ def main():
     split_by_polarity = True          # near-EStim panel: cathodic / anodic sessions, own fits
     binned_stat = "mean"              # distance plot: "mean" (+- SEM), "median" (IQR) or None,
     distance_bin_um = 65.0            # per distance bin of this width (65 um = one channel)
-    joint_current_fit = True          # fit MI = k * (current/1000)^beta * 1/r^2 falloff + C
+    joint_current_fit = True          # fit modulation as a power of the stimulating current
+    joint_predictor = "superposition"  # "superposition": field summed over each EStim channel
+                                      # with its own distance (physics of several electrodes);
+                                      # "total_current": session total x 1/r^2 to nearest
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
         "current_per_second": (0, 5000),  # are left out of that metric's two panels and their
         "total_current": None,        # correlation only. None = all; either end may be None
@@ -957,6 +1174,9 @@ def main():
                 values = {sid: c.get(m, np.nan) for sid, c in current.items()}
                 table[m] = table["session_id"].map(values)
                 all_channels[m] = all_channels["session_id"].map(values)
+            if joint_current_fit and joint_predictor == "superposition":
+                charges = {sid: session_stim_charges(sid) for sid in estim_by_session}
+                table = add_stim_sources(table, coords, charges)
             if split_by_polarity:
                 polarity = {sid: c.get("polarity") for sid, c in current.items()}
                 table["polarity"] = table["session_id"].map(polarity)
@@ -965,7 +1185,8 @@ def main():
             table, alpha, show_point_labels, fit_distance_falloff, distance_fit_bootstraps,
             current_metrics=current_metrics, near_field_um=near_field_um,
             current_ranges=current_ranges, binned_stat=binned_stat,
-            distance_bin_um=distance_bin_um, joint_fit=joint_current_fit)
+            distance_bin_um=distance_bin_um, joint_fit=joint_current_fit,
+            joint_predictor=joint_predictor)
         if distance_result:
             text += (f"\nPearson correlation, MI vs distance to EStim (channels): "
                      f"r = {distance_result['r']:.2f}, {_p_text(distance_result['p'])}, "
@@ -1009,6 +1230,7 @@ def main():
             "split_by_polarity": split_by_polarity,
             "binned_stat": binned_stat,
             "joint_current_fit": joint_current_fit,
+            "joint_predictor": joint_predictor,
             "distance_bin_um": distance_bin_um,
             "distance_fit_bootstraps": distance_fit_bootstraps,
         }, f, indent=2)
