@@ -65,6 +65,8 @@ def main():
     from src.analysis.ga.explorer.modules.estim_summary_module import EStimSummaryModule
     from src.analysis.ga.explorer.modules.solid_preference_module import SolidPreferenceModule
     from src.analysis.ga.explorer.modules.probe_analysis_module import ProbeAnalysisModule
+    from src.analysis.ga.explorer.modules.cluster_correlation_extent_module import \
+        ClusterCorrelationExtentModule
     from src.analysis.ga.explorer.modules.response_by_generation_module import \
         ResponseByGenerationModule
 
@@ -77,6 +79,7 @@ def main():
         EStimSummaryModule,
         SolidPreferenceModule,
         ProbeAnalysisModule,
+        ClusterCorrelationExtentModule,
         ResponseByGenerationModule,
     ]
     # Session to open with, e.g. "260426_0". None = the session context.py
