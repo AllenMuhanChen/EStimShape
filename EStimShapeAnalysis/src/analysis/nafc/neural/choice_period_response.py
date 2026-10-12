@@ -50,9 +50,14 @@ import pandas as pd
 from scipy import stats
 
 from src.analysis import Analysis
+from src.analysis.nafc.neural.choice_period_artifact_mask import (
+    DEFAULT_ARTIFACT_PARAMS, bin_coverage, in_intervals, overlap_s, trial_artifact_intervals,
+)
 
 TABLE_NAME = "NafcChoicePeriodResponses"
 SPIKE_SOURCE_SPIKE_DAT = "spike_dat"
+# spike.dat crossings with amplitude-detected artifact intervals removed.
+SPIKE_SOURCE_SPIKE_DAT_ARTMASK = "spike_dat_artmask"
 
 
 # ---------------------------------------------------------------------------
@@ -78,6 +83,12 @@ def choice_window(neural: dict, start_offset_s: float = 0.0,
     return start, stop
 
 
+def _artifact_intervals(trial) -> list:
+    """Artifact intervals (recording seconds) for a trial, [] if not masked."""
+    intervals = trial.get("ArtifactIntervals")
+    return intervals if isinstance(intervals, list) else []
+
+
 def _channel_spikes(neural: dict, channel: str) -> np.ndarray:
     return np.asarray(neural.get("spikes_by_channel", {}).get(channel, []), dtype=float)
 
@@ -94,11 +105,15 @@ def trial_choice_rates(data: pd.DataFrame, channel: str,
             continue
         start, stop = window
         spikes = _channel_spikes(neural, channel)
-        n = int(np.count_nonzero((spikes >= start) & (spikes < stop)))
+        intervals = _artifact_intervals(trial)
+        keep = (spikes >= start) & (spikes < stop) & ~in_intervals(spikes, intervals)
+        duration = (stop - start) - overlap_s(start, stop, intervals)
+        if duration <= 0:
+            continue
         rows.append({
             "estim_on": bool(trial.get("EStimEnabled")),
-            "rate_hz": n / (stop - start),
-            "duration_s": stop - start,
+            "rate_hz": int(np.count_nonzero(keep)) / duration,
+            "duration_s": duration,
         })
     return pd.DataFrame(rows, columns=["estim_on", "rate_hz", "duration_s"])
 
@@ -119,14 +134,18 @@ def trial_psths(data: pd.DataFrame, channel: str, bins: np.ndarray,
         if not isinstance(neural, dict) or neural.get("choices_on") is None:
             continue
         c_on = neural["choices_on"]
-        spikes = _channel_spikes(neural, channel) - c_on
+        intervals = _artifact_intervals(trial)
+        spikes = _channel_spikes(neural, channel)
+        spikes = spikes[~in_intervals(spikes, intervals)] - c_on
         counts, _ = np.histogram(spikes, bins=bins)
-        rate = counts / bin_size
+        # Rate over the unmasked part of each bin; a bin more than half masked is dropped.
+        coverage = bin_coverage(bins, c_on, intervals) if intervals else np.zeros(len(counts))
+        with np.errstate(invalid="ignore", divide="ignore"):
+            rate = np.where(coverage < 0.5, counts / (bin_size * (1 - coverage)), np.nan)
         if clip_to_choice_period:
             lo = -np.inf if neural.get("sample_off") is None else neural["sample_off"] - c_on
             hi = np.inf if neural.get("choices_off") is None else neural["choices_off"] - c_on
             outside = (bins[:-1] < lo - 1e-9) | (bins[1:] > hi + 1e-9)
-            rate = rate.astype(float)
             rate[outside] = np.nan
         rows.append({"estim_on": bool(trial.get("EStimEnabled")),
                      "is_hyp": _optional_bool(trial.get("IsHypothesized")),
@@ -498,7 +517,8 @@ class ChoicePeriodEStimAnalysis(Analysis):
                  show_plots: bool = False,
                  skip_existing: bool = True,
                  cache_parsed_trials: bool = True,
-                 synchrony_params: Optional[dict] = None):
+                 synchrony_params: Optional[dict] = None,
+                 artifact_mask: Optional[dict] = DEFAULT_ARTIFACT_PARAMS):
         """skip_existing: skip a session that already has up-to-date rows in
         NafcChoicePeriodResponses (set False after changing window / PSTH
         parameters, to recompute). cache_parsed_trials: pickle each parsed
@@ -521,6 +541,11 @@ class ChoicePeriodEStimAnalysis(Analysis):
         self.cache_parsed_trials = cache_parsed_trials
         # See choice_period_synchrony.summarize_synchrony for the keys.
         self.synchrony_params = synchrony_params or {}
+        # Amplitude artifact mask (choice_period_artifact_mask.py); None = off.
+        # Masked results are stored under their own spike_source.
+        self.artifact_mask = dict(artifact_mask) if artifact_mask else None
+        if self.artifact_mask and spike_source == SPIKE_SOURCE_SPIKE_DAT:
+            self.spike_source = SPIKE_SOURCE_SPIKE_DAT_ARTMASK
         self.synchrony = None
         self._data: Optional[pd.DataFrame] = None
         self._data_session_id: Optional[str] = None
@@ -579,11 +604,35 @@ class ChoicePeriodEStimAnalysis(Analysis):
         print(f"{context.nafc_database}: {len(data)} choice trials, "
               f"{int(has_neural.sum())} with neural data "
               f"({len(neural_field._index)} recording folders found)")
+        if has_neural.any() and self.artifact_mask:
+            data = data[has_neural].reset_index(drop=True)
+            data["ArtifactIntervals"] = self._detect_artifacts(data, neural_field._index)
+            has_neural = data["NeuralData"].apply(lambda d: isinstance(d, dict))
         if not has_neural.any():
             print(f"SKIP {context.nafc_database}: recording folders exist but none matched a "
                   f"trial's stimSpecId or parsed")
             return pd.DataFrame()
         return data[has_neural].reset_index(drop=True)
+
+    def _detect_artifacts(self, data: pd.DataFrame, recording_dirs: dict) -> list:
+        from src.startup import context
+        cache_dir = os.path.join(context.base_dir, context.nafc_database, "artifact_intervals")
+        out = []
+        for i, neural in enumerate(data["NeuralData"]):
+            rec_dir = recording_dirs.get(str(neural.get("task_id")))
+            intervals = None
+            if rec_dir is not None:
+                try:
+                    intervals = trial_artifact_intervals(rec_dir, neural, self.artifact_mask,
+                                                         cache_dir)
+                except Exception as exc:
+                    print(f"artifact mask failed for task {neural.get('task_id')}: {exc}")
+            out.append(intervals if intervals is not None else [])
+            if (i + 1) % 50 == 0:
+                print(f"  artifact mask: {i + 1}/{len(data)} trials")
+        n_with = sum(1 for x in out if x)
+        print(f"artifact mask: {n_with}/{len(out)} trials have artifact intervals")
+        return out
 
     def _build_parser(self):
         if self.parser is not None or not self.cache_parsed_trials:

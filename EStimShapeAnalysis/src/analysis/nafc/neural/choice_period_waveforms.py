@@ -110,8 +110,7 @@ def add_template_r(snips: pd.DataFrame, template_window: str) -> pd.DataFrame:
 
 
 def plot_waveforms(snips: pd.DataFrame, windows: dict, pre_ms: float, post_ms: float,
-                   max_overlay: int,
-                   title: str):
+                   max_overlay: int, title: str, y_limit_uv: float = None):
     fig, axes = plt.subplots(len(windows), 2, figsize=(13, 3.6 * len(windows)),
                              sharex=True, sharey=True, squeeze=False)
     rng = np.random.default_rng(0)
@@ -133,6 +132,8 @@ def plot_waveforms(snips: pd.DataFrame, windows: dict, pre_ms: float, post_ms: f
                 ax.set_ylabel("Filtered voltage (uV)", fontsize=12)
             if r == len(windows) - 1:
                 ax.set_xlabel("Time from crossing (ms)", fontsize=12)
+    if y_limit_uv:
+        axes[0, 0].set_ylim(-y_limit_uv, y_limit_uv)  # shared y; artifacts run off-scale
     fig.suptitle(title, fontsize=15)
     fig.tight_layout()
     return fig
@@ -174,6 +175,7 @@ def main():
     highpass_hz = 300.0
     pre_ms, post_ms = 0.5, 1.5
     max_overlay = 300                # snippets drawn per panel (mean uses all)
+    y_limit_uv = 400                 # +- y range so spikes are visible (None = fit everything)
     seed = 0
     output_root = "/home/connorlab/Documents/plots/nafc_choice_period_waveforms"
     show_plots = True
@@ -188,7 +190,8 @@ def main():
 
     channels = channels or get_all_channels()
     apply_session_context(session_id)
-    analysis = ChoicePeriodEStimAnalysis(export=False, save_plots=False, skip_existing=False)
+    analysis = ChoicePeriodEStimAnalysis(export=False, save_plots=False, skip_existing=False,
+                                         artifact_mask=None)
     data = analysis.compile()
     if data.empty:
         return
@@ -223,7 +226,8 @@ def main():
                    "seed": seed}, f, indent=2)
     summary.to_csv(os.path.join(out_dir, "template_r_summary.csv"), index=False)
 
-    fig = plot_waveforms(snips, windows, pre_ms, post_ms, max_overlay, f"{session_id} crossings")
+    fig = plot_waveforms(snips, windows, pre_ms, post_ms, max_overlay, f"{session_id} crossings",
+                         y_limit_uv=y_limit_uv)
     fig.savefig(os.path.join(out_dir, "waveforms.png"), dpi=150, bbox_inches="tight")
     fig = plot_template_r(snips, windows, f"{session_id} shape vs spike template")
     fig.savefig(os.path.join(out_dir, "template_r.png"), dpi=150, bbox_inches="tight")

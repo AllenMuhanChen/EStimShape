@@ -40,7 +40,12 @@ trials in that group.
 Synchrony figure (artifact check, see choice_period_synchrony.py): rate of
 events where many channels cross threshold within ~0.2 ms, aligned to
 choices_on, ON vs OFF, mean +- SEM across sessions; and the same per 1000
-pooled spikes, so a change in overall firing alone can't explain it.
+pooled spikes, so a change in overall firing alone can't explain it; plus, when
+the amplitude artifact mask was used, the % of time masked as artifact.
+
+spike_source "spike_dat_artmask" (default) reads results computed with
+artifact intervals removed (choice_period_artifact_mask.py); "spike_dat" reads
+the unmasked results.
 Each channel's PSTH (mean across its trials) is optionally divided by that
 channel's OFF choice-period rate (all OFF trials), so every channel
 contributes on the same scale and all curves share one baseline. Shading is
@@ -63,7 +68,8 @@ import pandas as pd
 from scipy import stats
 
 from src.analysis.nafc.neural.choice_period_response import (
-    TABLE_NAME, GROUPS_TABLE_NAME, SPIKE_SOURCE_SPIKE_DAT, ESTIM_COLORS, ESTIM_LABELS,
+    TABLE_NAME, GROUPS_TABLE_NAME, SPIKE_SOURCE_SPIKE_DAT, SPIKE_SOURCE_SPIKE_DAT_ARTMASK,
+    ESTIM_COLORS, ESTIM_LABELS,
     PSTH_GROUPS, decode_array,
 )
 from src.analysis.nafc.neural.choice_period_synchrony import SYNC_TABLE_NAME
@@ -127,7 +133,7 @@ def load_synchrony(session_ids, spike_source: str) -> pd.DataFrame:
     conn = Connection("allen_data_repository")
     cols = ["session_id", "is_estim_on", "n_trials", "n_channels", "sync_window_s",
             "min_channels", "psth_start_s", "psth_bin_size_s", "sync_rate_mean",
-            "spike_rate_mean"]
+            "spike_rate_mean", "artifact_frac_mean"]
     where, params = _session_filter(session_ids)
     conn.execute(f"SELECT {', '.join(cols)} FROM {SYNC_TABLE_NAME} WHERE spike_source = %s"
                  + where, params=tuple([spike_source] + params))
@@ -364,7 +370,8 @@ def plot_synchrony(sync: pd.DataFrame):
     centers = start + width * (np.arange(n_bins) + 0.5)
     styles = {ESTIM_LABELS[k]: (ESTIM_COLORS[k], "-") for k in (False, True)}
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 6.5))
+    has_mask = sync["artifact_frac_mean"].map(lambda t: len(decode_array(t)) > 0).any()
+    fig, axes = plt.subplots(1, 3 if has_mask else 2, figsize=(24 if has_mask else 16, 6.5))
     _draw_psths(axes[0], centers, _session_curves(sync, lambda r: decode_array(r["sync_rate_mean"])),
                 styles, "Cross-channel synchrony", "Synchronous events / s", unit="sessions")
 
@@ -375,6 +382,10 @@ def plot_synchrony(sync: pd.DataFrame):
 
     _draw_psths(axes[1], centers, _session_curves(sync, per_1000_spikes), styles,
                 "Synchrony per spike", "Synchronous events / 1000 spikes", unit="sessions")
+    if has_mask:
+        _draw_psths(axes[2], centers,
+                    _session_curves(sync, lambda r: 100 * decode_array(r["artifact_frac_mean"])),
+                    styles, "Masked as artifact", "% of time masked", unit="sessions")
     first = sync.iloc[0]
     fig.suptitle(f">= {int(first['min_channels'])} channels within "
                  f"{1000 * float(first['sync_window_s']):.1f} ms", fontsize=13)
@@ -385,7 +396,7 @@ def plot_synchrony(sync: pd.DataFrame):
 def main():
     # ---- parameters ----
     session_ids = None                # None = every session in the table; or ["260518_0", ...]
-    spike_source = SPIKE_SOURCE_SPIKE_DAT
+    spike_source = SPIKE_SOURCE_SPIKE_DAT_ARTMASK  # or SPIKE_SOURCE_SPIKE_DAT (no artifact mask)
     channel_mode = "all"              # "all" or "cluster" (ClusterInfo channels of each session)
     min_trials_per_condition = 5      # channel needs this many ON and OFF trials
     min_rate_hz = 1.0                 # drop channels whose (ON + OFF) / 2 rate is below this

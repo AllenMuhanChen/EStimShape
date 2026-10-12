@@ -25,6 +25,9 @@ trials.
 
 The pooled spike rate (all channels, spikes/s) is saved alongside so the
 event rate can be compared with how many spikes there were to coincide.
+When the amplitude artifact mask is on, the fraction of each bin covered by
+artifact intervals (mean across trials) is saved too. Synchrony itself is
+computed on the unmasked crossings, so it stays an independent check.
 """
 
 from __future__ import annotations
@@ -68,7 +71,8 @@ def summarize_synchrony(data: pd.DataFrame, *, before_s: float = 1.0, after_s: f
     channels: restrict to these channel names (default: every channel in the data)."""
     n_bins = int(round((before_s + after_s) / bin_size_s))
     bins = -before_s + bin_size_s * np.arange(n_bins + 1)
-    per_trial = {False: {"sync": [], "spikes": []}, True: {"sync": [], "spikes": []}}
+    from src.analysis.nafc.neural.choice_period_artifact_mask import bin_coverage
+    per_trial = {k: {"sync": [], "spikes": [], "artifact": []} for k in (False, True)}
     n_channels_seen = set()
     for _, trial in data.iterrows():
         neural = trial.get("NeuralData")
@@ -88,12 +92,15 @@ def summarize_synchrony(data: pd.DataFrame, *, before_s: float = 1.0, after_s: f
         estim_on = bool(trial.get("EStimEnabled"))
         per_trial[estim_on]["sync"].append(sync_counts / bin_size_s)
         per_trial[estim_on]["spikes"].append(spike_counts / bin_size_s)
+        intervals = trial.get("ArtifactIntervals")
+        if isinstance(intervals, list):
+            per_trial[estim_on]["artifact"].append(bin_coverage(bins, t0, intervals))
 
     out = {"bins": bins, "sync_window_s": sync_window_s, "min_channels": min_channels,
            "n_channels": len(n_channels_seen), "conditions": {}}
     for estim_on, d in per_trial.items():
         c = {"n_trials": len(d["sync"])}
-        for key in ("sync", "spikes"):
+        for key in ("sync", "spikes", "artifact"):
             if d[key]:
                 arr = np.vstack(d[key])
                 mean = arr.mean(axis=0)
@@ -127,6 +134,8 @@ CREATE_SYNC_TABLE_SQL = f"""
         sync_rate_sem     LONGTEXT,
         spike_rate_mean   LONGTEXT,   -- pooled spikes/s (all channels) per bin
         spike_rate_sem    LONGTEXT,
+        artifact_frac_mean LONGTEXT,  -- fraction of each bin inside artifact intervals
+        artifact_frac_sem  LONGTEXT,
         PRIMARY KEY (session_id, spike_source, is_estim_on),
         FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
     ) ENGINE = InnoDB
@@ -136,11 +145,16 @@ CREATE_SYNC_TABLE_SQL = f"""
 _SYNC_COLUMNS = ["session_id", "spike_source", "is_estim_on", "n_trials", "n_channels",
                  "sync_window_s", "min_channels", "psth_align", "psth_start_s",
                  "psth_bin_size_s", "sync_rate_mean", "sync_rate_sem", "spike_rate_mean",
-                 "spike_rate_sem"]
+                 "spike_rate_sem", "artifact_frac_mean", "artifact_frac_sem"]
 
 
 def ensure_synchrony_table(conn) -> None:
     conn.execute(CREATE_SYNC_TABLE_SQL)
+    for col in ("artifact_frac_mean", "artifact_frac_sem"):
+        try:
+            conn.execute(f"ALTER TABLE {SYNC_TABLE_NAME} ADD COLUMN {col} LONGTEXT")
+        except Exception:
+            pass  # column already exists
 
 
 def synchrony_rows(session_id: str, sync: dict, *, spike_source: str) -> list[tuple]:
@@ -152,7 +166,8 @@ def synchrony_rows(session_id: str, sync: dict, *, spike_source: str) -> list[tu
                      sync["sync_window_s"], sync["min_channels"], "choices_on", float(bins[0]),
                      float(bins[1] - bins[0]), encode_array(c["sync_rate_mean"]),
                      encode_array(c["sync_rate_sem"]), encode_array(c["spikes_rate_mean"]),
-                     encode_array(c["spikes_rate_sem"])))
+                     encode_array(c["spikes_rate_sem"]), encode_array(c["artifact_rate_mean"]),
+                     encode_array(c["artifact_rate_sem"])))
     return rows
 
 
