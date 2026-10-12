@@ -7,8 +7,9 @@ For every session: each channel's Spearman ρ with the average GA cluster respon
 down the probe (stops after N_MISSES_TO_STOP channels in a row below ρ*).
 
 Figure, one value per session unless noted:
-  A. histogram of the total extent (µm); sessions where a side reaches the end of the
-     probe are stacked in a separate colour (their extent is a lower bound).
+  A. histogram of the total extent (µm). With split_probe_end, sessions where a side
+     reaches the end of the probe are stacked in a separate colour (their extent is a
+     lower bound).
   B. histogram of the average GA channel correlation: the mean, over a session's GA
      channels, of each GA channel's ρ with the other GA channels. Sessions with a single
      GA channel have no value and are left out.
@@ -119,23 +120,29 @@ def _pitch(channels):
     return float(d[d > 0].min()) if np.any(d > 0) else 65.0
 
 
-def plot_extent_hist(ax, sessions, pitch):
+def plot_extent_hist(ax, sessions, bin_width, split_probe_end):
+    """bin_width in µm; bins are centred on multiples of bin_width (extents are
+    multiples of the probe pitch, so a multiple of the pitch keeps them centred)."""
     vals = sessions['extent_total_um'].to_numpy(dtype=float)
     end = sessions['reaches_probe_end'].to_numpy(dtype=bool)
-    bins = np.arange(-pitch / 2, vals.max() + pitch, pitch)
-    ax.hist([vals[~end], vals[end]], bins=bins, stacked=True,
-            color=[EXTENT_COLOR, PROBE_END_COLOR], edgecolor='white', lw=0.8)
+    bins = np.arange(-bin_width / 2, vals.max() + bin_width, bin_width)
+    if split_probe_end:
+        ax.hist([vals[~end], vals[end]], bins=bins, stacked=True,
+                color=[EXTENT_COLOR, PROBE_END_COLOR], edgecolor='white', lw=0.8)
+    else:
+        ax.hist(vals, bins=bins, color=EXTENT_COLOR, edgecolor='white', lw=0.8)
     med = np.median(vals)
     ax.axvline(med, color='black', lw=1.8, ls='--')
     ax.set_xlabel('Cluster extent (µm)', fontsize=13)
     ax.set_ylabel('Number of experiments', fontsize=13)
     ax.set_title('Correlation extent', fontsize=14, fontweight='bold')
     ax.yaxis.get_major_locator().set_params(integer=True)
-    ax.legend(handles=[Patch(color=EXTENT_COLOR, label='within probe'),
-                       Patch(color=PROBE_END_COLOR, label='reaches probe end'),
-                       Line2D([0], [0], color='black', ls='--', lw=1.8,
-                              label=f'median = {med:.0f} µm')],
-              fontsize=11, frameon=False, loc='upper right')
+    handles = [Line2D([0], [0], color='black', ls='--', lw=1.8,
+                      label=f'median = {med:.0f} µm')]
+    if split_probe_end:
+        handles = [Patch(color=EXTENT_COLOR, label='within probe'),
+                   Patch(color=PROBE_END_COLOR, label='reaches probe end')] + handles
+    ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper right')
 
 
 def plot_ga_rho_hist(ax, sessions, rho_threshold, bin_width):
@@ -183,12 +190,13 @@ def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng):
     ax.legend(fontsize=11, frameon=False, loc='lower left')
 
 
-def plot_distributions(sessions, channels, *, rho_threshold, ga_rho_bin_width=0.05,
-                       jitter_um=8.0, seed=0):
+def plot_distributions(sessions, channels, *, rho_threshold, extent_bin_width_um=None,
+                       split_probe_end=False, ga_rho_bin_width=0.05, jitter_um=8.0,
+                       seed=0):
     pitch = _pitch(channels)
     fig, axes = plt.subplots(1, 3, figsize=(21, 6.5),
                              gridspec_kw={'width_ratios': [1, 1, 1.3], 'wspace': 0.28})
-    plot_extent_hist(axes[0], sessions, pitch)
+    plot_extent_hist(axes[0], sessions, extent_bin_width_um or pitch, split_probe_end)
     plot_ga_rho_hist(axes[1], sessions, rho_threshold, ga_rho_bin_width)
     plot_distance_scatter(axes[2], channels, rho_threshold, pitch, jitter_um,
                           np.random.default_rng(seed))
@@ -206,6 +214,8 @@ def main():
     n_misses_to_stop = 2     # channels in a row below ρ* that end the walk
     method = 'spearman'      # 'spearman' or 'pearson'
     vector_type = 'ga_mean_response'
+    extent_bin_width_um = 65   # extent histogram bin width (µm); None = probe pitch
+    split_probe_end = False  # colour sessions that reach the probe end separately
     ga_rho_bin_width = 0.05  # histogram bin width for panel B
     jitter_um = 8.0          # horizontal jitter on the scatter (distances are discrete)
     show_plots = True
@@ -227,6 +237,8 @@ def main():
           f"{n_single} with a single GA channel (no average GA ρ)")
 
     fig = plot_distributions(sessions, channels, rho_threshold=rho_threshold,
+                             extent_bin_width_um=extent_bin_width_um,
+                             split_probe_end=split_probe_end,
                              ga_rho_bin_width=ga_rho_bin_width, jitter_um=jitter_um)
 
     out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -236,7 +248,10 @@ def main():
                    'exclude_session_ids': list(exclude_session_ids or []),
                    'rho_threshold': rho_threshold,
                    'n_misses_to_stop': n_misses_to_stop, 'method': method,
-                   'vector_type': vector_type, 'ga_rho_bin_width': ga_rho_bin_width,
+                   'vector_type': vector_type,
+                   'extent_bin_width_um': extent_bin_width_um,
+                   'split_probe_end': split_probe_end,
+                   'ga_rho_bin_width': ga_rho_bin_width,
                    'jitter_um': jitter_um, 'skipped_sessions': skipped}, f, indent=2)
     sessions.to_csv(os.path.join(out_dir, "sessions.csv"), index=False)
     channels.to_csv(os.path.join(out_dir, "channels.csv"), index=False)
