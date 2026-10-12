@@ -405,7 +405,14 @@ class ChoicePeriodEStimAnalysis(Analysis):
                  spike_source: str = SPIKE_SOURCE_SPIKE_DAT,
                  export: bool = True,
                  save_plots: bool = True,
-                 show_plots: bool = False):
+                 show_plots: bool = False,
+                 skip_existing: bool = True,
+                 cache_parsed_trials: bool = True):
+        """skip_existing: skip a session that already has up-to-date rows in
+        NafcChoicePeriodResponses (set False after changing window / PSTH
+        parameters, to recompute). cache_parsed_trials: pickle each parsed
+        Intan trial locally (base_dir/<nafc db>/parsed_nafc_trials) so later
+        runs don't re-read spike.dat over sftp."""
         # 'raw' = Intan spike.dat threshold crossings, the NAFC parser default.
         super().__init__(data_type="raw")
         self.window_start_offset_s = window_start_offset_s
@@ -419,6 +426,8 @@ class ChoicePeriodEStimAnalysis(Analysis):
         self.export = export
         self.save_plots = save_plots
         self.show_plots = show_plots
+        self.skip_existing = skip_existing
+        self.cache_parsed_trials = cache_parsed_trials
         self._data: Optional[pd.DataFrame] = None
         self._data_session_id: Optional[str] = None
         self.summaries: dict[str, dict] = {}
@@ -455,7 +464,8 @@ class ChoicePeriodEStimAnalysis(Analysis):
 
         # Check for recordings before compiling, so a session without neural
         # data (or an unmounted Intan drive) doesn't cache NeuralData=None.
-        neural_field = NafcNeuralDataField(self.nafc_intan_path(), exp_conn, parser=self.parser)
+        neural_field = NafcNeuralDataField(self.nafc_intan_path(), exp_conn,
+                                           parser=self._build_parser())
         if not neural_field._index:
             print(f"SKIP {context.nafc_database}: no Intan recording folders under "
                   f"{self.nafc_intan_path()}")
@@ -477,8 +487,33 @@ class ChoicePeriodEStimAnalysis(Analysis):
             return pd.DataFrame()
         return data[has_neural].reset_index(drop=True)
 
+    def _build_parser(self):
+        if self.parser is not None or not self.cache_parsed_trials:
+            return self.parser
+        from src.analysis.nafc.neural.nafc_neural_parser import NafcNeuralParser
+        from src.startup import context
+        cache_dir = os.path.join(context.base_dir, context.nafc_database, "parsed_nafc_trials")
+        return NafcNeuralParser(to_cache=True, cache_dir=cache_dir)
+
+    def _already_exported(self, session_id: str) -> bool:
+        """True if this session has rows that include every current column."""
+        from clat.util.connection import Connection
+        repo_conn = Connection("allen_data_repository")
+        ensure_table(repo_conn)
+        repo_conn.execute(
+            f"SELECT COUNT(*) FROM {TABLE_NAME} WHERE session_id = %s AND spike_source = %s "
+            f"AND n_trials_hyp IS NOT NULL", (session_id, self.spike_source))
+        return repo_conn.fetch_all()[0][0] > 0
+
     def compile_and_export(self):
         session_id = self._current_session_id()
+        if self.skip_existing and self.export and self._already_exported(session_id):
+            print(f"SKIP {session_id}: already in {TABLE_NAME} "
+                  f"(skip_existing=False to recompute)")
+            self._data = pd.DataFrame()
+            self._data_session_id = session_id
+            self.summaries = {}
+            return
         self._data = self.compile()
         self._data_session_id = session_id
         self.summaries = {}
