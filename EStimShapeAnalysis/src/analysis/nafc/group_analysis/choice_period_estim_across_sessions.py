@@ -690,13 +690,12 @@ def main():
     show_point_labels = False         # session/channel label on each distance-plot point
     fit_distance_falloff = True       # fit current-density falloff (1/r^2) to MI vs distance
     distance_fit_bootstraps = 1000    # session-resampling bootstraps for CIs (0 = no CIs)
-    current_metrics = ["current_per_second", "total_current"]  # panels added to the distance
-                                      # figure, one row each; [] = none
+    current_metrics = ["total_current"]  # panels added to the distance figure, one row each;
+                                      # also "current_per_second"; [] = none
     near_field_um = 65.0              # "near EStim" = within this distance (65 um = 1 channel)
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
-        "current_per_second": None,   # are left out of that metric's two panels and their
-        "total_current": None,        # correlation only. None = all; either end may be None
-    }
+        "total_current": None,        # are left out of that metric's two panels and their
+    }                                 # correlation only. None = all; either end may be None
     min_trials_per_group = 3          # channel needs this many trials in a sample x choice group
     output_root = "/home/connorlab/Documents/plots/across_experiments/choice_period_estim"
     show_plots = True
