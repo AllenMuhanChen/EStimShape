@@ -59,6 +59,7 @@ def main():
     from src.analysis.ga.explorer.modules.top_per_gen_module import TopPerGenModule
     from src.analysis.ga.explorer.modules.estim_summary_module import EStimSummaryModule
     from src.analysis.ga.explorer.modules.solid_preference_module import SolidPreferenceModule
+    from src.analysis.ga.explorer.modules.probe_analysis_module import ProbeAnalysisModule
     from src.analysis.ga.explorer.modules.response_by_generation_module import \
         ResponseByGenerationModule
 
@@ -70,6 +71,7 @@ def main():
         TopPerGenModule,
         EStimSummaryModule,
         SolidPreferenceModule,
+        ProbeAnalysisModule,
         ResponseByGenerationModule,
     ]
     # Session to open with, e.g. "260426_0". None = the session context.py
@@ -233,6 +235,13 @@ class GAExperimentExplorer(QMainWindow):
         form = QFormLayout()
         widgets = {}
         for p in module.params():
+            if p.kind == "header":
+                head = QLabel(f"<b>{p.label}</b>")
+                head.setStyleSheet("margin-top: 8px;")
+                if p.tooltip:
+                    head.setToolTip(p.tooltip)
+                form.addRow(head)
+                continue
             w = self._make_param_widget(idx, p)
             if p.tooltip:
                 w.setToolTip(p.tooltip)

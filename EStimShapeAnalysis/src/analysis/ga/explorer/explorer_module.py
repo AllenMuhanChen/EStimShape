@@ -49,7 +49,8 @@ import pandas as pd
 class Param:
     """One user-facing setting of a module.
 
-    kind: 'int', 'float', 'bool', 'str' or 'choice'.
+    kind: 'int', 'float', 'bool', 'str' or 'choice'; or 'header' for a bold
+        section title in the panel (no value; key must still be unique).
     live: True redraws as soon as the value changes (good for cheap display
         toggles); False waits for the Apply button (good for anything that
         recomputes).
