@@ -210,23 +210,22 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
     for i in ext['up_stop'] + ext['down_stop']:
         ax.scatter(rho[i], y[i], marker='x', s=140, color='tab:red', lw=2.5, zorder=7)
 
-    # extent arrows on the right edge
-    x_arrow = 1.02
-    for edge, ga_edge, val, end, label in (
-            (ext['up_edge'], ext['ga_top'], ext['extent_up_um'],
-             ext['up_reached_end'], 'up'),
-            (ext['down_edge'], ext['ga_bottom'], ext['extent_down_um'],
-             ext['down_reached_end'], 'down')):
-        if edge == ga_edge:
-            continue
-        ax.annotate('', xy=(x_arrow, _row_y(rows, edge)),
-                    xytext=(x_arrow, _row_y(rows, ga_edge)),
-                    arrowprops=dict(arrowstyle='->', color='darkgoldenrod', lw=2),
+    # one double-headed arrow on the right edge spanning the whole extent
+    # (upper boundary channel -> lower boundary channel), ticked at both ends
+    x_arrow, tick = 1.03, 0.025
+    y_up, y_dn = _row_y(rows, ext['up_edge']), _row_y(rows, ext['down_edge'])
+    if y_up != y_dn:
+        ax.annotate('', xy=(x_arrow, y_up), xytext=(x_arrow, y_dn),
+                    arrowprops=dict(arrowstyle='<|-|>', color='darkgoldenrod', lw=2,
+                                    shrinkA=0, shrinkB=0, mutation_scale=15),
                     annotation_clip=False)
-        ax.text(x_arrow + 0.03, 0.5 * (_row_y(rows, edge) + _row_y(rows, ga_edge)),
-                f"{label}\n{val:.0f} µm" + ('\n(probe end)' if end else ''),
-                va='center', ha='left', fontsize=11, color='darkgoldenrod',
-                clip_on=False)
+    for y_end in (y_up, y_dn):
+        ax.plot([x_arrow - tick, x_arrow + tick], [y_end, y_end], color='black',
+                lw=1.5, clip_on=False)
+    reached = ext['up_reached_end'] or ext['down_reached_end']
+    ax.text(x_arrow + 0.04, 0.5 * (y_up + y_dn),
+            f"{ext['extent_total_um']:.0f} µm" + ('\n(probe end)' if reached else ''),
+            va='center', ha='left', fontsize=11, color='darkgoldenrod', clip_on=False)
 
     ax.set_xlim(-1, 1)
     ax.tick_params(axis='y', left=False, labelleft=False)
