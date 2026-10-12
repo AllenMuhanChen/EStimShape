@@ -9,7 +9,8 @@ Top bar     Session picker (GA sessions in the repository; you can also type
             (ga_database, ga_name) so you can always see which DB you're on.
 Left panel  Module list, then the selected module's parameters. Parameters
             marked live redraw immediately; the others wait for Apply (or
-            Enter). Below them the module's own buttons, and Save.
+            Enter). Below them the module's own buttons, then Export figure,
+            Copy to clipboard, Load settings and Save as defaults.
 Centre      The selected module's view.
 
 Switching session calls apply_session_context(session_id): the global
@@ -17,9 +18,12 @@ Switching session calls apply_session_context(session_id): the global
 nothing is written to disk. Each module is told about the new session and
 redrawn when you look at it.
 
-Save writes the current view into a NEW timestamped folder
+Export figure writes the current view into a NEW timestamped folder
     <SAVE_ROOT>/<session_id>/ga_explorer/<module>_<YYYYmmdd_HHMMSS>/
-with a config.json of the session, database and every parameter.
+with a config.json of the session, database and every parameter. Load settings
+reads such a config.json back: it switches to that session and module and sets
+the parameters. Save as defaults stores the current module's parameters in
+DEFAULTS_FILE; they are used instead of the built-in defaults on every launch.
 
 Adding your own module: see explorer_module.py (subclass FigureModule and
 return a matplotlib/plotly figure), then add it to MODULES in main().
@@ -40,7 +44,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
                              QFormLayout, QHBoxLayout, QLabel, QLineEdit,
-                             QListWidget, QMainWindow, QMessageBox, QPushButton,
+                             QFileDialog, QListWidget, QMainWindow, QMessageBox,
+                             QPushButton,
                              QScrollArea, QSpinBox, QSplitter, QStackedWidget,
                              QVBoxLayout, QWidget)
 
@@ -82,17 +87,19 @@ def main():
     GA_NAME = None
     # Where Save writes its timestamped folders.
     SAVE_ROOT = "/home/connorlab/Documents/plots"
+    # Where "Save as defaults" keeps each module's default parameters.
+    DEFAULTS_FILE = os.path.expanduser("~/.ga_experiment_explorer_defaults.json")
     # Base font size of the window (points).
     FONT_SIZE = 11
     # -------------------------------------------------------------------------
 
     launch(MODULES, start_session=START_SESSION, ga_name=GA_NAME,
-           save_root=SAVE_ROOT, font_size=FONT_SIZE)
+           save_root=SAVE_ROOT, font_size=FONT_SIZE, defaults_file=DEFAULTS_FILE)
 
 
 def launch(module_classes, *, start_session=None, ga_name=None,
            save_root="/home/connorlab/Documents/plots", font_size=11,
-           session_lister=None):
+           session_lister=None, defaults_file=None):
     """Open the explorer. ``session_lister`` (a function returning session
     ids) defaults to the repository's GA sessions."""
     app = QApplication.instance() or QApplication(sys.argv)
@@ -101,7 +108,8 @@ def launch(module_classes, *, start_session=None, ga_name=None,
     app.setFont(font)
     win = GAExperimentExplorer([cls() for cls in module_classes],
                                start_session=start_session, ga_name=ga_name,
-                               save_root=save_root, session_lister=session_lister)
+                               save_root=save_root, session_lister=session_lister,
+                               defaults_file=defaults_file)
     win.show()
     app.exec_()
 
@@ -115,7 +123,7 @@ def session_id_from_db_name(db_name: str) -> str:
 class GAExperimentExplorer(QMainWindow):
     def __init__(self, modules: list[ExplorerModule], *, start_session=None,
                  ga_name=None, save_root="/home/connorlab/Documents/plots",
-                 session_lister=None):
+                 session_lister=None, defaults_file=None):
         super().__init__()
         self.setWindowTitle("GA Experiment Explorer")
         self.resize(1600, 950)
@@ -123,6 +131,8 @@ class GAExperimentExplorer(QMainWindow):
         self.ga_name = ga_name
         self.save_root = save_root
         self.session_lister = session_lister
+        self.defaults_file = defaults_file
+        self._saved_defaults = self._read_defaults()
         self.session: SessionState | None = None
 
         # Per-module UI state.
@@ -200,8 +210,9 @@ class GAExperimentExplorer(QMainWindow):
         left_lay.addWidget(scroll, stretch=1)
 
         save_row = QHBoxLayout()
-        save_btn = QPushButton("Save view…")
-        save_btn.setToolTip("Write the current view + config.json into a new timestamped folder.")
+        save_btn = QPushButton("Export figure…")
+        save_btn.setToolTip("Write the current figure + config.json (session, parameters) "
+                            "into a new timestamped folder.")
         save_btn.clicked.connect(self.save_current)
         copy_btn = QPushButton("Copy to clipboard")
         copy_btn.setToolTip("Copy the current module's figure (or a screenshot of its view) "
@@ -210,6 +221,18 @@ class GAExperimentExplorer(QMainWindow):
         save_row.addWidget(save_btn)
         save_row.addWidget(copy_btn)
         left_lay.addLayout(save_row)
+        settings_row = QHBoxLayout()
+        load_btn = QPushButton("Load settings…")
+        load_btn.setToolTip("Open an exported config.json: switch to its session and module "
+                            "and set its parameters.")
+        load_btn.clicked.connect(self.load_settings)
+        defaults_btn = QPushButton("Save as defaults")
+        defaults_btn.setToolTip("Use this module's current parameters as its defaults every "
+                                "time the explorer starts.")
+        defaults_btn.clicked.connect(self.save_defaults)
+        settings_row.addWidget(load_btn)
+        settings_row.addWidget(defaults_btn)
+        left_lay.addLayout(settings_row)
         left.setMinimumWidth(420)
         splitter.addWidget(left)
 
@@ -257,6 +280,8 @@ class GAExperimentExplorer(QMainWindow):
             widgets[p.key] = (p, w)
         lay.addLayout(form)
         self._param_widgets.append(widgets)
+        for key, value in self._saved_defaults.get(self._module_key(module), {}).items():
+            self._set_param_value(idx, key, value)
         self._pending.append(set())
 
         apply_btn = QPushButton("Apply")
@@ -333,6 +358,32 @@ class GAExperimentExplorer(QMainWindow):
             else:
                 out[key] = w.text()
         return out
+
+    def _set_param_value(self, idx, key, value) -> bool:
+        """Set one parameter widget without triggering a redraw. False if the
+        module has no such parameter or the value doesn't fit it."""
+        if key not in self._param_widgets[idx]:
+            return False
+        p, w = self._param_widgets[idx][key]
+        w.blockSignals(True)
+        try:
+            if p.kind == "bool":
+                w.setChecked(bool(value))
+            elif p.kind == "int":
+                w.setValue(int(value))
+            elif p.kind == "float":
+                w.setValue(float(value))
+            elif p.kind == "choice":
+                if w.findText(str(value)) < 0:
+                    return False
+                w.setCurrentText(str(value))
+            else:
+                w.setText(str(value))
+        except (TypeError, ValueError):
+            return False
+        finally:
+            w.blockSignals(False)
+        return True
 
     def _on_param_changed(self, idx, key):
         p, _w = self._param_widgets[idx][key]
@@ -472,6 +523,76 @@ class GAExperimentExplorer(QMainWindow):
 
     def _set_status(self, text):
         self.statusBar().showMessage(text)
+
+    # -------------------------------------------------------------- settings
+    @staticmethod
+    def _module_key(module) -> str:
+        return f"{type(module).__module__}.{type(module).__name__}"
+
+    def _read_defaults(self) -> dict:
+        if not self.defaults_file or not os.path.isfile(self.defaults_file):
+            return {}
+        try:
+            with open(self.defaults_file) as f:
+                return json.load(f)
+        except Exception:
+            traceback.print_exc()
+            print(f"Could not read {self.defaults_file}; using built-in defaults")
+            return {}
+
+    def save_defaults(self):
+        idx = self.module_list.currentRow()
+        if idx < 0:
+            return
+        if not self.defaults_file:
+            QMessageBox.warning(self, "Save as defaults", "No DEFAULTS_FILE is set.")
+            return
+        module = self.modules[idx]
+        saved = self._read_defaults()  # re-read so other modules' entries are kept
+        saved[self._module_key(module)] = self.values(idx)
+        try:
+            with open(self.defaults_file, "w") as f:
+                json.dump(saved, f, indent=2, default=str)
+        except Exception as exc:
+            traceback.print_exc()
+            QMessageBox.critical(self, "Save as defaults failed", str(exc))
+            return
+        self._saved_defaults = saved
+        self._set_status(f"Saved {module.name} defaults to {self.defaults_file}")
+
+    def load_settings(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Load settings", self.save_root,
+                                              "Explorer config (config.json *.json)")
+        if not path:
+            return
+        try:
+            with open(path) as f:
+                config = json.load(f)
+            idx = next((i for i, m in enumerate(self.modules)
+                        if self._module_key(m) == config.get("module_class")), None)
+            if idx is None:
+                idx = next((i for i, m in enumerate(self.modules)
+                            if m.name == config.get("module")), None)
+            if idx is None:
+                raise ValueError(f"No module {config.get('module')!r} in this explorer")
+        except Exception as exc:
+            traceback.print_exc()
+            QMessageBox.critical(self, "Load settings failed", str(exc))
+            return
+        session_id = config.get("session_id")
+        if session_id and (self.session is None or session_id != self.session.session_id):
+            self.switch_session(session_id)
+        skipped = [k for k, v in config.get("params", {}).items()
+                   if not self._set_param_value(idx, k, v)]
+        self._stale[idx] = True
+        if self.module_list.currentRow() == idx:
+            self._refresh(idx, changed=None)
+        else:
+            self.module_list.setCurrentRow(idx)  # refreshes via _on_module_selected
+        msg = f"Loaded {os.path.basename(os.path.dirname(path))}"
+        if skipped:
+            msg += f" (ignored settings this module doesn't have: {', '.join(skipped)})"
+        self._set_status(msg)
 
     # ------------------------------------------------------------------ copy
     def copy_current(self):
