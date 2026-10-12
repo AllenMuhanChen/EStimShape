@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (QCheckBox, QHBoxLayout, QLabel, QPushButton,
                              QScrollArea, QSpinBox, QVBoxLayout, QWidget)
 
 MPL_SAVE_DPI = 300
+MPL_CLIPBOARD_DPI = 200
 
 
 def _is_plotly(fig) -> bool:
@@ -163,6 +164,20 @@ class FigureView(QWidget):
                 and self._fit_check.isChecked()):
             self._rescale()
         return False
+
+    # ----------------------------------------------------------- clipboard
+    def clipboard_image(self) -> QImage | None:
+        """The whole figure as an image (not just the visible part): matplotlib
+        rendered at MPL_CLIPBOARD_DPI, plotly at its full rendered size."""
+        if self._fig is None:
+            return None
+        if _is_plotly(self._fig):
+            return self._pixmap.toImage() if self._pixmap is not None else None
+        import io
+        buf = io.BytesIO()
+        self._fig.savefig(buf, format="png", dpi=MPL_CLIPBOARD_DPI, bbox_inches="tight",
+                          facecolor="white")
+        return QImage.fromData(buf.getvalue(), "PNG")
 
     # ---------------------------------------------------------------- save
     def save(self, folder: str, basename: str) -> list[str]:
