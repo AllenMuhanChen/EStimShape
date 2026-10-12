@@ -657,8 +657,8 @@ def main():
     fit_distance_falloff = True       # fit current-density falloff (1/r^2) to MI vs distance
     distance_fit_bootstraps = 1000    # session-resampling bootstraps for CIs (0 = no CIs)
     plot_vs_current = True            # add current_per_second panels to the distance figure
-    near_field_um = 65.0              # "near EStim" = within this distance (65 um = 1 channel)
-    current_range = None              # (min, max) current_per_second for the current panels,
+    near_field_um = 250              # "near EStim" = within this distance (65 um = 1 channel)
+    current_range = (0, 5000)              # (min, max) current_per_second for the current panels,
                                       # e.g. (0, 3000); sessions outside are left out of those
                                       # two panels and their correlation only. None = all;
                                       # either end may be None
