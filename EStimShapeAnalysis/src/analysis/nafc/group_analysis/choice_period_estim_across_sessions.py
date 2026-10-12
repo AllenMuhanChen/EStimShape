@@ -518,7 +518,8 @@ def session_current_per_second(session_id: str) -> float:
 
 def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bool,
                         fit_curve: bool = True, n_boot: int = 1000,
-                        current_panels: bool = False, near_field_um: float = 65.0):
+                        current_panels: bool = False, near_field_um: float = 65.0,
+                        current_range=None):
     sub = table.dropna(subset=["distance_to_estim_um", "modulation_index"])
     current_panels = current_panels and "current_per_second" in sub.columns \
         and sub["current_per_second"].notna().any()
@@ -567,17 +568,27 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
     ax.spines[["top", "right"]].set_visible(False)
     if current_panels and result is not None:
         result["current"] = _plot_current_panels(axes[1], axes[2], sub, near_field_um, fig,
-                                                 sharey_with=ax)
+                                                 sharey_with=ax, current_range=current_range)
     fig.tight_layout()
     return fig, result
 
 
 def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, near_field_um: float, fig,
-                         sharey_with=None) -> dict:
+                         sharey_with=None, current_range=None) -> dict:
     """Middle: the distance scatter colored by the session's current_per_second.
     Right: per session, the mean MI of channels within near_field_um of an EStim
     channel vs current_per_second (one point per session, sessions independent)."""
     cur = sub.dropna(subset=["current_per_second"])
+    lo, hi = current_range if current_range else (None, None)
+    outside = ((cur["current_per_second"] < lo) if lo is not None else False) | \
+              ((cur["current_per_second"] > hi) if hi is not None else False)
+    outside = pd.Series(outside, index=cur.index, dtype=bool)
+    excluded = sorted(cur.loc[outside, "session_id"].unique())
+    if excluded:
+        print(f"Left out of the current panels (current_per_second outside {current_range}): "
+              + ", ".join(f"{sid} ({c:g})" for sid, c in cur.loc[outside].groupby("session_id")
+                          ["current_per_second"].first().items()))
+        cur = cur[~outside]
     order = cur.sort_values("current_per_second")  # high current drawn on top
     sc = ax_scatter.scatter(order["distance_to_estim_um"], order["modulation_index"], s=50,
                             c=order["current_per_second"], cmap="viridis", alpha=0.85,
@@ -600,7 +611,8 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, near_field_um: 
     ax_dose.errorbar(per_session["current"], per_session["mi"], yerr=per_session["sem"],
                      fmt="o", color="#D1495B", markersize=9, capsize=4, linewidth=1.5)
     ax_dose.axhline(0, color="black", linewidth=1, linestyle="--")
-    out = {"near_field_um": near_field_um, "n_sessions": len(per_session)}
+    out = {"near_field_um": near_field_um, "n_sessions": len(per_session),
+           "excluded": excluded, "current_range": current_range}
     if len(per_session) >= 3:
         r, p = stats.pearsonr(per_session["current"], per_session["mi"])
         slope, intercept = np.polyfit(per_session["current"], per_session["mi"], 1)
@@ -646,6 +658,10 @@ def main():
     distance_fit_bootstraps = 1000    # session-resampling bootstraps for CIs (0 = no CIs)
     plot_vs_current = True            # add current_per_second panels to the distance figure
     near_field_um = 65.0              # "near EStim" = within this distance (65 um = 1 channel)
+    current_range = None              # (min, max) current_per_second for the current panels,
+                                      # e.g. (0, 3000); sessions outside are left out of those
+                                      # two panels and their correlation only. None = all;
+                                      # either end may be None
     min_trials_per_group = 3          # channel needs this many trials in a sample x choice group
     output_root = "/home/connorlab/Documents/plots/across_experiments/choice_period_estim"
     show_plots = True
@@ -686,7 +702,8 @@ def main():
             all_channels["current_per_second"] = all_channels["session_id"].map(current)
         distance_fig, distance_result = plot_mi_vs_distance(
             table, alpha, show_point_labels, fit_distance_falloff, distance_fit_bootstraps,
-            current_panels=plot_vs_current, near_field_um=near_field_um)
+            current_panels=plot_vs_current, near_field_um=near_field_um,
+            current_range=current_range)
         if distance_result:
             text += (f"\nPearson correlation, MI vs distance to EStim (channels): "
                      f"r = {distance_result['r']:.2f}, {_p_text(distance_result['p'])}, "
@@ -698,6 +715,9 @@ def main():
                 text += (f"\nPearson correlation, session mean MI of channels <= "
                          f"{cur['near_field_um']:g} um vs current_per_second (sessions): "
                          f"r = {cur['r']:.2f}, {_p_text(cur['p'])}, n = {cur['n_sessions']}")
+                if cur["excluded"]:
+                    text += (f"\n  (current range {cur['current_range']}; left out: "
+                             f"{', '.join(cur['excluded'])})")
     print(text)
 
     out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -717,6 +737,7 @@ def main():
             "fit_distance_falloff": fit_distance_falloff,
             "plot_vs_current": plot_vs_current,
             "near_field_um": near_field_um,
+            "current_range": current_range,
             "distance_fit_bootstraps": distance_fit_bootstraps,
         }, f, indent=2)
     with open(os.path.join(out_dir, "stats.txt"), "w") as f:
