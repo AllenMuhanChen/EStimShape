@@ -555,8 +555,19 @@ def bootstrap_joint(sub: pd.DataFrame, metric: str, n_boot: int, seed: int = 0) 
 # Superposition: field at each recorded channel from every stimulated channel
 # ---------------------------------------------------------------------------
 
-def session_stim_charges(session_id: str) -> dict:
-    """{stim channel: charge (a1 x pulses, uA x pulses)} for the session.
+# What each stimulated channel contributes to the summed field, and the
+# reference level k is quoted at. Set by add_stim_sources from field_per_pulse.
+FIELD_PER_PULSE = {"f_ref": 100.0, "unit": "uA", "label": "per-pulse current a1"}
+FIELD_TOTAL = {"f_ref": 1000.0, "unit": "uA x pulses", "label": "charge a1 x pulses"}
+SUPERPOSITION_FIELD = dict(FIELD_PER_PULSE)
+
+
+def session_stim_charges(session_id: str, per_pulse: bool = True) -> dict:
+    """{stim channel: per-pulse current a1 (uA), or with per_pulse=False the
+    charge a1 x pulses (uA x pulses)} for the session.
+
+    per_pulse=True removes the number of pulses: each channel contributes its
+    pulse amplitude only.
 
     Per (spec, sample_length) group of ON trials (EStimShapeTrials), each
     channel with a1 > 0 delivers a1 x n_pulses, n_pulses from estim_hyperparameters
@@ -576,9 +587,12 @@ def session_stim_charges(session_id: str) -> dict:
         total = get_estim_hyperparameters(session_id, int(spec_id),
                                           sample_duration_ms=sample_length).get("total_current")
         a1, nch = base.get("a1"), base.get("num_channels")
-        if total is None or not a1 or not nch:
+        if per_pulse:
+            n_pulses = 1.0
+        elif total is None or not a1 or not nch:
             continue
-        n_pulses = float(total) / (float(a1) * float(nch))
+        else:
+            n_pulses = float(total) / (float(a1) * float(nch))
         conn.execute("SELECT channel, a1 FROM EStimParameters WHERE session_id = %s "
                      "AND estim_spec_id = %s AND a1 > 0", params=(session_id, int(spec_id)))
         from src.cluster.cluster_isolation_score import _parse_channel
@@ -592,9 +606,12 @@ def session_stim_charges(session_id: str) -> dict:
     return {ch: q / n_total for ch, q in totals.items()} if n_total else {}
 
 
-def add_stim_sources(table: pd.DataFrame, coords: dict, charges_by_session: dict) -> pd.DataFrame:
+def add_stim_sources(table: pd.DataFrame, coords: dict, charges_by_session: dict,
+                     per_pulse: bool = True) -> pd.DataFrame:
     """stim_sources: per recorded channel, a list of (charge, distance um) for every
     stimulated channel of its session."""
+    SUPERPOSITION_FIELD.clear()
+    SUPERPOSITION_FIELD.update(FIELD_PER_PULSE if per_pulse else FIELD_TOTAL)
     table = table.copy()
 
     def sources(row):
@@ -627,7 +644,7 @@ def effective_field(arrays, n_rows: int, r0: float) -> np.ndarray:
 
 
 def superposition_model(arrays, n_rows, k, c, r0, beta=1.0):
-    return k * (effective_field(arrays, n_rows, r0) / JOINT_I_REF) ** beta + c
+    return k * (effective_field(arrays, n_rows, r0) / SUPERPOSITION_FIELD["f_ref"]) ** beta + c
 
 
 def fit_superposition(sub: pd.DataFrame):
@@ -700,7 +717,7 @@ def plot_superposition(ax, sub: pd.DataFrame, fit: dict, binned_stat, fig):
     cbar.ax.tick_params(labelsize=11)
     ax.set_xscale("log")
     xs = np.logspace(np.log10(field[ok].min()), np.log10(field[ok].max()), 300)
-    handles = ax.plot(xs, fit["k"] * (xs / JOINT_I_REF) ** fit["beta"] + fit["c"],
+    handles = ax.plot(xs, fit["k"] * (xs / SUPERPOSITION_FIELD["f_ref"]) ** fit["beta"] + fit["c"],
                       color="black", linewidth=2.6, zorder=5,
                       label=f"k F^\u03b2 + C (\u03b2 = {fit['beta']:.2f}, r0 = {fit['r0']:.0f} um)")
     if binned_stat:
@@ -728,7 +745,8 @@ def plot_superposition(ax, sub: pd.DataFrame, fit: dict, binned_stat, fig):
                                        label="Median (IQR)" if binned_stat == "median"
                                        else "Mean \u00b1 SEM"))
     ax.axhline(0, color="black", linewidth=1, linestyle="--")
-    ax.set_xlabel("Summed field at channel, F (uA x pulses at d = 0)", fontsize=14)
+    ax.set_xlabel(f"Summed field at channel, F ({SUPERPOSITION_FIELD['unit']} at d = 0)",
+                  fontsize=14)
     ax.set_ylabel("Modulation index (ON - OFF) / (ON + OFF)", fontsize=14)
     ax.set_title("Modulation vs field summed over EStim channels", fontsize=15)
     ax.legend(handles=handles, fontsize=11, frameon=False, loc="lower left")
@@ -1071,10 +1089,12 @@ def joint_text(metric: str, j: dict) -> str:
 
     d_const, d_lin = j["aic"] - j["aic_const"], j["aic"] - j["aic_linear"]
     if j.get("predictor") == "superposition":
-        return (f"Superposition fit, MI = k (F / {JOINT_I_REF:g})^beta + C, "
-                f"F = sum over EStim channels of charge (a1 x pulses) x r0^2 / (d^2 + r0^2) "
+        ref, funit = SUPERPOSITION_FIELD["f_ref"], SUPERPOSITION_FIELD["unit"]
+        return (f"Superposition fit, MI = k (F / {ref:g})^beta + C, "
+                f"F = sum over EStim channels of {SUPERPOSITION_FIELD['label']} "
+                f"x r0^2 / (d^2 + r0^2) "
                 f"({j['n']} channels; 95% CI: bootstrap over sessions):\n"
-                f"  k (MI at F = {JOINT_I_REF:g} uA x pulses, minus C) = {fmt('k', j['k'], '+.3f')}, "
+                f"  k (MI at F = {ref:g} {funit}, minus C) = {fmt('k', j['k'], '+.3f')}, "
                 f"beta = {fmt('beta', j['beta'], '.2f')} (1 = proportional to field, "
                 f"< 1 = saturating), C = {fmt('c', j['c'], '+.3f')}, "
                 f"r0 = {fmt('r0', j['r0'], '.0f')} um\n"
@@ -1092,6 +1112,40 @@ def joint_text(metric: str, j: dict) -> str:
             f"({verdict(d_const, 'constant amplitude')})\n"
             f"  AIC beta fit - AIC beta = 1 = {fmt('d_aic_linear', d_lin, '+.1f')} "
             f"({verdict(d_lin, 'beta = 1')}); negative favors the beta fit")
+
+
+def joint_summary(j: dict) -> str:
+    """Plain-language verdict on the current fit, printed at the end of a run."""
+    ci = j.get("ci", {})
+    b_lo, b_hi = ci.get("beta", (np.nan, np.nan))
+    d_lin, d_const = j["aic"] - j["aic_linear"], j["aic"] - j["aic_const"]
+    name = (f"Superposition fit (field summed over EStim channels, "
+            f"{SUPERPOSITION_FIELD['label']})"
+            if j.get("predictor") == "superposition" else f"Joint fit ({j.get('predictor')})")
+    lines = ["", "=" * 70, name, "=" * 70]
+    beta = f"beta = {j['beta']:.2f}"
+    if ci:
+        beta += f"  (95% CI {b_lo:.2f} to {b_hi:.2f})"
+        if b_hi < 1:
+            beta += "  -> grows SLOWER than the field (saturating); CI excludes 1"
+        elif b_lo > 1:
+            beta += "  -> grows FASTER than the field; CI excludes 1"
+        else:
+            beta += "  -> consistent with proportional to the field (CI includes 1)"
+    lines.append(beta)
+    lines.append(f"vs beta = 1:            AIC difference {d_lin:+.1f}  -> "
+                 + ("free beta clearly better" if d_lin < -2 else
+                    "beta = 1 better" if d_lin > 2 else "no clear difference"))
+    lines.append(f"vs constant amplitude:  AIC difference {d_const:+.1f}  -> "
+                 + ("current explains part of the session differences" if d_const < -2 else
+                    "constant amplitude better" if d_const > 2 else "no clear difference"))
+    r0 = f"r0 = {j['r0']:.0f} um (half-effect distance from one electrode)"
+    if "r0" in ci:
+        r0 += f"  (95% CI {ci['r0'][0]:.0f} to {ci['r0'][1]:.0f})"
+    lines.append(r0)
+    lines.append(f"far-field level C = {j['c']:+.3f}")
+    lines.append("=" * 70)
+    return "\n".join(lines)
 
 
 def falloff_text(fit: dict) -> str:
@@ -1130,6 +1184,8 @@ def main():
     joint_predictor = "superposition"  # "superposition": field summed over each EStim channel
                                       # with its own distance (physics of several electrodes);
                                       # "total_current": session total x 1/r^2 to nearest
+    field_per_pulse = True            # superposition uses pulse amplitude a1 only (number of
+                                      # pulses removed); False = charge a1 x pulses
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
         "current_per_second": (0, 5000),  # are left out of that metric's two panels and their
         "total_current": None,        # correlation only. None = all; either end may be None
@@ -1175,8 +1231,9 @@ def main():
                 table[m] = table["session_id"].map(values)
                 all_channels[m] = all_channels["session_id"].map(values)
             if joint_current_fit and joint_predictor == "superposition":
-                charges = {sid: session_stim_charges(sid) for sid in estim_by_session}
-                table = add_stim_sources(table, coords, charges)
+                charges = {sid: session_stim_charges(sid, per_pulse=field_per_pulse)
+                           for sid in estim_by_session}
+                table = add_stim_sources(table, coords, charges, per_pulse=field_per_pulse)
             if split_by_polarity:
                 polarity = {sid: c.get("polarity") for sid, c in current.items()}
                 table["polarity"] = table["session_id"].map(polarity)
@@ -1231,6 +1288,7 @@ def main():
             "binned_stat": binned_stat,
             "joint_current_fit": joint_current_fit,
             "joint_predictor": joint_predictor,
+            "field_per_pulse": field_per_pulse,
             "distance_bin_um": distance_bin_um,
             "distance_fit_bootstraps": distance_fit_bootstraps,
         }, f, indent=2)
@@ -1268,6 +1326,9 @@ def main():
                     bbox_inches="tight")
         fig.savefig(os.path.join(out_dir, "choice_period_synchrony.svg"), bbox_inches="tight")
     print(f"Saved to {out_dir}")
+    for m, cur in ((distance_result or {}).get("current") or {}).items():
+        if cur.get("joint"):
+            print(joint_summary(cur["joint"]))
     if show_plots:
         plt.show()
 
