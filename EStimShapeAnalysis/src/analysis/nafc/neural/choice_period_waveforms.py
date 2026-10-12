@@ -163,7 +163,7 @@ def plot_template_r(snips: pd.DataFrame, windows: dict, title: str):
 
 def main():
     # ---- parameters ----
-    session_id = "260518_0"
+    session_id = "260630_0"
     channels = None                  # None = all 32; or e.g. ["A-012", "A-013"]
     n_trials_per_condition = 30      # random ON and OFF trials to read raw data for
     windows = {                      # name: (event, start_s, stop_s) relative to the event

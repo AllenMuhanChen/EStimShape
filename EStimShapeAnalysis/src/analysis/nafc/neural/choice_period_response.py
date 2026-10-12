@@ -750,7 +750,7 @@ class ChoicePeriodEStimAnalysis(Analysis):
 
 def main():
     # ---- parameters ----
-    session_id = "260518_0"
+    session_id = "260626_0"
     channels = None            # None = all 32 channels; or e.g. ["A-026"]
     show_plots = True          # one figure per channel
     export = True              # write rows to NafcChoicePeriodResponses
