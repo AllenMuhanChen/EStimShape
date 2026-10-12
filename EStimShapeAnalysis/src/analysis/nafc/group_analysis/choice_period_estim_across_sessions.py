@@ -42,9 +42,11 @@ undefined indices.
     distance at which the effect is half its d = 0 value. Least squares on all
     channels; 95% CIs by resampling whole sessions (1000 bootstraps).
   - Current: each session's current_per_second (a1 x number of stimulated
-    channels x pulse rate, estim_hyperparameters; mean over the session's
-    EStim specs, since their ON trials are pooled here). The distance plot is
-    repeated with points colored by it, and per session the mean MI of
+    channels x pulse rate) and total_current (a1 x number of stimulated
+    channels x number of pulses), from estim_hyperparameters; ON trials of all
+    of a session's EStim specs are pooled here, so each is the ON-trial-weighted
+    mean over its (spec, sample_length) combinations. For each, the distance
+    plot is repeated with points colored by it, and per session the mean MI of
     channels within near_field_um of an EStim channel is plotted against it
     (Pearson correlation across sessions).
 
@@ -497,36 +499,64 @@ def bootstrap_falloff(sub: pd.DataFrame, n_boot: int, seed: int = 0) -> dict:
             for k, v in draws.items()}
 
 
-def session_current_per_second(session_id: str) -> float:
-    """current_per_second (a1 x num_channels x pulse rate, estim_hyperparameters)
-    of the session's EStim specs. ON trials of every spec are pooled in this
-    analysis, so a session with several specs gets their mean (printed)."""
+# Current measures compared against the modulation: column -> (label, unit).
+CURRENT_METRICS = {
+    "current_per_second": ("Current per second", "uA x Hz"),  # a1 x n channels x pulse rate
+    "total_current": ("Total current", "uA x pulses"),        # a1 x n channels x n pulses
+}
+
+
+def session_current_metrics(session_id: str) -> dict:
+    """{metric: value} for CURRENT_METRICS, from estim_hyperparameters.
+
+    This analysis pools the ON trials of all of a session's EStim specs, so each
+    measure is the mean over its (spec, sample_length) combinations weighted by
+    their number of ON trials (EStimShapeTrials). sample_length matters for
+    level-triggered specs, whose pulse count (and so total current) is set by
+    how long the sample is shown. Sessions mixing several values are printed."""
+    from clat.util.connection import Connection
     from src.analysis.nafc.estim_hyperparameters import get_estim_hyperparameters
-    from src.cluster.cluster_isolation_score import fetch_active_estim_channels_by_spec
-    values = []
-    for spec_id in fetch_active_estim_channels_by_spec(session_id):
-        cps = get_estim_hyperparameters(session_id, int(spec_id)).get("current_per_second")
-        if cps is not None:
-            values.append(float(cps))
-    if not values:
-        return np.nan
-    if len(set(values)) > 1:
-        print(f"{session_id}: {len(values)} EStim specs with current_per_second "
-              f"{sorted(set(values))}, using their mean")
-    return float(np.mean(values))
+    conn = Connection("allen_data_repository")
+    conn.execute("SELECT estim_spec_id, sample_length, COUNT(*) FROM EStimShapeTrials "
+                 "WHERE session_id = %s AND is_estim_on = 1 AND estim_spec_id IS NOT NULL "
+                 "GROUP BY estim_spec_id, sample_length", params=(session_id,))
+    groups = conn.fetch_all()
+    out = {}
+    for metric in CURRENT_METRICS:
+        values, weights = [], []
+        for spec_id, sample_length, n in groups:
+            v = get_estim_hyperparameters(session_id, int(spec_id),
+                                          sample_duration_ms=sample_length).get(metric)
+            if v is not None:
+                values.append(float(v))
+                weights.append(int(n))
+        if not values:
+            out[metric] = np.nan
+            continue
+        if len(set(values)) > 1:
+            print(f"{session_id}: {metric} differs across EStim specs / sample lengths "
+                  f"{sorted(set(values))}, using the ON-trial-weighted mean")
+        out[metric] = float(np.average(values, weights=weights))
+    return out
 
 
 def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bool,
                         fit_curve: bool = True, n_boot: int = 1000,
-                        current_panels: bool = False, near_field_um: float = 65.0,
-                        current_range=None):
+                        current_metrics=(), near_field_um: float = 65.0,
+                        current_ranges: dict = None):
+    """Left: MI vs distance (with the 1/r^2 fit). For each metric in
+    current_metrics with data, a row on the right: the same scatter colored by
+    that metric, and per-session near-EStim MI vs the metric."""
     sub = table.dropna(subset=["distance_to_estim_um", "modulation_index"])
-    current_panels = current_panels and "current_per_second" in sub.columns \
-        and sub["current_per_second"].notna().any()
-    if current_panels:
-        fig, axes = plt.subplots(1, 3, figsize=(29, 7.5),
-                                 gridspec_kw={"width_ratios": [1, 1.12, 0.85]})
-        ax = axes[0]
+    current_metrics = [m for m in current_metrics
+                       if m in sub.columns and sub[m].notna().any()]
+    if current_metrics:
+        n_rows = len(current_metrics)
+        fig = plt.figure(figsize=(29, 7.5 * n_rows))
+        grid = fig.add_gridspec(n_rows, 3, width_ratios=[1, 1.12, 0.85])
+        ax = fig.add_subplot(grid[:, 0])
+        current_axes = [(fig.add_subplot(grid[i, 1]), fig.add_subplot(grid[i, 2]))
+                        for i in range(n_rows)]
     else:
         fig, ax = plt.subplots(figsize=(10, 7))
     for sig, color in SIG_COLORS.items():
@@ -566,46 +596,49 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
     ax.set_title("EStim modulation vs distance", fontsize=15)
     ax.tick_params(labelsize=12)
     ax.spines[["top", "right"]].set_visible(False)
-    if current_panels and result is not None:
-        result["current"] = _plot_current_panels(axes[1], axes[2], sub, near_field_um, fig,
-                                                 sharey_with=ax, current_range=current_range)
+    if current_metrics and result is not None:
+        result["current"] = {
+            m: _plot_current_panels(ax_c, ax_d, sub, m, near_field_um, fig, sharey_with=ax,
+                                    current_range=(current_ranges or {}).get(m))
+            for m, (ax_c, ax_d) in zip(current_metrics, current_axes)}
     fig.tight_layout()
     return fig, result
 
 
-def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, near_field_um: float, fig,
-                         sharey_with=None, current_range=None) -> dict:
-    """Middle: the distance scatter colored by the session's current_per_second.
+def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
+                         near_field_um: float, fig, sharey_with=None, current_range=None) -> dict:
+    """Middle: the distance scatter colored by the session's value of metric.
     Right: per session, the mean MI of channels within near_field_um of an EStim
-    channel vs current_per_second (one point per session, sessions independent)."""
-    cur = sub.dropna(subset=["current_per_second"])
+    channel vs metric (one point per session, sessions independent)."""
+    label, unit = CURRENT_METRICS[metric]
+    cur = sub.dropna(subset=[metric])
     lo, hi = current_range if current_range else (None, None)
-    outside = ((cur["current_per_second"] < lo) if lo is not None else False) | \
-              ((cur["current_per_second"] > hi) if hi is not None else False)
+    outside = ((cur[metric] < lo) if lo is not None else False) | \
+              ((cur[metric] > hi) if hi is not None else False)
     outside = pd.Series(outside, index=cur.index, dtype=bool)
     excluded = sorted(cur.loc[outside, "session_id"].unique())
     if excluded:
-        print(f"Left out of the current panels (current_per_second outside {current_range}): "
+        print(f"Left out of the {metric} panels (outside {current_range}): "
               + ", ".join(f"{sid} ({c:g})" for sid, c in cur.loc[outside].groupby("session_id")
-                          ["current_per_second"].first().items()))
+                          [metric].first().items()))
         cur = cur[~outside]
-    order = cur.sort_values("current_per_second")  # high current drawn on top
+    order = cur.sort_values(metric)  # high current drawn on top
     sc = ax_scatter.scatter(order["distance_to_estim_um"], order["modulation_index"], s=50,
-                            c=order["current_per_second"], cmap="viridis", alpha=0.85,
+                            c=order[metric], cmap="viridis", alpha=0.85,
                             edgecolor="white", linewidth=0.5)
     cbar = fig.colorbar(sc, ax=ax_scatter, pad=0.02)
-    cbar.set_label("Current per second (uA x Hz)", fontsize=13)
+    cbar.set_label(f"{label} ({unit})", fontsize=13)
     cbar.ax.tick_params(labelsize=11)
     ax_scatter.axhline(0, color="black", linewidth=1, linestyle="--")
     ax_scatter.set_xlabel("Distance to nearest EStim channel (um)", fontsize=14)
     ax_scatter.set_ylabel("Modulation index (ON - OFF) / (ON + OFF)", fontsize=14)
-    ax_scatter.set_title("Colored by current per second", fontsize=15)
+    ax_scatter.set_title(f"Colored by {label.lower()}", fontsize=15)
     if sharey_with is not None:
         ax_scatter.set_ylim(sharey_with.get_ylim())
 
     near = cur[cur["distance_to_estim_um"] <= near_field_um]
     per_session = near.groupby("session_id").agg(
-        current=("current_per_second", "first"), mi=("modulation_index", "mean"),
+        current=(metric, "first"), mi=("modulation_index", "mean"),
         sem=("modulation_index", lambda x: x.std(ddof=1) / np.sqrt(len(x)) if len(x) > 1
              else np.nan), n=("modulation_index", "size")).reset_index()
     ax_dose.errorbar(per_session["current"], per_session["mi"], yerr=per_session["sem"],
@@ -619,11 +652,12 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, near_field_um: 
         xs = np.array([per_session["current"].min(), per_session["current"].max()])
         ax_dose.plot(xs, intercept + slope * xs, color="black", linewidth=2)
         ax_dose.text(0.02, 0.97, f"Pearson r = {r:.2f}, {_p_text(p)}",
-                     transform=ax_dose.transAxes, fontsize=13, va="top")
+                     transform=ax_dose.transAxes, fontsize=13, va="top", zorder=5,
+                     bbox=dict(facecolor="white", edgecolor="none", pad=2))
         out.update(r=float(r), p=float(p))
-    ax_dose.set_xlabel("Current per second (uA x Hz)", fontsize=14)
+    ax_dose.set_xlabel(f"{label} ({unit})", fontsize=14)
     ax_dose.set_ylabel(f"Mean MI, channels <= {near_field_um:g} um", fontsize=14)
-    ax_dose.set_title("Near-EStim modulation vs current", fontsize=15)
+    ax_dose.set_title(f"Near-EStim modulation vs {label.lower()}", fontsize=15)
     for a in (ax_scatter, ax_dose):
         a.tick_params(labelsize=12)
         a.spines[["top", "right"]].set_visible(False)
@@ -656,12 +690,13 @@ def main():
     show_point_labels = False         # session/channel label on each distance-plot point
     fit_distance_falloff = True       # fit current-density falloff (1/r^2) to MI vs distance
     distance_fit_bootstraps = 1000    # session-resampling bootstraps for CIs (0 = no CIs)
-    plot_vs_current = True            # add current_per_second panels to the distance figure
+    current_metrics = ["current_per_second", "total_current"]  # panels added to the distance
+                                      # figure, one row each; [] = none
     near_field_um = 65.0              # "near EStim" = within this distance (65 um = 1 channel)
-    current_range = None              # (min, max) current_per_second for the current panels,
-                                      # e.g. (0, 3000); sessions outside are left out of those
-                                      # two panels and their correlation only. None = all;
-                                      # either end may be None
+    current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
+        "current_per_second": None,   # are left out of that metric's two panels and their
+        "total_current": None,        # correlation only. None = all; either end may be None
+    }
     min_trials_per_group = 3          # channel needs this many trials in a sample x choice group
     output_root = "/home/connorlab/Documents/plots/across_experiments/choice_period_estim"
     show_plots = True
@@ -696,27 +731,30 @@ def main():
         coords = probe_coordinates()
         table = add_estim_distance(table, coords, estim_by_session)
         all_channels = add_estim_distance(all_channels, coords, estim_by_session)
-        if plot_vs_current:
-            current = {sid: session_current_per_second(sid) for sid in estim_by_session}
-            table["current_per_second"] = table["session_id"].map(current)
-            all_channels["current_per_second"] = all_channels["session_id"].map(current)
+        if current_metrics:
+            current = {sid: session_current_metrics(sid) for sid in estim_by_session}
+            for m in current_metrics:
+                values = {sid: c.get(m, np.nan) for sid, c in current.items()}
+                table[m] = table["session_id"].map(values)
+                all_channels[m] = all_channels["session_id"].map(values)
         distance_fig, distance_result = plot_mi_vs_distance(
             table, alpha, show_point_labels, fit_distance_falloff, distance_fit_bootstraps,
-            current_panels=plot_vs_current, near_field_um=near_field_um,
-            current_range=current_range)
+            current_metrics=current_metrics, near_field_um=near_field_um,
+            current_ranges=current_ranges)
         if distance_result:
             text += (f"\nPearson correlation, MI vs distance to EStim (channels): "
                      f"r = {distance_result['r']:.2f}, {_p_text(distance_result['p'])}, "
                      f"n = {distance_result['n']}")
             if distance_result["fit"]:
                 text += "\n" + falloff_text(distance_result["fit"])
-            cur = distance_result.get("current")
-            if cur and "r" in cur:
+            for m, cur in (distance_result.get("current") or {}).items():
+                if "r" not in cur:
+                    continue
                 text += (f"\nPearson correlation, session mean MI of channels <= "
-                         f"{cur['near_field_um']:g} um vs current_per_second (sessions): "
+                         f"{cur['near_field_um']:g} um vs {m} (sessions): "
                          f"r = {cur['r']:.2f}, {_p_text(cur['p'])}, n = {cur['n_sessions']}")
                 if cur["excluded"]:
-                    text += (f"\n  (current range {cur['current_range']}; left out: "
+                    text += (f"\n  ({m} range {cur['current_range']}; left out: "
                              f"{', '.join(cur['excluded'])})")
     print(text)
 
@@ -735,9 +773,9 @@ def main():
             "min_trials_per_group": min_trials_per_group,
             "plot_distance_to_estim": plot_distance_to_estim,
             "fit_distance_falloff": fit_distance_falloff,
-            "plot_vs_current": plot_vs_current,
+            "current_metrics": current_metrics,
             "near_field_um": near_field_um,
-            "current_range": current_range,
+            "current_ranges": current_ranges,
             "distance_fit_bootstraps": distance_fit_bootstraps,
         }, f, indent=2)
     with open(os.path.join(out_dir, "stats.txt"), "w") as f:
