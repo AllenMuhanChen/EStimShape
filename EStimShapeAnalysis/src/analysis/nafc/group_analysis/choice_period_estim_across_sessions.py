@@ -48,7 +48,10 @@ undefined indices.
     mean over its (spec, sample_length) combinations. For each, the distance
     plot is repeated with points colored by it, and per session the mean MI of
     channels within near_field_um of an EStim channel is plotted against it
-    (Pearson correlation across sessions).
+    (Pearson correlation across sessions). With split_by_polarity, sessions
+    are split by the polarity of their EStim specs (EStimParameters, active
+    channels) into cathodic and anodic, each with its own correlation; a
+    session whose ON trials mix both is drawn as "mixed" and left out of both.
 
 Figure: population PSTHs aligned to choices_on (t = 0).
   1. EStim ON vs EStim OFF, all trials.
@@ -89,6 +92,7 @@ import json
 import os
 import warnings
 from datetime import datetime
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -537,13 +541,35 @@ def session_current_metrics(session_id: str) -> dict:
             print(f"{session_id}: {metric} differs across EStim specs / sample lengths "
                   f"{sorted(set(values))}, using the ON-trial-weighted mean")
         out[metric] = float(np.average(values, weights=weights))
+
+    # Polarity of the specs used on ON trials (uniform within a spec).
+    conn.execute("SELECT estim_spec_id, MIN(polarity) FROM EStimParameters "
+                 "WHERE session_id = %s AND a1 > 0 GROUP BY estim_spec_id", params=(session_id,))
+    by_spec = {int(spec): _polarity_label(pol) for spec, pol in conn.fetch_all()}
+    used = {by_spec.get(int(spec_id)) for spec_id, _, _ in groups} - {None}
+    out["polarity"] = used.pop() if len(used) == 1 else ("mixed" if used else None)
+    if out["polarity"] == "mixed":
+        print(f"{session_id}: ON trials mix cathodic and anodic specs, plotted as 'mixed'")
     return out
+
+
+def _polarity_label(polarity) -> Optional[str]:
+    text = str(polarity or "").lower()
+    if "cath" in text:
+        return "cathodic"
+    if "anod" in text:
+        return "anodic"
+    return None
+
+
+POLARITY_COLORS = {"cathodic": "#3B6FB6", "anodic": "#E07A1F", "mixed": "#9A9A9A"}
 
 
 def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bool,
                         fit_curve: bool = True, n_boot: int = 1000,
                         current_metrics=(), near_field_um: float = 65.0,
-                        current_ranges: dict = None):
+                        current_ranges: dict = None, binned_stat: Optional[str] = "mean",
+                        distance_bin_um: float = 65.0):
     """Left: MI vs distance (with the 1/r^2 fit). For each metric in
     current_metrics with data, a row on the right: the same scatter colored by
     that metric, and per-session near-EStim MI vs the metric."""
@@ -568,7 +594,10 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
             ax.annotate(f"{r['session_id']} {r['channel']}",
                         (r["distance_to_estim_um"], r["modulation_index"]), fontsize=7)
     ax.axhline(0, color="black", linewidth=1, linestyle="--")
-    sig_legend = ax.legend(fontsize=11, frameon=False, loc="lower right",
+    sig_handles = ax.get_legend_handles_labels()[0]
+    extra_handles = [_draw_binned(ax, sub, binned_stat, distance_bin_um)] \
+        if binned_stat and len(sub) else []
+    sig_legend = ax.legend(handles=sig_handles, fontsize=11, frameon=False, loc="lower right",
                            title=f"Welch p < {alpha:g}", title_fontsize=11)
 
     result = None
@@ -588,8 +617,10 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
             xs = np.linspace(0, d.max(), 400)
             line = ax.plot(xs, falloff(xs, fit["a"], fit["c"], fit["r0"]), color="black",
                            linewidth=2.4, label=f"1/r\u00b2 fit (half at {fit['r0']:.0f} um)")
-            ax.legend(handles=line, fontsize=11, frameon=False, loc="upper right")
-            ax.add_artist(sig_legend)
+            extra_handles = line + extra_handles
+    if extra_handles:
+        ax.legend(handles=extra_handles, fontsize=11, frameon=False, loc="upper right")
+        ax.add_artist(sig_legend)
 
     ax.set_xlabel("Distance to nearest EStim channel (um)", fontsize=14)
     ax.set_ylabel("Modulation index (ON - OFF) / (ON + OFF)", fontsize=14)
@@ -637,24 +668,45 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
         ax_scatter.set_ylim(sharey_with.get_ylim())
 
     near = cur[cur["distance_to_estim_um"] <= near_field_um]
+    if "polarity" not in near.columns:
+        near = near.assign(polarity=None)
     per_session = near.groupby("session_id").agg(
-        current=(metric, "first"), mi=("modulation_index", "mean"),
+        current=(metric, "first"), polarity=("polarity", "first"),
+        mi=("modulation_index", "mean"),
         sem=("modulation_index", lambda x: x.std(ddof=1) / np.sqrt(len(x)) if len(x) > 1
              else np.nan), n=("modulation_index", "size")).reset_index()
-    ax_dose.errorbar(per_session["current"], per_session["mi"], yerr=per_session["sem"],
-                     fmt="o", color="#D1495B", markersize=9, capsize=4, linewidth=1.5)
     ax_dose.axhline(0, color="black", linewidth=1, linestyle="--")
     out = {"near_field_um": near_field_um, "n_sessions": len(per_session),
-           "excluded": excluded, "current_range": current_range}
-    if len(per_session) >= 3:
-        r, p = stats.pearsonr(per_session["current"], per_session["mi"])
-        slope, intercept = np.polyfit(per_session["current"], per_session["mi"], 1)
-        xs = np.array([per_session["current"].min(), per_session["current"].max()])
-        ax_dose.plot(xs, intercept + slope * xs, color="black", linewidth=2)
-        ax_dose.text(0.02, 0.97, f"Pearson r = {r:.2f}, {_p_text(p)}",
-                     transform=ax_dose.transAxes, fontsize=13, va="top", zorder=5,
-                     bbox=dict(facecolor="white", edgecolor="none", pad=2))
-        out.update(r=float(r), p=float(p))
+           "excluded": excluded, "current_range": current_range, "by_polarity": {}}
+    split = per_session["polarity"].notna().any()
+    groups = ([(pol, per_session[per_session["polarity"] == pol]) for pol in POLARITY_COLORS]
+              if split else [(None, per_session)])
+    for pol, g in groups:
+        if g.empty:
+            continue
+        color = POLARITY_COLORS[pol] if pol else "#D1495B"
+        leg = pol.capitalize() if pol else None
+        if pol != "mixed" and len(g) >= 3:
+            r, p = stats.pearsonr(g["current"], g["mi"])
+            slope, intercept = np.polyfit(g["current"], g["mi"], 1)
+            xs = np.array([g["current"].min(), g["current"].max()])
+            ax_dose.plot(xs, intercept + slope * xs, color=color if pol else "black",
+                         linewidth=2)
+            stat = {"r": float(r), "p": float(p), "n": len(g)}
+            if pol:
+                out["by_polarity"][pol] = stat
+                leg += f" (n={len(g)}, r = {r:.2f}, {_p_text(p)})"
+            else:
+                out.update(r=stat["r"], p=stat["p"])
+                ax_dose.text(0.02, 0.97, f"Pearson r = {r:.2f}, {_p_text(p)}",
+                             transform=ax_dose.transAxes, fontsize=13, va="top", zorder=5,
+                             bbox=dict(facecolor="white", edgecolor="none", pad=2))
+        elif pol:
+            leg += f" (n={len(g)})"
+        ax_dose.errorbar(g["current"], g["mi"], yerr=g["sem"], fmt="o", color=color,
+                         markersize=9, capsize=4, linewidth=1.5, label=leg)
+    if split:
+        ax_dose.legend(fontsize=11, frameon=False, loc="lower left")
     ax_dose.set_xlabel(f"{label} ({unit})", fontsize=14)
     ax_dose.set_ylabel(f"Mean MI, channels <= {near_field_um:g} um", fontsize=14)
     ax_dose.set_title(f"Near-EStim modulation vs {label.lower()}", fontsize=15)
@@ -662,6 +714,27 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
         a.tick_params(labelsize=12)
         a.spines[["top", "right"]].set_visible(False)
     return out
+
+
+def _draw_binned(ax, sub: pd.DataFrame, stat: str, bin_um: float):
+    """Mean +- SEM (or median with 25-75th percentile) of MI at each distance,
+    distances rounded to the nearest bin_um (65 um = one probe channel)."""
+    binned = sub.assign(_bin=(sub["distance_to_estim_um"] / bin_um).round() * bin_um)
+    rows = []
+    for d, g in binned.groupby("_bin"):
+        mi = g["modulation_index"].to_numpy()
+        if stat == "median":
+            mid = np.median(mi)
+            lo, hi = mid - np.percentile(mi, 25), np.percentile(mi, 75) - mid
+        else:
+            mid = mi.mean()
+            lo = hi = mi.std(ddof=1) / np.sqrt(len(mi)) if len(mi) > 1 else 0.0
+        rows.append((d, mid, lo, hi))
+    d, mid, lo, hi = map(np.array, zip(*rows))
+    label = "Median (IQR)" if stat == "median" else "Mean \u00b1 SEM"
+    return ax.errorbar(d, mid, yerr=[lo, hi], fmt="s", color="#1F1F1F", markerfacecolor="white",
+                markeredgewidth=1.8, markersize=7, capsize=3, linewidth=1.4, zorder=4,
+                label=label)
 
 
 def falloff_text(fit: dict) -> str:
@@ -693,6 +766,9 @@ def main():
     current_metrics = ["total_current"]  # panels added to the distance figure, one row each;
                                       # also "current_per_second"; [] = none
     near_field_um = 65.0              # "near EStim" = within this distance (65 um = 1 channel)
+    split_by_polarity = True          # near-EStim panel: cathodic / anodic sessions, own fits
+    binned_stat = "mean"              # distance plot: "mean" (+- SEM), "median" (IQR) or None,
+    distance_bin_um = 65.0            # per distance bin of this width (65 um = one channel)
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
         "total_current": None,        # are left out of that metric's two panels and their
     }                                 # correlation only. None = all; either end may be None
@@ -736,10 +812,15 @@ def main():
                 values = {sid: c.get(m, np.nan) for sid, c in current.items()}
                 table[m] = table["session_id"].map(values)
                 all_channels[m] = all_channels["session_id"].map(values)
+            if split_by_polarity:
+                polarity = {sid: c.get("polarity") for sid, c in current.items()}
+                table["polarity"] = table["session_id"].map(polarity)
+                all_channels["polarity"] = all_channels["session_id"].map(polarity)
         distance_fig, distance_result = plot_mi_vs_distance(
             table, alpha, show_point_labels, fit_distance_falloff, distance_fit_bootstraps,
             current_metrics=current_metrics, near_field_um=near_field_um,
-            current_ranges=current_ranges)
+            current_ranges=current_ranges, binned_stat=binned_stat,
+            distance_bin_um=distance_bin_um)
         if distance_result:
             text += (f"\nPearson correlation, MI vs distance to EStim (channels): "
                      f"r = {distance_result['r']:.2f}, {_p_text(distance_result['p'])}, "
@@ -747,11 +828,14 @@ def main():
             if distance_result["fit"]:
                 text += "\n" + falloff_text(distance_result["fit"])
             for m, cur in (distance_result.get("current") or {}).items():
-                if "r" not in cur:
-                    continue
-                text += (f"\nPearson correlation, session mean MI of channels <= "
-                         f"{cur['near_field_um']:g} um vs {m} (sessions): "
-                         f"r = {cur['r']:.2f}, {_p_text(cur['p'])}, n = {cur['n_sessions']}")
+                head = (f"\nPearson correlation, session mean MI of channels <= "
+                        f"{cur['near_field_um']:g} um vs {m} (sessions)")
+                if "r" in cur:
+                    text += (f"{head}: r = {cur['r']:.2f}, {_p_text(cur['p'])}, "
+                             f"n = {cur['n_sessions']}")
+                for pol, st in cur["by_polarity"].items():
+                    text += (f"{head}, {pol}: r = {st['r']:.2f}, {_p_text(st['p'])}, "
+                             f"n = {st['n']}")
                 if cur["excluded"]:
                     text += (f"\n  ({m} range {cur['current_range']}; left out: "
                              f"{', '.join(cur['excluded'])})")
@@ -775,6 +859,9 @@ def main():
             "current_metrics": current_metrics,
             "near_field_um": near_field_um,
             "current_ranges": current_ranges,
+            "split_by_polarity": split_by_polarity,
+            "binned_stat": binned_stat,
+            "distance_bin_um": distance_bin_um,
             "distance_fit_bootstraps": distance_fit_bootstraps,
         }, f, indent=2)
     with open(os.path.join(out_dir, "stats.txt"), "w") as f:
