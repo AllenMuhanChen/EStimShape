@@ -486,6 +486,56 @@ def fit_falloff(d: np.ndarray, mi: np.ndarray):
     return {"a": float(a), "c": float(c), "r0": float(r0)}
 
 
+def falloff_joint(d, current, k, c, r0):
+    """Current density scales with the injected current: the falloff amplitude
+    is k x current, MI(d, I) = k I r0^2 / (d^2 + r0^2) + C."""
+    return falloff(d, k * np.asarray(current, dtype=float), c, r0)
+
+
+def _aic(rss: float, n: int, n_params: int) -> float:
+    return float(n * np.log(rss / n) + 2 * n_params)
+
+
+def fit_joint(d, current, mi):
+    """Least-squares fit of falloff_joint; also fits the constant-amplitude
+    falloff to the same channels so the two AICs are comparable."""
+    from scipy.optimize import curve_fit
+    d, current, mi = (np.asarray(x, dtype=float) for x in (d, current, mi))
+    const = fit_falloff(d, mi)
+    if const is None:
+        return None
+    scale = float(np.median(current[current > 0])) if (current > 0).any() else 1.0
+    try:
+        (k, c, r0), _ = curve_fit(lambda x, k, c, r0: falloff_joint(x[0], x[1], k, c, r0),
+                                  np.vstack([d, current]), mi,
+                                  p0=[const["a"] / scale, const["c"], const["r0"]],
+                                  bounds=([-np.inf, -1, 1], [np.inf, 1, 2000]), maxfev=20000)
+    except (RuntimeError, ValueError):
+        return None
+    n = len(mi)
+    rss_joint = float(np.sum((mi - falloff_joint(d, current, k, c, r0)) ** 2))
+    rss_const = float(np.sum((mi - falloff(d, const["a"], const["c"], const["r0"])) ** 2))
+    return {"k": float(k), "c": float(c), "r0": float(r0), "n": n,
+            "aic": _aic(rss_joint, n, 3), "aic_const": _aic(rss_const, n, 3)}
+
+
+def bootstrap_joint(sub: pd.DataFrame, metric: str, n_boot: int, seed: int = 0) -> dict:
+    """95% CIs for k, C, r0 and the AIC difference, resampling whole sessions."""
+    rng = np.random.default_rng(seed)
+    groups = {sid: g for sid, g in sub.groupby("session_id")}
+    sids = list(groups)
+    draws = {key: [] for key in ("k", "c", "r0", "d_aic")}
+    for _ in range(n_boot):
+        boot = pd.concat([groups[s] for s in rng.choice(sids, len(sids), replace=True)])
+        fit = fit_joint(boot["distance_to_estim_um"], boot[metric], boot["modulation_index"])
+        if fit is not None:
+            for key in ("k", "c", "r0"):
+                draws[key].append(fit[key])
+            draws["d_aic"].append(fit["aic"] - fit["aic_const"])
+    return {key: tuple(np.percentile(v, [2.5, 97.5])) if v else (np.nan, np.nan)
+            for key, v in draws.items()}
+
+
 def bootstrap_falloff(sub: pd.DataFrame, n_boot: int, seed: int = 0) -> dict:
     """95% CIs by resampling whole sessions (channels within a session are not
     independent)."""
@@ -573,7 +623,7 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
                         fit_curve: bool = True, n_boot: int = 1000,
                         current_metrics=(), near_field_um: float = 65.0,
                         current_ranges: dict = None, binned_stat: Optional[str] = "mean",
-                        distance_bin_um: float = 65.0):
+                        distance_bin_um: float = 65.0, joint_fit: bool = True):
     """Left: MI vs distance (with the 1/r^2 fit). For each metric in
     current_metrics with data, a row on the right: the same scatter colored by
     that metric, and per-session near-EStim MI vs the metric."""
@@ -634,14 +684,16 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
     if current_metrics and result is not None:
         result["current"] = {
             m: _plot_current_panels(ax_c, ax_d, sub, m, near_field_um, fig, sharey_with=ax,
-                                    current_range=(current_ranges or {}).get(m))
+                                    current_range=(current_ranges or {}).get(m),
+                                    joint_fit=joint_fit, n_boot=n_boot)
             for m, (ax_c, ax_d) in zip(current_metrics, current_axes)}
     fig.tight_layout()
     return fig, result
 
 
 def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
-                         near_field_um: float, fig, sharey_with=None, current_range=None) -> dict:
+                         near_field_um: float, fig, sharey_with=None, current_range=None,
+                         joint_fit: bool = False, n_boot: int = 0) -> dict:
     """Middle: the distance scatter colored by the session's value of metric.
     Right: per session, the mean MI of channels within near_field_um of an EStim
     channel vs metric (one point per session, sessions independent)."""
@@ -671,6 +723,28 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
     if sharey_with is not None:
         ax_scatter.set_ylim(sharey_with.get_ylim())
 
+    joint = None
+    if joint_fit and cur["session_id"].nunique() >= 3:
+        joint = fit_joint(cur["distance_to_estim_um"], cur[metric], cur["modulation_index"])
+        if joint is None:
+            print(f"Joint fit with {metric} did not converge")
+        else:
+            if n_boot:
+                joint["ci"] = bootstrap_joint(cur, metric, n_boot)
+            # Curves at the 10th / 50th / 90th percentile of the sessions' current,
+            # in the same colors as the points.
+            levels = np.percentile(cur.groupby("session_id")[metric].first(), [10, 50, 90])
+            xs = np.linspace(0, cur["distance_to_estim_um"].max(), 400)
+            handles = []
+            for level in levels:
+                ys = falloff_joint(xs, level, joint["k"], joint["c"], joint["r0"])
+                ax_scatter.plot(xs, ys, color="black", linewidth=4.2, zorder=4)
+                handles += ax_scatter.plot(xs, ys, color=sc.cmap(sc.norm(level)), linewidth=2.6,
+                                           zorder=5, label=f"Fit at {level:.0f} {unit}")
+            ax_scatter.legend(handles=handles, fontsize=11, frameon=False, loc="lower right",
+                              title=f"k\u00b7I/r\u00b2 fit (half at {joint['r0']:.0f} um)",
+                              title_fontsize=11)
+
     near = cur[cur["distance_to_estim_um"] <= near_field_um]
     if "polarity" not in near.columns:
         near = near.assign(polarity=None)
@@ -681,7 +755,8 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
              else np.nan), n=("modulation_index", "size")).reset_index()
     ax_dose.axhline(0, color="black", linewidth=1, linestyle="--")
     out = {"near_field_um": near_field_um, "n_sessions": len(per_session),
-           "excluded": excluded, "current_range": current_range, "by_polarity": {}}
+           "excluded": excluded, "current_range": current_range, "by_polarity": {},
+           "joint": joint}
     # Split only if some session used a single polarity; sessions whose ON trials
     # mix both can't be assigned to either.
     split = per_session["polarity"].isin(["cathodic", "anodic"]).any()
@@ -745,6 +820,25 @@ def _draw_binned(ax, sub: pd.DataFrame, stat: str, bin_um: float):
                 label=label)
 
 
+def joint_text(metric: str, j: dict) -> str:
+    unit = CURRENT_METRICS[metric][1]
+    ci = j.get("ci", {})
+
+    def fmt(key, value, spec, scale=1.0):
+        lo, hi = (scale * x for x in ci.get(key, (np.nan, np.nan)))
+        return f"{scale * value:{spec}}" + (f" [{lo:{spec}}, {hi:{spec}}]" if ci else "")
+
+    d_aic = j["aic"] - j["aic_const"]
+    verdict = ("current-scaled fit better" if d_aic < -2 else
+               "constant-amplitude fit better" if d_aic > 2 else "no clear difference")
+    return (f"Joint fit, MI(d, I) = k I r0^2 / (d^2 + r0^2) + C, I = {metric} "
+            f"({j['n']} channels; 95% CI: bootstrap over sessions): "
+            f"k = {fmt('k', j['k'], '+.4f', 1000)} per 1000 {unit}, "
+            f"C = {fmt('c', j['c'], '+.3f')}, r0 = {fmt('r0', j['r0'], '.0f')} um\n"
+            f"  AIC joint - AIC constant amplitude (same channels) = "
+            f"{fmt('d_aic', d_aic, '+.1f')} ({verdict}; negative favors the joint fit)")
+
+
 def falloff_text(fit: dict) -> str:
     ci = fit.get("ci", {})
 
@@ -777,6 +871,7 @@ def main():
     split_by_polarity = True          # near-EStim panel: cathodic / anodic sessions, own fits
     binned_stat = "mean"              # distance plot: "mean" (+- SEM), "median" (IQR) or None,
     distance_bin_um = 65.0            # per distance bin of this width (65 um = one channel)
+    joint_current_fit = True          # fit MI = k * current * 1/r^2 falloff + C (one k for all)
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
         "current_per_second": (0, 5000),  # are left out of that metric's two panels and their
         "total_current": None,        # correlation only. None = all; either end may be None
@@ -829,7 +924,7 @@ def main():
             table, alpha, show_point_labels, fit_distance_falloff, distance_fit_bootstraps,
             current_metrics=current_metrics, near_field_um=near_field_um,
             current_ranges=current_ranges, binned_stat=binned_stat,
-            distance_bin_um=distance_bin_um)
+            distance_bin_um=distance_bin_um, joint_fit=joint_current_fit)
         if distance_result:
             text += (f"\nPearson correlation, MI vs distance to EStim (channels): "
                      f"r = {distance_result['r']:.2f}, {_p_text(distance_result['p'])}, "
@@ -842,6 +937,8 @@ def main():
                 if "r" in cur:
                     text += (f"{head}: r = {cur['r']:.2f}, {_p_text(cur['p'])}, "
                              f"n = {cur['n_sessions']}")
+                if cur.get("joint"):
+                    text += "\n" + joint_text(m, cur["joint"])
                 for pol, st in cur["by_polarity"].items():
                     text += (f"{head}, {pol}: r = {st['r']:.2f}, {_p_text(st['p'])}, "
                              f"n = {st['n']}")
@@ -870,6 +967,7 @@ def main():
             "current_ranges": current_ranges,
             "split_by_polarity": split_by_polarity,
             "binned_stat": binned_stat,
+            "joint_current_fit": joint_current_fit,
             "distance_bin_um": distance_bin_um,
             "distance_fit_bootstraps": distance_fit_bootstraps,
         }, f, indent=2)
