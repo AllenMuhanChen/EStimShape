@@ -320,12 +320,13 @@ def plot_extent_figure(session_id, ext, sweep, channel_strs, ga_strs, *,
 
 # ---------------------------------------------------------------- session driver
 
-def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
-                                    sweep_thresholds=np.arange(0.3, 0.701, 0.05),
-                                    n_misses_to_stop=2, method='spearman',
-                                    vector_type='ga_mean_response', output_root=None):
-    """Compute and plot one session's contiguous extent. Returns the extent dict
-    (None if the session has no GA channels with data)."""
+def load_session_rhos(session_id, *, method='spearman',
+                      vector_type='ga_mean_response'):
+    """Everything the extent needs for one session: (rho_n, channel_strs, positions_um,
+    ga_strs). rho_n = {channel: (ρ vs GA response, n stimuli)}; channel_strs /
+    positions_um are the probe channels top -> bottom and their positions (µm);
+    ga_strs = GA cluster channels that have response data. Raises RuntimeError if the
+    session has no response vectors or no GA channel with data."""
     apply_session_context(session_id)
     repo_conn = Connection("allen_data_repository")
     response_matrix = ChannelResponseVectorLoader(session_id, repo_conn,
@@ -342,8 +343,17 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
     channel_strs = [channel_to_str(c) for c in mapper.channels_top_to_bottom]
     positions_um = [float(mapper.get_coordinates(c)[1])
                     for c in mapper.channels_top_to_bottom]
-
     rho_n = ga_reference_rhos(response_matrix, ga_with_data, method=method)
+    return rho_n, channel_strs, positions_um, ga_with_data
+
+
+def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
+                                    sweep_thresholds=np.arange(0.3, 0.701, 0.05),
+                                    n_misses_to_stop=2, method='spearman',
+                                    vector_type='ga_mean_response', output_root=None):
+    """Compute and plot one session's contiguous extent. Returns the extent dict."""
+    rho_n, channel_strs, positions_um, ga_with_data = load_session_rhos(
+        session_id, method=method, vector_type=vector_type)
     ext = contiguous_extent(channel_strs, positions_um, rho_n, ga_with_data,
                             rho_threshold=rho_threshold,
                             n_misses_to_stop=n_misses_to_stop)
