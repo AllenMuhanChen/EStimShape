@@ -347,7 +347,7 @@ def print_extent(session_id, ext, ga_strs):
 
 
 def main():
-    session_id = "260702_0"
+    session_id = "260526_0"
     rho_threshold = 0.5      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
     n_misses_to_stop = 2     # channels in a row below ρ threshold that end the walk
     method = 'spearman'      # 'spearman' or 'pearson'

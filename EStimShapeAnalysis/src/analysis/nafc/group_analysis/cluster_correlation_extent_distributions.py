@@ -230,7 +230,7 @@ def main():
     n_misses_to_stop = 2     # channels in a row below ρ threshold that end the walk
     method = 'spearman'      # 'spearman' or 'pearson'
     vector_type = 'ga_mean_response'
-    extent_bin_width_um = 65   # extent histogram bin width (µm); None = probe pitch
+    extent_bin_width_um = 130   # extent histogram bin width (µm); None = probe pitch
     split_probe_end = False  # colour sessions that reach the probe end separately
     rho_bin_width = 0.05     # ρ histogram bin width (middle panel)
     normalize_channel_hist = True  # middle panel: each group sums to 1 (else counts)
