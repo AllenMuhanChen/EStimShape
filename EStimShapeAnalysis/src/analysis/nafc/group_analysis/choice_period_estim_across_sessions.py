@@ -682,9 +682,13 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
     ax_dose.axhline(0, color="black", linewidth=1, linestyle="--")
     out = {"near_field_um": near_field_um, "n_sessions": len(per_session),
            "excluded": excluded, "current_range": current_range, "by_polarity": {}}
-    split = per_session["polarity"].notna().any()
+    # Split only if some session used a single polarity; sessions whose ON trials
+    # mix both can't be assigned to either.
+    split = per_session["polarity"].isin(["cathodic", "anodic"]).any()
     groups = ([(pol, per_session[per_session["polarity"] == pol]) for pol in POLARITY_COLORS]
               if split else [(None, per_session)])
+    if not split and per_session["polarity"].eq("mixed").any():
+        print("Every session mixes cathodic and anodic ON trials; polarity split not drawn")
     for pol, g in groups:
         if g.empty:
             continue
