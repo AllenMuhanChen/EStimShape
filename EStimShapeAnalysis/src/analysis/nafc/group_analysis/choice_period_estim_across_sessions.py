@@ -486,10 +486,16 @@ def fit_falloff(d: np.ndarray, mi: np.ndarray):
     return {"a": float(a), "c": float(c), "r0": float(r0)}
 
 
-def falloff_joint(d, current, k, c, r0):
-    """Current density scales with the injected current: the falloff amplitude
-    is k x current, MI(d, I) = k I r0^2 / (d^2 + r0^2) + C."""
-    return falloff(d, k * np.asarray(current, dtype=float), c, r0)
+JOINT_I_REF = 1000.0  # reference current: k is the amplitude at this current
+
+
+def falloff_joint(d, current, k, c, r0, beta=1.0):
+    """1/r^2 falloff whose amplitude grows with the injected current:
+    MI(d, I) = k (I / I_ref)^beta r0^2 / (d^2 + r0^2) + C.
+    beta = 1 is plain proportionality (field ~ I); beta < 1 is a response that
+    saturates with current."""
+    amp = k * (np.asarray(current, dtype=float) / JOINT_I_REF) ** beta
+    return falloff(d, amp, c, r0)
 
 
 def _aic(rss: float, n: int, n_params: int) -> float:
@@ -497,41 +503,50 @@ def _aic(rss: float, n: int, n_params: int) -> float:
 
 
 def fit_joint(d, current, mi):
-    """Least-squares fit of falloff_joint; also fits the constant-amplitude
-    falloff to the same channels so the two AICs are comparable."""
+    """Least-squares fit of falloff_joint with beta free. The constant-amplitude
+    falloff and the beta = 1 version are fitted to the same channels so all
+    three AICs are comparable."""
     from scipy.optimize import curve_fit
     d, current, mi = (np.asarray(x, dtype=float) for x in (d, current, mi))
     const = fit_falloff(d, mi)
     if const is None:
         return None
-    scale = float(np.median(current[current > 0])) if (current > 0).any() else 1.0
+    x = np.vstack([d, current])
     try:
-        (k, c, r0), _ = curve_fit(lambda x, k, c, r0: falloff_joint(x[0], x[1], k, c, r0),
-                                  np.vstack([d, current]), mi,
-                                  p0=[const["a"] / scale, const["c"], const["r0"]],
-                                  bounds=([-np.inf, -1, 1], [np.inf, 1, 2000]), maxfev=20000)
+        (k1, c1, r01), _ = curve_fit(lambda x, k, c, r0: falloff_joint(x[0], x[1], k, c, r0),
+                                     x, mi, p0=[const["a"], const["c"], const["r0"]],
+                                     bounds=([-10, -1, 1], [10, 1, 2000]), maxfev=20000)
+        (k, c, r0, beta), _ = curve_fit(
+            lambda x, k, c, r0, beta: falloff_joint(x[0], x[1], k, c, r0, beta), x, mi,
+            p0=[k1, c1, r01, 1.0], bounds=([-10, -1, 1, 0], [10, 1, 2000, 3]), maxfev=20000)
     except (RuntimeError, ValueError):
         return None
     n = len(mi)
-    rss_joint = float(np.sum((mi - falloff_joint(d, current, k, c, r0)) ** 2))
-    rss_const = float(np.sum((mi - falloff(d, const["a"], const["c"], const["r0"])) ** 2))
-    return {"k": float(k), "c": float(c), "r0": float(r0), "n": n,
-            "aic": _aic(rss_joint, n, 3), "aic_const": _aic(rss_const, n, 3)}
+
+    def rss(pred):
+        return float(np.sum((mi - pred) ** 2))
+
+    return {"k": float(k), "c": float(c), "r0": float(r0), "beta": float(beta), "n": n,
+            "aic": _aic(rss(falloff_joint(d, current, k, c, r0, beta)), n, 4),
+            "aic_linear": _aic(rss(falloff_joint(d, current, k1, c1, r01)), n, 3),
+            "aic_const": _aic(rss(falloff(d, const["a"], const["c"], const["r0"])), n, 3)}
 
 
 def bootstrap_joint(sub: pd.DataFrame, metric: str, n_boot: int, seed: int = 0) -> dict:
-    """95% CIs for k, C, r0 and the AIC difference, resampling whole sessions."""
+    """95% CIs for k, C, r0, beta and the AIC differences, resampling whole sessions."""
     rng = np.random.default_rng(seed)
     groups = {sid: g for sid, g in sub.groupby("session_id")}
     sids = list(groups)
-    draws = {key: [] for key in ("k", "c", "r0", "d_aic")}
+    keys = ("k", "c", "r0", "beta")
+    draws = {key: [] for key in keys + ("d_aic_const", "d_aic_linear")}
     for _ in range(n_boot):
         boot = pd.concat([groups[s] for s in rng.choice(sids, len(sids), replace=True)])
         fit = fit_joint(boot["distance_to_estim_um"], boot[metric], boot["modulation_index"])
         if fit is not None:
-            for key in ("k", "c", "r0"):
+            for key in keys:
                 draws[key].append(fit[key])
-            draws["d_aic"].append(fit["aic"] - fit["aic_const"])
+            draws["d_aic_const"].append(fit["aic"] - fit["aic_const"])
+            draws["d_aic_linear"].append(fit["aic"] - fit["aic_linear"])
     return {key: tuple(np.percentile(v, [2.5, 97.5])) if v else (np.nan, np.nan)
             for key, v in draws.items()}
 
@@ -722,14 +737,14 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
             joint["ci"] = bootstrap_joint(cur, metric, n_boot)
 
     if joint is not None:
-        # Collapse: (MI - C) / I. If MI = k I r0^2/(d^2 + r0^2) + C holds, every
+        # Collapse: (MI - C) / (I / I_ref)^beta. If the joint fit holds, every
         # session falls on the same curve k r0^2/(d^2 + r0^2) whatever its current.
         # C (the far-field level) is subtracted first because it doesn't scale
-        # with current. Low-current sessions are noisier here (noise / I).
-        shown = cur.assign(modulation_index=1000 * (cur["modulation_index"] - joint["c"])
-                           / cur[metric])
-        ylabel = f"(MI - C) per 1000 {unit}"
-        title = f"Modulation per unit {label.lower()}"
+        # with current. Low-current sessions are noisier here.
+        shown = cur.assign(modulation_index=(cur["modulation_index"] - joint["c"])
+                           / (cur[metric] / JOINT_I_REF) ** joint["beta"])
+        ylabel = f"(MI - C) / (I / {JOINT_I_REF:g})^\u03b2"
+        title = f"Modulation scaled by {label.lower()} (\u03b2 = {joint['beta']:.2f})"
     else:
         shown, ylabel, title = cur, "Modulation index (ON - OFF) / (ON + OFF)", \
             f"Colored by {label.lower()}"
@@ -751,7 +766,7 @@ def _plot_current_panels(ax_scatter, ax_dose, sub: pd.DataFrame, metric: str,
 
     if joint is not None:
         xs = np.linspace(0, cur["distance_to_estim_um"].max(), 400)
-        handles = ax_scatter.plot(xs, 1000 * falloff(xs, joint["k"], 0.0, joint["r0"]),
+        handles = ax_scatter.plot(xs, falloff(xs, joint["k"], 0.0, joint["r0"]),
                                   color="black", linewidth=2.6, zorder=5,
                                   label=f"k/r\u00b2 fit (half at {joint['r0']:.0f} um)")
         if binned_stat:
@@ -844,19 +859,25 @@ def joint_text(metric: str, j: dict) -> str:
     unit = CURRENT_METRICS[metric][1]
     ci = j.get("ci", {})
 
-    def fmt(key, value, spec, scale=1.0):
-        lo, hi = (scale * x for x in ci.get(key, (np.nan, np.nan)))
-        return f"{scale * value:{spec}}" + (f" [{lo:{spec}}, {hi:{spec}}]" if ci else "")
+    def fmt(key, value, spec):
+        lo, hi = ci.get(key, (np.nan, np.nan))
+        return f"{value:{spec}}" + (f" [{lo:{spec}}, {hi:{spec}}]" if ci else "")
 
-    d_aic = j["aic"] - j["aic_const"]
-    verdict = ("current-scaled fit better" if d_aic < -2 else
-               "constant-amplitude fit better" if d_aic > 2 else "no clear difference")
-    return (f"Joint fit, MI(d, I) = k I r0^2 / (d^2 + r0^2) + C, I = {metric} "
-            f"({j['n']} channels; 95% CI: bootstrap over sessions): "
-            f"k = {fmt('k', j['k'], '+.4f', 1000)} per 1000 {unit}, "
-            f"C = {fmt('c', j['c'], '+.3f')}, r0 = {fmt('r0', j['r0'], '.0f')} um\n"
-            f"  AIC joint - AIC constant amplitude (same channels) = "
-            f"{fmt('d_aic', d_aic, '+.1f')} ({verdict}; negative favors the joint fit)")
+    def verdict(d_aic, other):
+        return (f"beta fit better than {other}" if d_aic < -2 else
+                f"{other} better" if d_aic > 2 else "no clear difference")
+
+    d_const, d_lin = j["aic"] - j["aic_const"], j["aic"] - j["aic_linear"]
+    return (f"Joint fit, MI(d, I) = k (I / {JOINT_I_REF:g})^beta r0^2 / (d^2 + r0^2) + C, "
+            f"I = {metric} ({j['n']} channels; 95% CI: bootstrap over sessions):\n"
+            f"  k (amplitude at {JOINT_I_REF:g} {unit}) = {fmt('k', j['k'], '+.3f')}, "
+            f"beta = {fmt('beta', j['beta'], '.2f')} (1 = proportional to current, "
+            f"< 1 = saturating), C = {fmt('c', j['c'], '+.3f')}, "
+            f"r0 = {fmt('r0', j['r0'], '.0f')} um\n"
+            f"  AIC beta fit - AIC constant amplitude = {fmt('d_aic_const', d_const, '+.1f')} "
+            f"({verdict(d_const, 'constant amplitude')})\n"
+            f"  AIC beta fit - AIC beta = 1 = {fmt('d_aic_linear', d_lin, '+.1f')} "
+            f"({verdict(d_lin, 'beta = 1')}); negative favors the beta fit")
 
 
 def falloff_text(fit: dict) -> str:
@@ -891,7 +912,7 @@ def main():
     split_by_polarity = True          # near-EStim panel: cathodic / anodic sessions, own fits
     binned_stat = "mean"              # distance plot: "mean" (+- SEM), "median" (IQR) or None,
     distance_bin_um = 65.0            # per distance bin of this width (65 um = one channel)
-    joint_current_fit = True          # fit MI = k * current * 1/r^2 falloff + C (one k for all)
+    joint_current_fit = True          # fit MI = k * (current/1000)^beta * 1/r^2 falloff + C
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
         "current_per_second": (0, 5000),  # are left out of that metric's two panels and their
         "total_current": None,        # correlation only. None = all; either end may be None
