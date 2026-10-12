@@ -51,13 +51,17 @@ from scipy import stats
 
 from src.analysis import Analysis
 from src.analysis.nafc.neural.choice_period_artifact_mask import (
-    DEFAULT_ARTIFACT_PARAMS, bin_coverage, in_intervals, overlap_s, trial_artifact_intervals,
+    DEFAULT_ARTIFACT_PARAMS, bin_coverage, in_intervals, overlap_s, session_rejection_window,
+    trial_artifact_intervals,
 )
 
 TABLE_NAME = "NafcChoicePeriodResponses"
 SPIKE_SOURCE_SPIKE_DAT = "spike_dat"
 # spike.dat crossings with amplitude-detected artifact intervals removed.
 SPIKE_SOURCE_SPIKE_DAT_ARTMASK = "spike_dat_artmask"
+# spike.dat crossings with one per-session artifact rejection window removed
+# from every trial, ON and OFF alike.
+SPIKE_SOURCE_SPIKE_DAT_ARTWIN = "spike_dat_artwin"
 
 
 # ---------------------------------------------------------------------------
@@ -545,7 +549,10 @@ class ChoicePeriodEStimAnalysis(Analysis):
         # Masked results are stored under their own spike_source.
         self.artifact_mask = dict(artifact_mask) if artifact_mask else None
         if self.artifact_mask and spike_source == SPIKE_SOURCE_SPIKE_DAT:
-            self.spike_source = SPIKE_SOURCE_SPIKE_DAT_ARTMASK
+            self.spike_source = (SPIKE_SOURCE_SPIKE_DAT_ARTWIN
+                                 if self.artifact_mask.get("mode") == "session_window"
+                                 else SPIKE_SOURCE_SPIKE_DAT_ARTMASK)
+        self.rejection_window: list = []  # relative to choices_on, set per session
         self.synchrony = None
         self._data: Optional[pd.DataFrame] = None
         self._data_session_id: Optional[str] = None
@@ -606,7 +613,22 @@ class ChoicePeriodEStimAnalysis(Analysis):
               f"({len(neural_field._index)} recording folders found)")
         if has_neural.any() and self.artifact_mask:
             data = data[has_neural].reset_index(drop=True)
-            data["ArtifactIntervals"] = self._detect_artifacts(data, neural_field._index)
+            detected = self._detect_artifacts(data, neural_field._index)
+            data["ArtifactIntervalsDetected"] = detected
+            if self.artifact_mask.get("mode", "session_window") == "session_window":
+                on = data["EStimEnabled"].astype(bool).to_numpy()
+                self.rejection_window = session_rejection_window(
+                    [n for n, o in zip(data["NeuralData"], on) if o],
+                    [d for d, o in zip(detected, on) if o], **self.artifact_mask)
+                print(f"{context.nafc_database}: rejection window (s from choices_on) = "
+                      + (", ".join(f"[{a:+.3f}, {b:+.3f}]" for a, b in self.rejection_window)
+                         or "none"))
+                data["ArtifactIntervals"] = [
+                    [(n["choices_on"] + a, n["choices_on"] + b) for a, b in self.rejection_window]
+                    if n.get("choices_on") is not None else []
+                    for n in data["NeuralData"]]
+            else:
+                data["ArtifactIntervals"] = detected
             has_neural = data["NeuralData"].apply(lambda d: isinstance(d, dict))
         if not has_neural.any():
             print(f"SKIP {context.nafc_database}: recording folders exist but none matched a "
@@ -694,7 +716,8 @@ class ChoicePeriodEStimAnalysis(Analysis):
         if self.export:
             from clat.util.connection import Connection
             insert_synchrony_rows(Connection("allen_data_repository"),
-                                  synchrony_rows(session_id, sync, spike_source=self.spike_source))
+                                  synchrony_rows(session_id, sync, spike_source=self.spike_source,
+                                                 rejection_window=self.rejection_window))
 
     # -- analyze ------------------------------------------------------------
 

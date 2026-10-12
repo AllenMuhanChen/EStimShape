@@ -92,7 +92,8 @@ def summarize_synchrony(data: pd.DataFrame, *, before_s: float = 1.0, after_s: f
         estim_on = bool(trial.get("EStimEnabled"))
         per_trial[estim_on]["sync"].append(sync_counts / bin_size_s)
         per_trial[estim_on]["spikes"].append(spike_counts / bin_size_s)
-        intervals = trial.get("ArtifactIntervals")
+        # Per-trial detected artifact (what the rejection window was built from).
+        intervals = trial.get("ArtifactIntervalsDetected", trial.get("ArtifactIntervals"))
         if isinstance(intervals, list):
             per_trial[estim_on]["artifact"].append(bin_coverage(bins, t0, intervals))
 
@@ -134,8 +135,9 @@ CREATE_SYNC_TABLE_SQL = f"""
         sync_rate_sem     LONGTEXT,
         spike_rate_mean   LONGTEXT,   -- pooled spikes/s (all channels) per bin
         spike_rate_sem    LONGTEXT,
-        artifact_frac_mean LONGTEXT,  -- fraction of each bin inside artifact intervals
+        artifact_frac_mean LONGTEXT,  -- fraction of each bin inside detected artifact
         artifact_frac_sem  LONGTEXT,
+        rejection_window   TEXT,      -- session window(s) s from choices_on, "a:b;c:d"
         PRIMARY KEY (session_id, spike_source, is_estim_on),
         FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
     ) ENGINE = InnoDB
@@ -145,19 +147,22 @@ CREATE_SYNC_TABLE_SQL = f"""
 _SYNC_COLUMNS = ["session_id", "spike_source", "is_estim_on", "n_trials", "n_channels",
                  "sync_window_s", "min_channels", "psth_align", "psth_start_s",
                  "psth_bin_size_s", "sync_rate_mean", "sync_rate_sem", "spike_rate_mean",
-                 "spike_rate_sem", "artifact_frac_mean", "artifact_frac_sem"]
+                 "spike_rate_sem", "artifact_frac_mean", "artifact_frac_sem",
+                 "rejection_window"]
 
 
 def ensure_synchrony_table(conn) -> None:
     conn.execute(CREATE_SYNC_TABLE_SQL)
-    for col in ("artifact_frac_mean", "artifact_frac_sem"):
+    for col, sql_type in (("artifact_frac_mean", "LONGTEXT"), ("artifact_frac_sem", "LONGTEXT"),
+                          ("rejection_window", "TEXT")):
         try:
-            conn.execute(f"ALTER TABLE {SYNC_TABLE_NAME} ADD COLUMN {col} LONGTEXT")
+            conn.execute(f"ALTER TABLE {SYNC_TABLE_NAME} ADD COLUMN {col} {sql_type}")
         except Exception:
             pass  # column already exists
 
 
-def synchrony_rows(session_id: str, sync: dict, *, spike_source: str) -> list[tuple]:
+def synchrony_rows(session_id: str, sync: dict, *, spike_source: str,
+                   rejection_window: list = None) -> list[tuple]:
     from src.analysis.nafc.neural.choice_period_response import encode_array
     bins = sync["bins"]
     rows = []
@@ -167,7 +172,8 @@ def synchrony_rows(session_id: str, sync: dict, *, spike_source: str) -> list[tu
                      float(bins[1] - bins[0]), encode_array(c["sync_rate_mean"]),
                      encode_array(c["sync_rate_sem"]), encode_array(c["spikes_rate_mean"]),
                      encode_array(c["spikes_rate_sem"]), encode_array(c["artifact_rate_mean"]),
-                     encode_array(c["artifact_rate_sem"])))
+                     encode_array(c["artifact_rate_sem"]),
+                     ";".join(f"{a:.4f}:{b:.4f}" for a, b in rejection_window or [])))
     return rows
 
 

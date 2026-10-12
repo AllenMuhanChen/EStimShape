@@ -9,7 +9,17 @@ high-passed signal, at least min_channels channels exceed amp_threshold_uv
 are merged into intervals and widened by pad_s on each side (the amplifier
 needs time to settle, and spikes right next to an artifact can't be trusted).
 
-Downstream (choice_period_response.py) spikes inside these intervals are
+Per-experiment rejection window (mode "session_window", the default): the
+per-trial intervals of the session's EStim ON trials are aligned to
+choices_on and, at 1 ms resolution, we take the fraction of ON trials flagged
+at each time (among ON trials whose examined span covers that time). Times
+where that fraction is at least window_min_frac form the rejection window
+(runs merged, widened by window_pad_s). The same window, relative to
+choices_on, is then removed from every trial, ON and OFF, so both conditions
+lose exactly the same time and the ON vs OFF comparison stays matched.
+Mode "per_trial" instead removes each trial's own intervals.
+
+Downstream (choice_period_response.py) spikes inside the removed intervals are
 dropped, the interval time is removed from each trial's choice-period
 duration, and each PSTH bin's rate is computed over its unmasked time (a bin
 more than half masked is left out, NaN, for that trial).
@@ -37,11 +47,19 @@ DEFAULT_ARTIFACT_PARAMS = {
     "highpass_hz": 300.0,
     "span_before_s": 1.0,        # examine choices_on - span_before_s ...
     "span_after_s": 0.1,         # ... to choices_off + span_after_s
+    # How detected intervals are applied (not part of detection / cache key):
+    "mode": "session_window",    # "session_window" (same window for ON+OFF) or "per_trial"
+    "window_min_frac": 0.05,     # a time joins the window if >= this fraction of ON trials flag it
+    "window_pad_s": 0.005,       # widen the session window by this on both sides
 }
+
+_DETECTION_KEYS = ("amp_threshold_uv", "min_channels", "bin_s", "pad_s", "highpass_hz",
+                   "span_before_s", "span_after_s")
 
 
 def params_key(params: dict) -> str:
-    return hashlib.md5(json.dumps(params, sort_keys=True).encode()).hexdigest()[:8]
+    detection = {k: params[k] for k in _DETECTION_KEYS if k in params}
+    return hashlib.md5(json.dumps(detection, sort_keys=True).encode()).hexdigest()[:8]
 
 
 def detect_artifact_intervals(raw_by_channel: dict, sample_rate: float, t_start: float,
@@ -139,3 +157,46 @@ def bin_coverage(bins_rel: np.ndarray, t0: float, intervals) -> np.ndarray:
     cov = np.array([overlap_s(t0 + lo, t0 + hi, intervals)
                     for lo, hi in zip(bins_rel[:-1], bins_rel[1:])])
     return cov / width
+
+
+def session_rejection_window(neural_list: list, intervals_list: list, *, span_before_s: float,
+                             span_after_s: float, window_min_frac: float, window_pad_s: float,
+                             resolution_s: float = 0.001, **_ignored) -> list[tuple[float, float]]:
+    """Rejection window(s) relative to choices_on from the ON trials' detected
+    intervals (pass only ON trials). See the module docstring."""
+    rel_spans, rel_intervals = [], []
+    for neural, intervals in zip(neural_list, intervals_list):
+        c_on = neural.get("choices_on")
+        if c_on is None:
+            continue
+        c_off = neural.get("choices_off")
+        stop = (c_off if c_off is not None else c_on + 2.0) + span_after_s
+        rel_spans.append((-span_before_s, stop - c_on))
+        rel_intervals.append([(a - c_on, b - c_on) for a, b in (intervals or [])])
+    if not rel_spans:
+        return []
+    t_max = max(hi for _, hi in rel_spans)
+    edges = np.arange(-span_before_s, t_max + resolution_s, resolution_s)
+    centers = edges[:-1] + resolution_s / 2
+    flagged = np.zeros(len(centers))
+    covered = np.zeros(len(centers))
+    for (lo, hi), ivs in zip(rel_spans, rel_intervals):
+        covered += (centers >= lo) & (centers < hi)
+        hit = np.zeros(len(centers), dtype=bool)
+        for a, b in ivs:
+            hit |= (centers >= a) & (centers < b)
+        flagged += hit
+    with np.errstate(invalid="ignore", divide="ignore"):
+        frac = np.where(covered > 0, flagged / covered, 0.0)
+    in_window = frac >= window_min_frac
+    if not in_window.any():
+        return []
+    d = np.diff(np.concatenate([[0], in_window.astype(int), [0]]))
+    window = []
+    for a, b in zip(np.flatnonzero(d == 1), np.flatnonzero(d == -1)):
+        lo, hi = edges[a] - window_pad_s, edges[b] + window_pad_s
+        if window and lo <= window[-1][1]:
+            window[-1] = (window[-1][0], float(hi))
+        else:
+            window.append((float(lo), float(hi)))
+    return window

@@ -41,11 +41,18 @@ Synchrony figure (artifact check, see choice_period_synchrony.py): rate of
 events where many channels cross threshold within ~0.2 ms, aligned to
 choices_on, ON vs OFF, mean +- SEM across sessions; and the same per 1000
 pooled spikes, so a change in overall firing alone can't explain it; plus, when
-the amplitude artifact mask was used, the % of time masked as artifact.
+the amplitude artifact detector was run, the % of time it flagged in each trial
+(before any window is built, so ON vs OFF shows where artifact actually is).
 
-spike_source "spike_dat_artmask" (default) reads results computed with
-artifact intervals removed (choice_period_artifact_mask.py); "spike_dat" reads
-the unmasked results.
+spike_source selects which per-session results are read
+(choice_period_artifact_mask.py):
+  - "spike_dat_artwin" (default): one rejection window per session, built from
+    where that session's ON trials have artifact (>= window_min_frac of ON
+    trials flagged, relative to choices_on) and removed identically from ON
+    and OFF trials, so both conditions lose the same time. Each session's
+    window is printed and saved to rejection_windows.csv.
+  - "spike_dat_artmask": each trial's own detected intervals removed.
+  - "spike_dat": nothing removed.
 Each channel's PSTH (mean across its trials) is optionally divided by that
 channel's OFF choice-period rate (all OFF trials), so every channel
 contributes on the same scale and all curves share one baseline. Shading is
@@ -69,6 +76,7 @@ from scipy import stats
 
 from src.analysis.nafc.neural.choice_period_response import (
     TABLE_NAME, GROUPS_TABLE_NAME, SPIKE_SOURCE_SPIKE_DAT, SPIKE_SOURCE_SPIKE_DAT_ARTMASK,
+    SPIKE_SOURCE_SPIKE_DAT_ARTWIN,
     ESTIM_COLORS, ESTIM_LABELS,
     PSTH_GROUPS, decode_array,
 )
@@ -133,7 +141,7 @@ def load_synchrony(session_ids, spike_source: str) -> pd.DataFrame:
     conn = Connection("allen_data_repository")
     cols = ["session_id", "is_estim_on", "n_trials", "n_channels", "sync_window_s",
             "min_channels", "psth_start_s", "psth_bin_size_s", "sync_rate_mean",
-            "spike_rate_mean", "artifact_frac_mean"]
+            "spike_rate_mean", "artifact_frac_mean", "rejection_window"]
     where, params = _session_filter(session_ids)
     conn.execute(f"SELECT {', '.join(cols)} FROM {SYNC_TABLE_NAME} WHERE spike_source = %s"
                  + where, params=tuple([spike_source] + params))
@@ -385,7 +393,7 @@ def plot_synchrony(sync: pd.DataFrame):
     if has_mask:
         _draw_psths(axes[2], centers,
                     _session_curves(sync, lambda r: 100 * decode_array(r["artifact_frac_mean"])),
-                    styles, "Masked as artifact", "% of time masked", unit="sessions")
+                    styles, "Artifact detected (per trial)", "% of time flagged", unit="sessions")
     first = sync.iloc[0]
     fig.suptitle(f">= {int(first['min_channels'])} channels within "
                  f"{1000 * float(first['sync_window_s']):.1f} ms", fontsize=13)
@@ -396,7 +404,8 @@ def plot_synchrony(sync: pd.DataFrame):
 def main():
     # ---- parameters ----
     session_ids = None                # None = every session in the table; or ["260518_0", ...]
-    spike_source = SPIKE_SOURCE_SPIKE_DAT_ARTMASK  # or SPIKE_SOURCE_SPIKE_DAT (no artifact mask)
+    spike_source = SPIKE_SOURCE_SPIKE_DAT_ARTWIN  # one window per session, same for ON and OFF
+    # alternatives: SPIKE_SOURCE_SPIKE_DAT_ARTMASK (per-trial mask), SPIKE_SOURCE_SPIKE_DAT (none)
     channel_mode = "all"              # "all" or "cluster" (ClusterInfo channels of each session)
     min_trials_per_condition = 5      # channel needs this many ON and OFF trials
     min_rate_hz = 1.0                 # drop channels whose (ON + OFF) / 2 rate is below this
@@ -459,6 +468,12 @@ def main():
     if sync.empty:
         print(f"No rows in {SYNC_TABLE_NAME}; rerun ChoicePeriodEStimAnalysis per session.")
     else:
+        windows = (sync.drop_duplicates("session_id")[["session_id", "rejection_window"]]
+                   .sort_values("session_id").fillna(""))
+        windows.to_csv(os.path.join(out_dir, "rejection_windows.csv"), index=False)
+        print("Rejection windows (s from choices_on, same for ON and OFF):")
+        for _, w in windows.iterrows():
+            print(f"  {w['session_id']}: {w['rejection_window'] or 'none'}")
         fig = plot_synchrony(sync)
         fig.savefig(os.path.join(out_dir, "choice_period_synchrony.png"), dpi=150,
                     bbox_inches="tight")
