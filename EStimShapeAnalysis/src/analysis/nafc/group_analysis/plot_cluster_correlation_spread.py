@@ -8,8 +8,8 @@ of the GA channels (each z-scored across stimuli first, so one high-rate channel
 doesn't dominate). A GA channel is compared with the average of the OTHER GA channels
 (leave-one-out), so it isn't correlated with itself.
 
-Cutoff: a fixed ρ* (default 0.5, the conventional "strong correlation" boundary). A
-channel with ρ >= ρ* counts as part of the cluster. ρ* is the same for every session,
+Cutoff: a fixed ρ threshold (default 0.5, the conventional "strong correlation" boundary). A
+channel with ρ >= ρ threshold counts as part of the cluster. ρ threshold is the same for every session,
 so it is not relative to a session's own min/max correlation. (A p-value cutoff was
 rejected: with 100+ stimuli almost every channel is weakly but significantly
 correlated, since nearby V4 columns share tuning.)
@@ -17,7 +17,7 @@ correlated, since nearby V4 columns share tuning.)
 Contiguous extent, done separately up and down the probe:
   start at the top-most (bottom-most) GA channel and walk up (down) one channel at a
   time; channels without data are skipped. The walk stops after N_MISSES_TO_STOP
-  channels in a row below ρ*; the edge of the cluster is the last channel >= ρ* before
+  channels in a row below ρ threshold; the edge of the cluster is the last channel >= ρ threshold before
   them. If the walk reaches the end of the probe without stopping, that side is
   flagged as reaching the probe end (the true extent may be larger).
   extent_up / extent_down = distance (µm) from the GA channels' edge to that side's
@@ -25,8 +25,8 @@ Contiguous extent, done separately up and down the probe:
   channels (centre to centre), so it includes the span of the GA channels themselves.
 
 Left: the probe, top -> bottom, each channel coloured by ρ; GA channels are stars,
-channels >= ρ* have a thick outline. Right: ρ by probe position (same rows), with the
-ρ* line, the walk's stopping channels (x) and the extent shaded.
+channels >= ρ threshold have a thick outline. Right: ρ by probe position (same rows), with the
+ρ threshold line, the walk's stopping channels (x) and the extent shaded.
 """
 
 import json
@@ -113,7 +113,7 @@ def ga_reference_rhos(response_matrix, ga_strs, method='spearman'):
 # ---------------------------------------------------------------- contiguous extent
 
 def _walk(indices, above, has_data, n_misses_to_stop):
-    """Walk channel indices in order. Returns (last index >= ρ* or None,
+    """Walk channel indices in order. Returns (last index >= ρ threshold or None,
     [indices of the misses that stopped the walk], reached_probe_end)."""
     last_sig, misses = None, []
     for i in indices:
@@ -235,11 +235,11 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
     ax.set_title('Correlation along the probe', fontsize=13, fontweight='bold')
     ax.legend(handles=[
         Line2D([0], [0], color='tab:red', ls='--', lw=2,
-               label=f"ρ* = {thr:.2f}"),
+               label=f"ρ threshold = {thr:.2f}"),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='black',
-               markersize=9, label='ρ ≥ ρ*'),
+               markersize=9, label='ρ ≥ ρ threshold'),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='white',
-               markeredgecolor='0.3', markersize=9, label='ρ < ρ*'),
+               markeredgecolor='0.3', markersize=9, label='ρ < ρ threshold'),
         Line2D([0], [0], marker='*', color='w', markerfacecolor='lightcoral',
                markeredgecolor='black', markersize=15,
                label='GA channel (vs other GA channels)'),
@@ -271,7 +271,7 @@ def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
     if ext['up_reached_end'] or ext['down_reached_end']:
         flag = ' (reaches probe end)'
     fig.suptitle(f"{session_id}: GA cluster extent = {ext['extent_total_um']:.0f} µm "
-                 f"at ρ* = {ext['rho_threshold']:.2f}{flag}",
+                 f"at ρ threshold = {ext['rho_threshold']:.2f}{flag}",
                  fontsize=15, fontweight='bold')
     return fig
 
@@ -342,8 +342,8 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
 
 def print_extent(session_id, ext, ga_strs):
     ok = ext['has_data']
-    print(f"{session_id}: GA channels {ga_strs}; ρ* = {ext['rho_threshold']:.2f}; "
-          f"{int(ext['above'].sum())}/{int(ok.sum())} channels with ρ ≥ ρ*")
+    print(f"{session_id}: GA channels {ga_strs}; ρ threshold = {ext['rho_threshold']:.2f}; "
+          f"{int(ext['above'].sum())}/{int(ok.sum())} channels with ρ ≥ ρ threshold")
     print(f"  extent up = {ext['extent_up_um']:.0f} µm"
           f"{' (probe end)' if ext['up_reached_end'] else ''}, "
           f"down = {ext['extent_down_um']:.0f} µm"
@@ -354,8 +354,8 @@ def print_extent(session_id, ext, ga_strs):
 
 def main():
     session_id = "260702_0"
-    rho_threshold = 0.5      # ρ* : channels with ρ >= ρ* count as part of the cluster
-    n_misses_to_stop = 2     # channels in a row below ρ* that end the walk
+    rho_threshold = 0.5      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
+    n_misses_to_stop = 2     # channels in a row below ρ threshold that end the walk
     method = 'spearman'      # 'spearman' or 'pearson'
     output_root = f"/home/connorlab/Documents/plots/{session_id}/cluster_corr_spread"
 

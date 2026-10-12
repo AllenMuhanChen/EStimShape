@@ -3,8 +3,8 @@ GA cluster correlation extent across experiments (the per-session figure is
 plot_cluster_correlation_spread, which defines the metric).
 
 For every session: each channel's Spearman ρ with the average GA cluster response
-(GA channels leave-one-out), then the contiguous extent at a fixed ρ* walked up and
-down the probe (stops after N_MISSES_TO_STOP channels in a row below ρ*).
+(GA channels leave-one-out), then the contiguous extent at a fixed ρ threshold walked up and
+down the probe (stops after N_MISSES_TO_STOP channels in a row below ρ threshold).
 
 Figure, one value per session unless noted:
   A. histogram of the total extent (µm). With split_probe_end, sessions where a side
@@ -171,7 +171,7 @@ def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize):
                              label=f'{label} (n = {len(vals)}, median {med:.2f})'))
     ax.axvline(rho_threshold, color=THRESHOLD_COLOR, lw=2, ls='--', ymax=0.72)
     handles.append(Line2D([0], [0], color=THRESHOLD_COLOR, ls='--', lw=2,
-                          label=f'ρ* = {rho_threshold:.2f}'))
+                          label=f'ρ threshold = {rho_threshold:.2f}'))
     ax.set_xlim(-0.5, 1)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.35)  # headroom so the legend clears the bars
     ax.set_xlabel('Spearman ρ with GA cluster response', fontsize=13)
@@ -195,7 +195,7 @@ def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng):
                     label='interquartile range')
     ax.plot(centers, med, '-o', color=EXTENT_COLOR, lw=2, ms=5, label='median')
     ax.axhline(rho_threshold, color=THRESHOLD_COLOR, lw=2, ls='--',
-               label=f'ρ* = {rho_threshold:.2f}')
+               label=f'ρ threshold = {rho_threshold:.2f}')
     ax.axhline(0, color='0.7', lw=0.8)
     ax.set_ylim(-1, 1)
     ax.set_xlim(0, d.max() + pitch if len(d) else pitch)
@@ -226,8 +226,8 @@ def main():
     session_ids = None       # None = every session in EStimShapeTrials; or a list
     start_session_id = COMPARISON_START_SESSION_ID          # same range as the
     exclude_session_ids = COMPARISON_EXCLUDE_SESSION_IDS    # estim comparison plots
-    rho_threshold = 0.5      # ρ* : channels with ρ >= ρ* count as part of the cluster
-    n_misses_to_stop = 2     # channels in a row below ρ* that end the walk
+    rho_threshold = 0.5      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
+    n_misses_to_stop = 2     # channels in a row below ρ threshold that end the walk
     method = 'spearman'      # 'spearman' or 'pearson'
     vector_type = 'ga_mean_response'
     extent_bin_width_um = 65   # extent histogram bin width (µm); None = probe pitch
