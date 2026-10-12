@@ -10,10 +10,11 @@ Figure, one value per session unless noted:
   A. histogram of the total extent (µm). With split_probe_end, sessions where a side
      reaches the end of the probe are stacked in a separate colour (their extent is a
      lower bound).
-  B. histogram of the average GA channel correlation: the mean, over a session's GA
-     channels, of each GA channel's ρ with the other GA channels. Sessions with a single
-     GA channel have no value and are left out. Overlaid: the average non-GA channel ρ
-     (mean over a session's non-GA channels of their ρ with the GA response).
+  B. one value per channel, pooled over sessions: overlaid histograms of ρ for GA
+     channels (each vs the other GA channels of its session; sessions with a single GA
+     channel have none) and non-GA channels (vs the GA response). With
+     normalize_channel_hist each group sums to 1, since there are far more non-GA
+     channels than GA channels.
   C. every non-GA channel with data, pooled over sessions: distance along the probe to
      the nearest GA channel vs its ρ with the GA response, with the binned median and
      interquartile range (bins = probe pitch).
@@ -150,30 +151,33 @@ def plot_extent_hist(ax, sessions, bin_width, split_probe_end):
     ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper right')
 
 
-def plot_ga_rho_hist(ax, sessions, rho_threshold, bin_width):
-    """Overlaid histograms of the per-session average ρ: GA channels (vs the other GA
-    channels) and non-GA channels (vs the GA response)."""
+def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize):
+    """Overlaid histograms of ρ, one value per channel: GA channels (vs the other GA
+    channels) and non-GA channels (vs the GA response). normalize -> each group's bars
+    sum to 1 (fraction of that group's channels)."""
     bins = np.arange(-1, 1 + bin_width, bin_width)
     handles = []
-    for col, color, label in (('avg_non_ga_rho', NON_GA_RHO_COLOR, 'non-GA channels'),
-                              ('avg_ga_rho', GA_RHO_COLOR, 'GA channels')):
-        vals = sessions[col].dropna().to_numpy(dtype=float)
+    for is_ga, color, label in ((False, NON_GA_RHO_COLOR, 'non-GA channels'),
+                                (True, GA_RHO_COLOR, 'GA channels')):
+        vals = channels.loc[channels['is_ga'] == is_ga, 'rho'].dropna().to_numpy(float)
         if not len(vals):
             continue
-        ax.hist(vals, bins=bins, color=color, alpha=0.65, edgecolor='white', lw=0.8)
+        weights = np.full(len(vals), 1 / len(vals)) if normalize else None
+        ax.hist(vals, bins=bins, weights=weights, color=color, alpha=0.65,
+                edgecolor='white', lw=0.8)
         med = np.median(vals)
         ax.axvline(med, color=color, lw=2, ls=':', ymax=0.72)  # stop below legend
         handles.append(Patch(color=color, alpha=0.65,
-                             label=f'{label} (median {med:.2f})'))
+                             label=f'{label} (n = {len(vals)}, median {med:.2f})'))
     ax.axvline(rho_threshold, color=THRESHOLD_COLOR, lw=2, ls='--', ymax=0.72)
     handles.append(Line2D([0], [0], color=THRESHOLD_COLOR, ls='--', lw=2,
                           label=f'ρ* = {rho_threshold:.2f}'))
-    ax.set_xlim(-0.2, 1)
+    ax.set_xlim(-0.5, 1)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.35)  # headroom so the legend clears the bars
-    ax.set_xlabel('Average ρ per experiment', fontsize=13)
-    ax.set_ylabel('Number of experiments', fontsize=13)
+    ax.set_xlabel('Spearman ρ with GA cluster response', fontsize=13)
+    ax.set_ylabel('Fraction of channels' if normalize else 'Number of channels',
+                  fontsize=13)
     ax.set_title('GA vs non-GA channel correlation', fontsize=14, fontweight='bold')
-    ax.yaxis.get_major_locator().set_params(integer=True)
     ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper left')
 
 
@@ -202,13 +206,14 @@ def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng):
 
 
 def plot_distributions(sessions, channels, *, rho_threshold, extent_bin_width_um=None,
-                       split_probe_end=False, ga_rho_bin_width=0.05, jitter_um=8.0,
-                       seed=0):
+                       split_probe_end=False, rho_bin_width=0.05,
+                       normalize_channel_hist=True, jitter_um=8.0, seed=0):
     pitch = _pitch(channels)
     fig, axes = plt.subplots(1, 3, figsize=(21, 6.5),
                              gridspec_kw={'width_ratios': [1, 1, 1.3], 'wspace': 0.28})
     plot_extent_hist(axes[0], sessions, extent_bin_width_um or pitch, split_probe_end)
-    plot_ga_rho_hist(axes[1], sessions, rho_threshold, ga_rho_bin_width)
+    plot_channel_rho_hist(axes[1], channels, rho_threshold, rho_bin_width,
+                          normalize_channel_hist)
     plot_distance_scatter(axes[2], channels, rho_threshold, pitch, jitter_um,
                           np.random.default_rng(seed))
     for ax in axes:
@@ -227,7 +232,8 @@ def main():
     vector_type = 'ga_mean_response'
     extent_bin_width_um = 65   # extent histogram bin width (µm); None = probe pitch
     split_probe_end = False  # colour sessions that reach the probe end separately
-    ga_rho_bin_width = 0.05  # histogram bin width for panel B
+    rho_bin_width = 0.05     # ρ histogram bin width (middle panel)
+    normalize_channel_hist = True  # middle panel: each group sums to 1 (else counts)
     jitter_um = 8.0          # horizontal jitter on the scatter (distances are discrete)
     show_plots = True
     output_root = "/home/connorlab/Documents/plots/cluster_corr_extent_distributions"
@@ -250,7 +256,9 @@ def main():
     fig = plot_distributions(sessions, channels, rho_threshold=rho_threshold,
                              extent_bin_width_um=extent_bin_width_um,
                              split_probe_end=split_probe_end,
-                             ga_rho_bin_width=ga_rho_bin_width, jitter_um=jitter_um)
+                             rho_bin_width=rho_bin_width,
+                             normalize_channel_hist=normalize_channel_hist,
+                             jitter_um=jitter_um)
 
     out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
     os.makedirs(out_dir, exist_ok=True)
@@ -262,7 +270,8 @@ def main():
                    'vector_type': vector_type,
                    'extent_bin_width_um': extent_bin_width_um,
                    'split_probe_end': split_probe_end,
-                   'ga_rho_bin_width': ga_rho_bin_width,
+                   'rho_bin_width': rho_bin_width,
+                   'normalize_channel_hist': normalize_channel_hist,
                    'jitter_um': jitter_um, 'skipped_sessions': skipped}, f, indent=2)
     sessions.to_csv(os.path.join(out_dir, "sessions.csv"), index=False)
     channels.to_csv(os.path.join(out_dir, "channels.csv"), index=False)
