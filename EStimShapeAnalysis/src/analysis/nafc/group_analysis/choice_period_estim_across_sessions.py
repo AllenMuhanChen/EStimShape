@@ -31,13 +31,20 @@ undefined indices.
 
 Figure: population PSTHs aligned to choices_on (t = 0).
   1. EStim ON vs EStim OFF, all trials.
-  2. EStim OFF trials split by choice: hypothesized vs not hypothesized.
+  2. EStim OFF trials split four ways: sample is hypothesized (the variant)
+     or not (delta / removed) x the monkey chose hypothesized or not.
   3. EStim ON trials split the same way.
+A channel enters a split curve only if it has at least min_trials_per_group
+trials in that group.
+
+Synchrony figure (artifact check, see choice_period_synchrony.py): rate of
+events where many channels cross threshold within ~0.2 ms, aligned to
+choices_on, ON vs OFF, mean +- SEM across sessions; and the same per 1000
+pooled spikes, so a change in overall firing alone can't explain it.
 Each channel's PSTH (mean across its trials) is optionally divided by that
 channel's OFF choice-period rate (all OFF trials), so every channel
-contributes on the same scale and all curves share one baseline. A channel
-enters a choice-split curve only if it has at least min_trials_per_choice
-trials of that choice. Shading is SEM across channels.
+contributes on the same scale and all curves share one baseline. Shading is
+SEM across channels.
 
 Outputs (timestamped folder): figure (png + svg), channel table (csv),
 stats.txt, config.json.
@@ -56,8 +63,10 @@ import pandas as pd
 from scipy import stats
 
 from src.analysis.nafc.neural.choice_period_response import (
-    TABLE_NAME, SPIKE_SOURCE_SPIKE_DAT, ESTIM_COLORS, ESTIM_LABELS, decode_array,
+    TABLE_NAME, GROUPS_TABLE_NAME, SPIKE_SOURCE_SPIKE_DAT, ESTIM_COLORS, ESTIM_LABELS,
+    PSTH_GROUPS, decode_array,
 )
+from src.analysis.nafc.neural.choice_period_synchrony import SYNC_TABLE_NAME
 
 # ---------------------------------------------------------------------------
 # Load
@@ -75,6 +84,53 @@ def load_rows(session_ids, spike_source: str) -> pd.DataFrame:
         query += f" AND session_id IN ({', '.join(['%s'] * len(session_ids))})"
         params += list(session_ids)
     conn.execute(query, params=tuple(params))
+    return pd.DataFrame(conn.fetch_all(), columns=cols)
+
+
+def _session_filter(session_ids):
+    if not session_ids:
+        return "", []
+    return f" AND session_id IN ({', '.join(['%s'] * len(session_ids))})", list(session_ids)
+
+
+def _group_key(estim_on: bool, sample_hyp: bool, chose_hyp: bool) -> str:
+    return f"{'on' if estim_on else 'off'}_s{int(sample_hyp)}_c{int(chose_hyp)}"
+
+
+def add_group_psths(table: pd.DataFrame, session_ids, spike_source: str) -> pd.DataFrame:
+    """Join the four sample x choice PSTHs per condition onto the channel table as
+    columns psth_mean_g_<key> / n_trials_g_<key>."""
+    from clat.util.connection import Connection
+    conn = Connection("allen_data_repository")
+    cols = ["session_id", "channel", "is_estim_on", "sample_is_hyp", "chose_hyp",
+            "n_trials", "psth_mean"]
+    where, params = _session_filter(session_ids)
+    conn.execute(f"SELECT {', '.join(cols)} FROM {GROUPS_TABLE_NAME} WHERE spike_source = %s"
+                 + where, params=tuple([spike_source] + params))
+    groups = pd.DataFrame(conn.fetch_all(), columns=cols)
+    table = table.copy()
+    if groups.empty:
+        print(f"No rows in {GROUPS_TABLE_NAME}; rerun ChoicePeriodEStimAnalysis per session.")
+        return table
+    groups["key"] = [_group_key(bool(a), bool(b), bool(c)) for a, b, c in
+                     zip(groups["is_estim_on"], groups["sample_is_hyp"], groups["chose_hyp"])]
+    wide_psth = groups.pivot_table(index=["session_id", "channel"], columns="key",
+                                   values="psth_mean", aggfunc="first")
+    wide_n = groups.pivot_table(index=["session_id", "channel"], columns="key",
+                                values="n_trials", aggfunc="first")
+    wide = wide_psth.add_prefix("psth_mean_g_").join(wide_n.add_prefix("n_trials_g_"))
+    return table.join(wide, on=["session_id", "channel"])
+
+
+def load_synchrony(session_ids, spike_source: str) -> pd.DataFrame:
+    from clat.util.connection import Connection
+    conn = Connection("allen_data_repository")
+    cols = ["session_id", "is_estim_on", "n_trials", "n_channels", "sync_window_s",
+            "min_channels", "psth_start_s", "psth_bin_size_s", "sync_rate_mean",
+            "spike_rate_mean"]
+    where, params = _session_filter(session_ids)
+    conn.execute(f"SELECT {', '.join(cols)} FROM {SYNC_TABLE_NAME} WHERE spike_source = %s"
+                 + where, params=tuple([spike_source] + params))
     return pd.DataFrame(conn.fetch_all(), columns=cols)
 
 
@@ -229,44 +285,99 @@ def population_psth(table: pd.DataFrame, normalize: bool, curve_specs: dict,
 # Figure
 # ---------------------------------------------------------------------------
 
-CHOICE_COLORS = {"Hypothesized": "#2A9D8F", "Not hypothesized": "#E9A23B"}
+# Sample type -> colour, choice -> line style.
+GROUP_STYLES = {
+    PSTH_GROUPS[(True, True)]: ("#2A9D8F", "-"),
+    PSTH_GROUPS[(True, False)]: ("#2A9D8F", "--"),
+    PSTH_GROUPS[(False, True)]: ("#E9A23B", "-"),
+    PSTH_GROUPS[(False, False)]: ("#E9A23B", "--"),
+}
 
 
-def _draw_psths(ax, centers, curves: dict, colors: dict, title: str, ylabel: str):
+def _draw_psths(ax, centers, curves: dict, styles: dict, title: str, ylabel: str,
+                unit: str = "channels"):
     for label, (mean, sem, n) in curves.items():
-        color = colors[label]
-        ax.plot(centers, mean, color=color, linewidth=2.4, label=f"{label} (n={n} channels)")
-        ax.fill_between(centers, mean - sem, mean + sem, color=color, alpha=0.2, linewidth=0)
+        color, linestyle = styles[label]
+        ax.plot(centers, mean, color=color, linestyle=linestyle, linewidth=2.4,
+                label=f"{label} (n={n} {unit})")
+        ax.fill_between(centers, mean - sem, mean + sem, color=color, alpha=0.15, linewidth=0)
     ax.axvline(0, color="black", linewidth=1)
     ax.set_xlabel("Time from choices on (s)", fontsize=14)
     ax.set_ylabel(ylabel, fontsize=14)
     ax.set_title(title, fontsize=15)
     ax.legend(fontsize=11, frameon=False)
-    ax.tick_params(labelsize=12)
+    ax.tick_params(labelsize=12, labelleft=True)
     ax.spines[["top", "right"]].set_visible(False)
 
 
-def plot_psths(table: pd.DataFrame, normalize: bool, min_trials_per_choice: int):
+def plot_psths(table: pd.DataFrame, normalize: bool, min_trials_per_group: int):
     ylabel = "Rate / OFF choice-period rate" if normalize else "Firing rate (spikes/s)"
-    fig, axes = plt.subplots(1, 3, figsize=(20, 6.5), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(21, 7), sharey=True)
 
     centers, curves = population_psth(table, normalize, {
         ESTIM_LABELS[False]: ("psth_mean_off", "n_trials_off"),
         ESTIM_LABELS[True]: ("psth_mean_on", "n_trials_on"),
     })
     _draw_psths(axes[0], centers, curves,
-                {ESTIM_LABELS[k]: ESTIM_COLORS[k] for k in (False, True)},
+                {ESTIM_LABELS[k]: (ESTIM_COLORS[k], "-") for k in (False, True)},
                 "Population PSTH", ylabel)
 
-    for ax, suffix, estim_on in ((axes[1], "off", False), (axes[2], "on", True)):
-        centers, curves = population_psth(table, normalize, {
-            "Hypothesized": (f"psth_mean_hyp_{suffix}", f"n_trials_hyp_{suffix}"),
-            "Not hypothesized": (f"psth_mean_not_hyp_{suffix}", f"n_trials_not_hyp_{suffix}"),
-        }, min_trials=min_trials_per_choice)
-        _draw_psths(ax, centers, curves, CHOICE_COLORS, f"{ESTIM_LABELS[estim_on]} by choice",
-                    ylabel if ax is axes[0] else "")
-    axes[1].tick_params(labelleft=True)
-    axes[2].tick_params(labelleft=True)
+    for ax, estim_on in ((axes[1], False), (axes[2], True)):
+        specs = {}
+        for (sample_hyp, chose_hyp), label in PSTH_GROUPS.items():
+            key = _group_key(estim_on, sample_hyp, chose_hyp)
+            if f"psth_mean_g_{key}" in table.columns:
+                specs[label] = (f"psth_mean_g_{key}", f"n_trials_g_{key}")
+        if specs:
+            centers, curves = population_psth(table, normalize, specs,
+                                              min_trials=min_trials_per_group)
+            _draw_psths(ax, centers, curves, GROUP_STYLES,
+                        f"{ESTIM_LABELS[estim_on]}: sample x choice", "")
+    fig.tight_layout()
+    return fig
+
+
+def _session_curves(sync: pd.DataFrame, value):
+    """Mean +- SEM across sessions of value(row) (an array per session row)."""
+    out = {}
+    for estim_on in (False, True):
+        rows = sync[sync["is_estim_on"].astype(bool) == estim_on]
+        arrs = [value(r) for _, r in rows.iterrows()]
+        arrs = [a for a in arrs if len(a)]
+        if not arrs:
+            continue
+        arr = np.vstack(arrs)
+        with np.errstate(invalid="ignore", divide="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            mean = np.nanmean(arr, axis=0)
+            sem = np.nanstd(arr, axis=0, ddof=1) / np.sqrt(np.sum(~np.isnan(arr), axis=0))
+        out[ESTIM_LABELS[estim_on]] = (mean, sem, len(arrs))
+    return out
+
+
+def plot_synchrony(sync: pd.DataFrame):
+    layouts = list(zip(sync["psth_start_s"].round(6), sync["psth_bin_size_s"].round(6),
+                       sync["sync_rate_mean"].map(lambda t: len(decode_array(t)))))
+    layout = pd.Series(layouts).mode().iloc[0]
+    sync = sync[[l == layout for l in layouts]]
+    start, width, n_bins = layout
+    centers = start + width * (np.arange(n_bins) + 0.5)
+    styles = {ESTIM_LABELS[k]: (ESTIM_COLORS[k], "-") for k in (False, True)}
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6.5))
+    _draw_psths(axes[0], centers, _session_curves(sync, lambda r: decode_array(r["sync_rate_mean"])),
+                styles, "Cross-channel synchrony", "Synchronous events / s", unit="sessions")
+
+    def per_1000_spikes(r):
+        ev, sp = decode_array(r["sync_rate_mean"]), decode_array(r["spike_rate_mean"])
+        with np.errstate(invalid="ignore", divide="ignore"):
+            return np.where(sp > 0, 1000 * ev / sp, np.nan)
+
+    _draw_psths(axes[1], centers, _session_curves(sync, per_1000_spikes), styles,
+                "Synchrony per spike", "Synchronous events / 1000 spikes", unit="sessions")
+    first = sync.iloc[0]
+    fig.suptitle(f">= {int(first['min_channels'])} channels within "
+                 f"{1000 * float(first['sync_window_s']):.1f} ms", fontsize=13)
     fig.tight_layout()
     return fig
 
@@ -280,7 +391,7 @@ def main():
     min_rate_hz = 1.0                 # drop channels whose (ON + OFF) / 2 rate is below this
     alpha = 0.05                      # per-channel Welch t-test threshold
     normalize_psth = True             # divide each channel's PSTH by its OFF choice-period rate
-    min_trials_per_choice = 3         # channel needs this many trials of a choice for the split PSTHs
+    min_trials_per_group = 3          # channel needs this many trials in a sample x choice group
     output_root = "/home/connorlab/Documents/plots/across_experiments/choice_period_estim"
     show_plots = True
     # --------------------
@@ -318,7 +429,7 @@ def main():
             "min_rate_hz": min_rate_hz,
             "alpha": alpha,
             "normalize_psth": normalize_psth,
-            "min_trials_per_choice": min_trials_per_choice,
+            "min_trials_per_group": min_trials_per_group,
         }, f, indent=2)
     with open(os.path.join(out_dir, "stats.txt"), "w") as f:
         f.write(text + "\n")
@@ -327,9 +438,20 @@ def main():
             table.set_index(["session_id", "channel"]).index)
     ).to_csv(os.path.join(out_dir, "choice_period_channels.csv"), index=False)
 
-    fig = plot_psths(table, normalize_psth, min_trials_per_choice)
+    table = add_group_psths(table, session_ids, spike_source)
+    fig = plot_psths(table, normalize_psth, min_trials_per_group)
     fig.savefig(os.path.join(out_dir, "choice_period_psth.png"), dpi=150, bbox_inches="tight")
     fig.savefig(os.path.join(out_dir, "choice_period_psth.svg"), bbox_inches="tight")
+
+    sync = load_synchrony(session_ids, spike_source)
+    sync = sync[sync["session_id"].isin(table["session_id"].unique())]
+    if sync.empty:
+        print(f"No rows in {SYNC_TABLE_NAME}; rerun ChoicePeriodEStimAnalysis per session.")
+    else:
+        fig = plot_synchrony(sync)
+        fig.savefig(os.path.join(out_dir, "choice_period_synchrony.png"), dpi=150,
+                    bbox_inches="tight")
+        fig.savefig(os.path.join(out_dir, "choice_period_synchrony.svg"), bbox_inches="tight")
     print(f"Saved to {out_dir}")
     if show_plots:
         plt.show()

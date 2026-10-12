@@ -12,6 +12,10 @@ repository table ``NafcChoicePeriodResponses``:
   - the per-trial rates themselves (so across-session scripts can redo stats),
   - a PSTH aligned to choices_on (mean and SEM across trials), also split
     by whether the monkey picked the hypothesized choice (IsHypothesized),
+  - PSTHs split four ways, sample is hypothesized (the variant, not a delta or
+    removed sample) x chose hypothesized, in NafcChoicePeriodPsthGroups,
+  - once per session, a cross-channel synchrony PSTH (artifact check), in
+    NafcChoicePeriodSynchrony (see choice_period_synchrony.py),
   - a Welch t-test of ON vs OFF trial rates (same value on both rows).
 
 Methods
@@ -124,11 +128,35 @@ def trial_psths(data: pd.DataFrame, channel: str, bins: np.ndarray,
             outside = (bins[:-1] < lo - 1e-9) | (bins[1:] > hi + 1e-9)
             rate = rate.astype(float)
             rate[outside] = np.nan
-        is_hyp = trial.get("IsHypothesized")
         rows.append({"estim_on": bool(trial.get("EStimEnabled")),
-                     "is_hyp": None if is_hyp is None or pd.isna(is_hyp) else bool(is_hyp),
+                     "is_hyp": _optional_bool(trial.get("IsHypothesized")),
+                     "sample_hyp": sample_is_hypothesized(trial),
                      "rate": rate})
-    return pd.DataFrame(rows, columns=["estim_on", "is_hyp", "rate"])
+    return pd.DataFrame(rows, columns=["estim_on", "is_hyp", "sample_hyp", "rate"])
+
+
+def _optional_bool(value) -> Optional[bool]:
+    if value is None or (not isinstance(value, (list, dict)) and pd.isna(value)):
+        return None
+    return bool(value)
+
+
+def sample_is_hypothesized(trial) -> Optional[bool]:
+    """True when the sample is the variant (the hypothesized shape): not a delta
+    trial and not a removed trial. Delta and removed samples -> False."""
+    is_delta = _optional_bool(trial.get("IsDelta"))
+    if is_delta is None:
+        return None
+    return not is_delta and not bool(_optional_bool(trial.get("IsRemovedTrial")))
+
+
+# (sample is hypothesized, monkey chose hypothesized) -> label
+PSTH_GROUPS = {
+    (True, True): "Sample hyp, chose hyp",
+    (True, False): "Sample hyp, chose other",
+    (False, True): "Sample not hyp, chose hyp",
+    (False, False): "Sample not hyp, chose other",
+}
 
 
 def _nan_mean_sem(rates: list[np.ndarray], n_bins: int) -> tuple[np.ndarray, np.ndarray]:
@@ -177,6 +205,14 @@ def summarize_channel(data: pd.DataFrame, channel: str, *,
             grp = cond_psths[cond_psths["is_hyp"] == is_hyp]
             m, e = _nan_mean_sem(list(grp["rate"]), len(bins) - 1)
             by_choice[is_hyp] = {"n_trials": len(grp), "psth_mean": m, "psth_sem": e}
+        # PSTH split by sample type x choice (four groups).
+        groups = {}
+        for sample_hyp, chose_hyp in PSTH_GROUPS:
+            grp = cond_psths[(cond_psths["sample_hyp"] == sample_hyp)
+                             & (cond_psths["is_hyp"] == chose_hyp)]
+            m, e = _nan_mean_sem(list(grp["rate"]), len(bins) - 1)
+            groups[(sample_hyp, chose_hyp)] = {"n_trials": len(grp), "psth_mean": m,
+                                               "psth_sem": e}
         n = len(trial_rates)
         out["conditions"][estim_on] = {
             "n_trials": n,
@@ -188,6 +224,7 @@ def summarize_channel(data: pd.DataFrame, channel: str, *,
             "psth_mean": psth_mean,
             "psth_sem": psth_sem,
             "by_choice": by_choice,
+            "groups": groups,
         }
     return out
 
@@ -303,6 +340,54 @@ def summary_to_rows(session_id: str, summary: dict, *, spike_source: str,
     return rows
 
 
+GROUPS_TABLE_NAME = "NafcChoicePeriodPsthGroups"
+
+CREATE_GROUPS_TABLE_SQL = f"""
+    CREATE TABLE IF NOT EXISTS {GROUPS_TABLE_NAME}
+    (
+        session_id      VARCHAR(10)  NOT NULL,
+        channel         VARCHAR(255) NOT NULL,
+        spike_source    VARCHAR(50)  NOT NULL,
+        is_estim_on     BOOLEAN      NOT NULL,
+        sample_is_hyp   BOOLEAN      NOT NULL,  -- sample is the variant (not delta / removed)
+        chose_hyp       BOOLEAN      NOT NULL,  -- IsHypothesized choice
+        n_trials        INT          NOT NULL,
+        psth_start_s    DOUBLE,
+        psth_bin_size_s DOUBLE,
+        psth_mean       LONGTEXT,
+        psth_sem        LONGTEXT,
+        PRIMARY KEY (session_id, channel, spike_source, is_estim_on, sample_is_hyp, chose_hyp),
+        FOREIGN KEY (session_id) REFERENCES Sessions (session_id) ON DELETE CASCADE
+    ) ENGINE = InnoDB
+      DEFAULT CHARSET = latin1
+"""
+
+_GROUP_COLUMNS = ["session_id", "channel", "spike_source", "is_estim_on", "sample_is_hyp",
+                  "chose_hyp", "n_trials", "psth_start_s", "psth_bin_size_s",
+                  "psth_mean", "psth_sem"]
+
+
+def summary_to_group_rows(session_id: str, summary: dict, *, spike_source: str) -> list[tuple]:
+    bins = summary["bins"]
+    rows = []
+    for estim_on, c in summary["conditions"].items():
+        for (sample_hyp, chose_hyp), g in c["groups"].items():
+            rows.append((session_id, summary["channel"], spike_source, bool(estim_on),
+                         bool(sample_hyp), bool(chose_hyp), g["n_trials"], float(bins[0]),
+                         float(bins[1] - bins[0]), encode_array(g["psth_mean"]),
+                         encode_array(g["psth_sem"])))
+    return rows
+
+
+def insert_group_rows(conn, rows: list[tuple]) -> None:
+    placeholders = ", ".join(["%s"] * len(_GROUP_COLUMNS))
+    updates = ", ".join(f"{c} = VALUES({c})" for c in _GROUP_COLUMNS[6:])
+    sql = (f"INSERT INTO {GROUPS_TABLE_NAME} ({', '.join(_GROUP_COLUMNS)}) "
+           f"VALUES ({placeholders}) ON DUPLICATE KEY UPDATE {updates}")
+    for row in rows:
+        conn.execute(sql, row)
+
+
 def ensure_table(conn) -> None:
     conn.execute(CREATE_TABLE_SQL)
     for col, sql_type in _ADDED_COLUMNS.items():
@@ -310,11 +395,16 @@ def ensure_table(conn) -> None:
             conn.execute(f"ALTER TABLE {TABLE_NAME} ADD COLUMN {col} {sql_type}")
         except Exception:
             pass  # column already exists
+    conn.execute(CREATE_GROUPS_TABLE_SQL)
+    from src.analysis.nafc.neural.choice_period_synchrony import ensure_synchrony_table
+    ensure_synchrony_table(conn)
 
 
 def clear_session(conn, session_id: str, spike_source: str) -> None:
-    conn.execute(f"DELETE FROM {TABLE_NAME} WHERE session_id = %s AND spike_source = %s",
-                 (session_id, spike_source))
+    from src.analysis.nafc.neural.choice_period_synchrony import SYNC_TABLE_NAME
+    for table in (TABLE_NAME, GROUPS_TABLE_NAME, SYNC_TABLE_NAME):
+        conn.execute(f"DELETE FROM {table} WHERE session_id = %s AND spike_source = %s",
+                     (session_id, spike_source))
 
 
 def insert_rows(conn, rows: list[tuple]) -> None:
@@ -407,7 +497,8 @@ class ChoicePeriodEStimAnalysis(Analysis):
                  save_plots: bool = True,
                  show_plots: bool = False,
                  skip_existing: bool = True,
-                 cache_parsed_trials: bool = True):
+                 cache_parsed_trials: bool = True,
+                 synchrony_params: Optional[dict] = None):
         """skip_existing: skip a session that already has up-to-date rows in
         NafcChoicePeriodResponses (set False after changing window / PSTH
         parameters, to recompute). cache_parsed_trials: pickle each parsed
@@ -428,6 +519,9 @@ class ChoicePeriodEStimAnalysis(Analysis):
         self.show_plots = show_plots
         self.skip_existing = skip_existing
         self.cache_parsed_trials = cache_parsed_trials
+        # See choice_period_synchrony.summarize_synchrony for the keys.
+        self.synchrony_params = synchrony_params or {}
+        self.synchrony = None
         self._data: Optional[pd.DataFrame] = None
         self._data_session_id: Optional[str] = None
         self.summaries: dict[str, dict] = {}
@@ -451,7 +545,9 @@ class ChoicePeriodEStimAnalysis(Analysis):
     def compile(self) -> pd.DataFrame:
         from clat.compile.tstamp.cached_tstamp_fields import CachedFieldList
         from clat.util.connection import Connection
-        from src.analysis.nafc.nafc_database_fields import EStimEnabledField, IsHypothesizedField
+        from src.analysis.nafc.nafc_database_fields import (
+            EStimEnabledField, IsDeltaField, IsHypothesizedField, IsRemovedTrialField,
+        )
         from src.analysis.nafc.nafc_neural_database_fields import NafcNeuralDataField
         from src.analysis.nafc.psychometric_curves import collect_choice_trials
         from src.startup import context
@@ -474,6 +570,8 @@ class ChoicePeriodEStimAnalysis(Analysis):
         fields = CachedFieldList()
         fields.append(EStimEnabledField(exp_conn))
         fields.append(IsHypothesizedField(exp_conn))
+        fields.append(IsDeltaField(exp_conn))
+        fields.append(IsRemovedTrialField(exp_conn))
         fields.append(neural_field)
         data = fields.to_data(trial_tstamps)
 
@@ -503,6 +601,12 @@ class ChoicePeriodEStimAnalysis(Analysis):
         repo_conn.execute(
             f"SELECT COUNT(*) FROM {TABLE_NAME} WHERE session_id = %s AND spike_source = %s "
             f"AND n_trials_hyp IS NOT NULL", (session_id, self.spike_source))
+        if repo_conn.fetch_all()[0][0] == 0:
+            return False
+        from src.analysis.nafc.neural.choice_period_synchrony import SYNC_TABLE_NAME
+        repo_conn.execute(
+            f"SELECT COUNT(*) FROM {SYNC_TABLE_NAME} WHERE session_id = %s AND spike_source = %s",
+            (session_id, self.spike_source))
         return repo_conn.fetch_all()[0][0] > 0
 
     def compile_and_export(self):
@@ -525,6 +629,23 @@ class ChoicePeriodEStimAnalysis(Analysis):
             ensure_table(repo_conn)
             clear_session(repo_conn, session_id, self.spike_source)
             print(f"Cleared {TABLE_NAME} rows for session {session_id} ({self.spike_source})")
+        self._run_synchrony(session_id)
+
+    def _run_synchrony(self, session_id: str) -> None:
+        """Session-level (all channels together) synchrony PSTH, ON vs OFF."""
+        from src.analysis.nafc.neural.choice_period_synchrony import (
+            summarize_synchrony, synchrony_rows, insert_synchrony_rows,
+        )
+        sync = summarize_synchrony(self._data, **self.synchrony_params)
+        self.synchrony = sync
+        for estim_on, c in sync["conditions"].items():
+            print(f"{session_id} synchrony {'ON' if estim_on else 'OFF'}: n={c['n_trials']}, "
+                  f"peak {np.nanmax(c['sync_rate_mean']) if c['n_trials'] else float('nan'):.2f} "
+                  f"events/s")
+        if self.export:
+            from clat.util.connection import Connection
+            insert_synchrony_rows(Connection("allen_data_repository"),
+                                  synchrony_rows(session_id, sync, spike_source=self.spike_source))
 
     # -- analyze ------------------------------------------------------------
 
@@ -557,7 +678,10 @@ class ChoicePeriodEStimAnalysis(Analysis):
                 start_offset_s=self.window_start_offset_s,
                 max_duration_s=self.window_max_duration_s,
                 clip_to_choice_period=self.psth_clip_to_choice_period)
-            insert_rows(Connection("allen_data_repository"), rows)
+            repo_conn = Connection("allen_data_repository")
+            insert_rows(repo_conn, rows)
+            insert_group_rows(repo_conn, summary_to_group_rows(
+                self.session_id, summary, spike_source=self.spike_source))
 
         if self.save_plots or self.show_plots:
             import matplotlib.pyplot as plt
