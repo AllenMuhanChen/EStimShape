@@ -9,7 +9,7 @@ a new timestamped folder with a config.json of the settings.
 Columns (see probe_columns.py for what each one is and which old script it replaces):
   Tuning        pref_freq, orient_freq, pref_orient, pref_color, iso, solid, solid_sig
   Correlation   corr_each (ρ vs each GA channel), corr_ga_avg (ρ vs GA average +
-                contiguous extent at ρ*), corr_estim_avg (ρ vs estim average)
+                contiguous extent at ρ threshold), corr_estim_avg (ρ vs estim average)
   Delta/top-N   corr_dv, corr_topn, dprime
   Models        rwa, axis
 """
@@ -56,7 +56,7 @@ def main():
         corr_method='spearman',  # 'spearman' or 'pearson'
         vector_type='ga_mean_response',
         group_leave_one_out=True,
-        rho_threshold=0.5,       # ρ* for the GA-average extent
+        rho_threshold=0.5,       # ρ threshold for the GA-average extent
         n_misses_to_stop=2,
         top_n=20,
         included_only=True,

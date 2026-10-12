@@ -8,7 +8,7 @@ Same method as plot_cluster_correlation_spread (GA-cluster correlation extent):
   - a channel that is itself in the group is compared with the average of the OTHER
     group channels (leave-one-out), so it isn't correlated with itself;
   - the contiguous extent walks up and down the probe from the group's edges and
-    stops after n_misses_to_stop channels in a row below a fixed ρ*.
+    stops after n_misses_to_stop channels in a row below a fixed ρ threshold.
 """
 
 from __future__ import annotations
@@ -70,7 +70,7 @@ def group_reference_rhos(response_matrix, group_strs, method='spearman',
 
 
 def _walk(indices, above, has_data, n_misses_to_stop):
-    """Walk channel indices in order. Returns (last index >= ρ* or None,
+    """Walk channel indices in order. Returns (last index >= ρ threshold or None,
     [indices of the misses that stopped the walk], reached_probe_end)."""
     last_sig, misses = None, []
     for i in indices:

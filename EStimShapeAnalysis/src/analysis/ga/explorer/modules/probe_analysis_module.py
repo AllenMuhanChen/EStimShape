@@ -74,11 +74,11 @@ class ProbeAnalysisModule(FigureModule):
             Param("group_leave_one_out", "Group ρ leave-one-out", "bool", True,
                   tooltip="'ρ vs GA / estim average': a channel in the group is compared "
                           "with the average of the OTHER group channels."),
-            Param("rho_threshold", "ρ* (GA extent)", "float", 0.5, minimum=0.0,
+            Param("rho_threshold", "ρ threshold (GA extent)", "float", 0.5, minimum=0.0,
                   maximum=1.0, step=0.05),
             Param("n_misses_to_stop", "Misses to stop walk", "int", 2, minimum=1,
                   maximum=10,
-                  tooltip="Channels in a row below ρ* that end the extent walk."),
+                  tooltip="Channels in a row below ρ threshold that end the extent walk."),
             Param("top_n", "Top N GA stims", "int", 20, minimum=3, maximum=1000),
             Param("included_only", "Included delta pairs only", "bool", True),
             Param("axis_strategy", "Axis-coding strategy", "str", "multi_prototype_pca"),
@@ -87,9 +87,9 @@ class ProbeAnalysisModule(FigureModule):
 
     def create_view(self, parent):
         from src.analysis.ga.explorer.figure_view import FigureView
-        # Show the figure at its own size (scrolling if wide) so columns keep their
-        # width however many are ticked.
-        self._view = FigureView(parent, keep_size=True)
+        # Scaled so the whole probe and legend fit the window height; wide figures
+        # scroll sideways, so columns keep their proportions however many are on.
+        self._view = FigureView(parent, keep_size=True, fit_height=True)
         return self._view
 
     def make_figure(self, session, values):

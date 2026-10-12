@@ -18,7 +18,7 @@ Where each column comes from (the scripts it replaces):
   plot_cluster_correlation_spread
     (branch ga-cluster-correlation-extent)
                                  ρ vs the average GA-channel response, with the
-                                 contiguous extent at a fixed ρ*
+                                 contiguous extent at a fixed ρ threshold
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ class ColumnBlock:
     scale_label: str = ""        # SEQUENTIAL / CYCLIC colorbar label
     categories: List[str] = field(default_factory=list)       # CATEGORICAL
     category_colors: Dict[str, str] = field(default_factory=dict)
-    ringed: set = field(default_factory=set)       # channels drawn with a ring (ρ ≥ ρ*)
+    ringed: set = field(default_factory=set)       # channels drawn with a ring (ρ ≥ ρ threshold)
     extent_rows: Optional[tuple] = None            # (top row, bottom row) to shade
     note: str = ""                                 # one-line result for the status bar
 
@@ -78,8 +78,8 @@ DEFAULT_OPTIONS = {
     'corr_method': 'spearman',           # 'spearman' or 'pearson'
     'corr_reference': 'GA',              # 'GA' = every GA channel, or 'A-022, A-008'
     'group_leave_one_out': True,         # group ρ: compare a group channel with the others
-    'rho_threshold': 0.5,                # ρ* for the GA-average extent
-    'n_misses_to_stop': 2,               # channels in a row below ρ* that end the walk
+    'rho_threshold': 0.5,                # ρ threshold for the GA-average extent
+    'n_misses_to_stop': 2,               # channels in a row below ρ threshold that end the walk
     'top_n': 20,                         # top-N GA stims for the top-N correlation
     'included_only': True,               # delta/variant: only IncludedDeltas.included
     'axis_strategy': 'multi_prototype_pca',
@@ -222,12 +222,7 @@ def _corr_ga_avg(data, opts):
     if ext is not None:
         block.ringed = {ch for ch, a in zip(channels, ext['above']) if a}
         block.extent_rows = (ext['up_edge'], ext['down_edge'])
-        ends = [side for side, hit in (('up', ext['up_reached_end']),
-                                       ('down', ext['down_reached_end'])) if hit]
-        block.note = (f"GA extent {ext['extent_total_um']:.0f} µm at ρ* = "
-                      f"{ext['rho_threshold']:.2f} (up {ext['extent_up_um']:.0f}, "
-                      f"down {ext['extent_down_um']:.0f})"
-                      + (f", reaches probe end {'/'.join(ends)}" if ends else ""))
+        block.note = f"GA extent {ext['extent_total_um']:.0f} µm"
     return block
 
 
@@ -334,7 +329,7 @@ COLUMNS: List[ColumnDef] = [
     ColumnDef('corr_each', "ρ vs each GA channel", CORRELATION, True, _corr_each,
               "One column per reference channel (see 'Reference channels')."),
     ColumnDef('corr_ga_avg', "ρ vs GA average + extent", CORRELATION, False, _corr_ga_avg,
-              "ρ with the average z-scored GA response. Ringed: ρ ≥ ρ*. Shaded: "
+              "ρ with the average z-scored GA response. Ringed: ρ ≥ ρ threshold. Shaded: "
               "contiguous extent (walk up / down from the GA channels)."),
     ColumnDef('corr_estim_avg', "ρ vs estim average", CORRELATION, False, _corr_estim_avg,
               "ρ with the average z-scored response of the estim channels "

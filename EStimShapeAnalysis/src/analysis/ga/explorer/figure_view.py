@@ -22,12 +22,17 @@ def _is_plotly(fig) -> bool:
 
 
 class FigureView(QWidget):
-    def __init__(self, parent=None, keep_size=False):
+    def __init__(self, parent=None, keep_size=False, fit_height=False):
         """keep_size: show matplotlib figures at their own size (scrolling if
         needed) instead of stretching them to the window, so what you see is
-        what gets saved. Use it for layout-sensitive figures."""
+        what gets saved. Use it for layout-sensitive figures.
+        fit_height (with keep_size): by default scale the whole figure (text
+        included, layout unchanged) so its full height fits the window; wide
+        figures scroll sideways. A checkbox above the figure turns it off."""
         super().__init__(parent)
         self._keep_size = keep_size
+        self._fit_height = fit_height
+        self._mpl = None   # (fig, canvas, scroll, size_in, base_dpi) when fitting
         self._fig = None
         self._pixmap: QPixmap | None = None
 
@@ -60,6 +65,10 @@ class FigureView(QWidget):
             self._content = None
         self._pixmap = None
         self._fig = None
+        if self._mpl is not None:
+            fig, base_dpi = self._mpl[0], self._mpl[4]
+            fig.set_dpi(base_dpi)   # saved / reused figures keep their own dpi
+            self._mpl = None
 
     def _build_mpl_view(self, fig):
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -74,18 +83,49 @@ class FigureView(QWidget):
         if self._keep_size:
             # Pin the canvas to the figure's own size; the scroll area absorbs
             # any difference with the window.
-            ratio = canvas.devicePixelRatioF() or 1.0
-            fig.set_size_inches(size_in)
-            w, h = (int(round(v * fig.dpi / ratio)) for v in size_in)
-            canvas.setFixedSize(w, h)
             scroll = QScrollArea()
             scroll.setWidget(canvas)
             scroll.setStyleSheet("background: white;")
+            if self._fit_height:
+                fit = QCheckBox("Fit height to window")
+                fit.setChecked(True)
+                fit.setToolTip("Scale the figure so the whole probe and legend are "
+                               "visible. Off = actual size (scroll).")
+                fit.toggled.connect(lambda _on: self._fit_mpl())
+                lay.addWidget(fit)
+                self._mpl = (fig, canvas, scroll, size_in, fig.dpi, fit)
+                scroll.viewport().installEventFilter(self)
             lay.addWidget(scroll, stretch=1)
+            self._pin_canvas(fig, canvas, size_in, fig.dpi)
         else:
             lay.addWidget(canvas, stretch=1)
         canvas.draw_idle()
         return box
+
+    @staticmethod
+    def _pin_canvas(fig, canvas, size_in, dpi):
+        ratio = canvas.devicePixelRatioF() or 1.0
+        fig.set_dpi(dpi)
+        w, h = (int(round(v * dpi / ratio)) for v in size_in)
+        canvas.setFixedSize(w, h)
+        fig.set_size_inches(size_in)   # undo any rounding from the resize event
+        canvas.draw_idle()
+
+    def _fit_mpl(self):
+        """Scale the figure's dpi so its height matches the visible area."""
+        if self._mpl is None:
+            return
+        fig, canvas, scroll, size_in, base_dpi, fit = self._mpl
+        dpi = base_dpi
+        if fit.isChecked():
+            ratio = canvas.devicePixelRatioF() or 1.0
+            # leave room for the horizontal scrollbar when the figure is wide
+            avail = scroll.viewport().height() + (
+                0 if scroll.horizontalScrollBar().isVisible() else
+                -scroll.horizontalScrollBar().sizeHint().height()) - 4
+            if avail > 50:
+                dpi = avail * ratio / size_in[1]
+        self._pin_canvas(fig, canvas, size_in, dpi)
 
     def _build_plotly_view(self, fig):
         box = QWidget()
@@ -159,9 +199,11 @@ class FigureView(QWidget):
         self._image_label.resize(scaled.size())
 
     def eventFilter(self, obj, event):
-        if (event.type() == QEvent.Resize and self._pixmap is not None
-                and self._fit_check.isChecked()):
-            self._rescale()
+        if event.type() == QEvent.Resize:
+            if self._pixmap is not None and self._fit_check.isChecked():
+                self._rescale()
+            elif self._mpl is not None and obj is self._mpl[2].viewport():
+                self._fit_mpl()
         return False
 
     # ---------------------------------------------------------------- save

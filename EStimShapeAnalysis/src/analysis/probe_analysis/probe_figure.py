@@ -220,7 +220,7 @@ def _bottom_strip(fig, used_scales, width, height, font_size, *, stacked, has_ga
     if has_ring:
         handles.append(Line2D([0], [0], marker='o', color='w', markerfacecolor='none',
                               markeredgecolor='black', markeredgewidth=2, markersize=14,
-                              label='ρ ≥ ρ*'))
+                              label='ρ ≥ ρ threshold'))
     if has_extent:
         handles.append(Patch(facecolor=EXTENT_COLOR, alpha=0.3, label='GA extent'))
     sx, sy, sw, sh = slot(len(items))
