@@ -12,7 +12,8 @@ Figure, one value per session unless noted:
      lower bound).
   B. histogram of the average GA channel correlation: the mean, over a session's GA
      channels, of each GA channel's ρ with the other GA channels. Sessions with a single
-     GA channel have no value and are left out.
+     GA channel have no value and are left out. Overlaid: the average non-GA channel ρ
+     (mean over a session's non-GA channels of their ρ with the GA response).
   C. every non-GA channel with data, pooled over sessions: distance along the probe to
      the nearest GA channel vs its ρ with the GA response, with the binned median and
      interquartile range (bins = probe pitch).
@@ -43,6 +44,7 @@ from src.analysis.nafc.group_analysis.analyze_estim_isolation_effect import (
 EXTENT_COLOR = "#2a78d6"
 PROBE_END_COLOR = "#f0a030"
 GA_RHO_COLOR = "#2a9d6f"
+NON_GA_RHO_COLOR = "#8a8a8a"
 THRESHOLD_COLOR = "tab:red"
 
 
@@ -70,6 +72,8 @@ def session_rows(session_id, rho_n, channel_strs, positions_um, ga_strs, *,
     pos = np.asarray(positions_um, dtype=float)
     ga_pos = np.array([pos[i] for i, ch in enumerate(channel_strs) if ch in ga_strs])
     ga_rhos = [rho_n[g][0] for g in ga_strs if np.isfinite(rho_n[g][0])]
+    non_ga_rhos = [r for ch, (r, _) in rho_n.items()
+                   if ch not in ga_strs and ch in channel_strs and np.isfinite(r)]
 
     channels = []
     for i, ch in enumerate(channel_strs):
@@ -83,6 +87,7 @@ def session_rows(session_id, rho_n, channel_strs, positions_um, ga_strs, *,
         'session_id': session_id, 'ga_channels': ','.join(ga_strs),
         'n_ga_channels': len(ga_strs),
         'avg_ga_rho': float(np.mean(ga_rhos)) if ga_rhos else np.nan,
+        'avg_non_ga_rho': float(np.mean(non_ga_rhos)) if non_ga_rhos else np.nan,
         'extent_total_um': ext['extent_total_um'],
         'extent_up_um': ext['extent_up_um'], 'extent_down_um': ext['extent_down_um'],
         'up_reached_probe_end': ext['up_reached_end'],
@@ -146,23 +151,29 @@ def plot_extent_hist(ax, sessions, bin_width, split_probe_end):
 
 
 def plot_ga_rho_hist(ax, sessions, rho_threshold, bin_width):
-    vals = sessions['avg_ga_rho'].dropna().to_numpy(dtype=float)
+    """Overlaid histograms of the per-session average ρ: GA channels (vs the other GA
+    channels) and non-GA channels (vs the GA response)."""
     bins = np.arange(-1, 1 + bin_width, bin_width)
-    ax.hist(vals, bins=bins, color=GA_RHO_COLOR, edgecolor='white', lw=0.8)
-    ax.axvline(rho_threshold, color=THRESHOLD_COLOR, lw=2, ls='--')
-    if len(vals):
-        ax.axvline(np.median(vals), color='black', lw=1.8, ls='--')
+    handles = []
+    for col, color, label in (('avg_non_ga_rho', NON_GA_RHO_COLOR, 'non-GA channels'),
+                              ('avg_ga_rho', GA_RHO_COLOR, 'GA channels')):
+        vals = sessions[col].dropna().to_numpy(dtype=float)
+        if not len(vals):
+            continue
+        ax.hist(vals, bins=bins, color=color, alpha=0.65, edgecolor='white', lw=0.8)
+        med = np.median(vals)
+        ax.axvline(med, color=color, lw=2, ls=':', ymax=0.72)  # stop below legend
+        handles.append(Patch(color=color, alpha=0.65,
+                             label=f'{label} (median {med:.2f})'))
+    ax.axvline(rho_threshold, color=THRESHOLD_COLOR, lw=2, ls='--', ymax=0.72)
+    handles.append(Line2D([0], [0], color=THRESHOLD_COLOR, ls='--', lw=2,
+                          label=f'ρ* = {rho_threshold:.2f}'))
     ax.set_xlim(-0.2, 1)
-    ax.set_xlabel('Average GA channel ρ\n(each GA channel vs the other GA channels)',
-                  fontsize=13)
+    ax.set_ylim(0, ax.get_ylim()[1] * 1.35)  # headroom so the legend clears the bars
+    ax.set_xlabel('Average ρ per experiment', fontsize=13)
     ax.set_ylabel('Number of experiments', fontsize=13)
-    ax.set_title('GA channel correlation', fontsize=14, fontweight='bold')
+    ax.set_title('GA vs non-GA channel correlation', fontsize=14, fontweight='bold')
     ax.yaxis.get_major_locator().set_params(integer=True)
-    handles = [Line2D([0], [0], color=THRESHOLD_COLOR, ls='--', lw=2,
-                      label=f'ρ* = {rho_threshold:.2f}')]
-    if len(vals):
-        handles.append(Line2D([0], [0], color='black', ls='--', lw=1.8,
-                              label=f'median = {np.median(vals):.2f}'))
     ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper left')
 
 
