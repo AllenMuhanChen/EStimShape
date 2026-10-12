@@ -151,6 +151,11 @@ class ExplorerModule:
         reused). Return the files written. Default: a screenshot of the view."""
         return []
 
+    def clipboard_image(self):
+        """QImage that "Copy to clipboard" puts on the clipboard, or None for the
+        default: a screenshot of the view."""
+        return None
+
 
 class FigureModule(ExplorerModule):
     """A module that draws one matplotlib or plotly figure per refresh."""
@@ -175,6 +180,9 @@ class FigureModule(ExplorerModule):
 
     def save(self, folder):
         return self._view.save(folder, basename=_slug(self.name))
+
+    def clipboard_image(self):
+        return self._view.clipboard_image() if self._view is not None else None
 
 
 def new_output_folder(save_root: str, session_id: str, name: str) -> str:

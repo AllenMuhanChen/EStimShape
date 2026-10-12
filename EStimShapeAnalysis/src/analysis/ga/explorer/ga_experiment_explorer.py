@@ -199,10 +199,17 @@ class GAExperimentExplorer(QMainWindow):
         scroll.setWidget(self.param_stack)
         left_lay.addWidget(scroll, stretch=1)
 
+        save_row = QHBoxLayout()
         save_btn = QPushButton("Save view…")
         save_btn.setToolTip("Write the current view + config.json into a new timestamped folder.")
         save_btn.clicked.connect(self.save_current)
-        left_lay.addWidget(save_btn)
+        copy_btn = QPushButton("Copy to clipboard")
+        copy_btn.setToolTip("Copy the current module's figure (or a screenshot of its view) "
+                            "to the clipboard as an image.")
+        copy_btn.clicked.connect(self.copy_current)
+        save_row.addWidget(save_btn)
+        save_row.addWidget(copy_btn)
+        left_lay.addLayout(save_row)
         left.setMinimumWidth(420)
         splitter.addWidget(left)
 
@@ -465,6 +472,22 @@ class GAExperimentExplorer(QMainWindow):
 
     def _set_status(self, text):
         self.statusBar().showMessage(text)
+
+    # ------------------------------------------------------------------ copy
+    def copy_current(self):
+        idx = self.module_list.currentRow()
+        if idx < 0:
+            return
+        try:
+            img = self.modules[idx].clipboard_image()
+            if img is None or img.isNull():
+                img = self.view_stack.currentWidget().grab().toImage()
+            QApplication.clipboard().setImage(img)
+        except Exception as exc:
+            traceback.print_exc()
+            QMessageBox.critical(self, "Copy failed", str(exc))
+            return
+        self._set_status(f"Copied to clipboard ({img.width()} x {img.height()} px)")
 
     # ------------------------------------------------------------------ save
     def save_current(self):
