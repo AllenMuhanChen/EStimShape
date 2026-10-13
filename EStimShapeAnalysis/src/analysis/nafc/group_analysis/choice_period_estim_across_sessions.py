@@ -472,15 +472,16 @@ def falloff(d, a, c, r0):
     return a * r0 ** 2 / (d ** 2 + r0 ** 2) + c
 
 
-def fit_falloff(d: np.ndarray, mi: np.ndarray):
-    """Least-squares fit; returns dict of a, c, r0 (None if it fails)."""
+def fit_falloff(d: np.ndarray, mi: np.ndarray, **loss):
+    """Least-squares fit; returns dict of a, c, r0 (None if it fails). loss: as
+    FIT_LOSS, for a robust fit."""
     from scipy.optimize import curve_fit
     d, mi = np.asarray(d, dtype=float), np.asarray(mi, dtype=float)
     c0 = float(np.median(mi))
     a0 = float(np.mean(mi[d <= np.min(d) + 1e-9])) - c0
     try:
         (a, c, r0), _ = curve_fit(falloff, d, mi, p0=[a0, c0, 100.0],
-                                  bounds=([-2, -1, 1], [2, 1, 2000]), maxfev=20000)
+                                  bounds=([-2, -1, 1], [2, 1, 2000]), maxfev=20000, **loss)
     except (RuntimeError, ValueError):
         return None
     return {"a": float(a), "c": float(c), "r0": float(r0)}
@@ -565,6 +566,12 @@ FIELDS = {
                  "label": "per-pulse current a1, pulse count with its own exponent"},
 }
 SUPERPOSITION_FIELD = dict(FIELDS["amplitude"], d_min=65.0)
+# Loss for the weighted-total-current fits (and the constant-amplitude fit they are
+# compared with). Empty = ordinary least squares. Set by main from robust_fit:
+# {"loss": "soft_l1", "f_scale": s} keeps residuals below s quadratic and grows
+# linearly beyond, so a few extreme channels pull the curve much less. AIC is still
+# computed from squared residuals.
+FIT_LOSS = {}
 
 
 def session_stim_charges(session_id: str, per_pulse: bool = True) -> dict:
@@ -722,16 +729,17 @@ def fit_superposition(sub: pd.DataFrame):
     n = len(mi)
     arrays = _source_arrays(sub["stim_sources"])
     idx = np.arange(n, dtype=float)
-    const = fit_falloff(sub["distance_to_estim_um"], mi)
+    const = fit_falloff(sub["distance_to_estim_um"], mi, **FIT_LOSS)
     if const is None:
         return None
     try:
         (k1, c1), _ = curve_fit(lambda _, k, c: superposition_model(arrays, n, k, c),
                                 idx, mi, p0=[const["a"], const["c"]],
-                                bounds=([-10, -1], [10, 1]), maxfev=20000)
+                                bounds=([-10, -1], [10, 1]), maxfev=20000, **FIT_LOSS)
         (k, c, beta), _ = curve_fit(
             lambda _, k, c, beta: superposition_model(arrays, n, k, c, beta), idx, mi,
-            p0=[k1, c1, 1.0], bounds=([-10, -1, 0], [10, 1, 3]), maxfev=20000)
+            p0=[k1, c1, 1.0], bounds=([-10, -1, 0], [10, 1, 3]), maxfev=20000,
+            **FIT_LOSS)
     except (RuntimeError, ValueError):
         return None
 
@@ -754,7 +762,7 @@ def _fit_superposition_separate(sub: pd.DataFrame):
     arrays = _source_arrays(sub["stim_sources"])
     ratio = sub["n_pulses"].to_numpy(dtype=float) / SUPERPOSITION_FIELD["n_ref"]
     idx = np.arange(n, dtype=float)
-    const = fit_falloff(sub["distance_to_estim_um"], mi)
+    const = fit_falloff(sub["distance_to_estim_um"], mi, **FIT_LOSS)
     if const is None:
         return None
 
@@ -764,11 +772,14 @@ def _fit_superposition_separate(sub: pd.DataFrame):
     lo, hi = [-10, -1], [10, 1]
     try:
         (k1, c1), _ = curve_fit(lambda _, k, c: model(k, c, 1.0, 1.0), idx, mi,
-                                p0=[const["a"], const["c"]], bounds=(lo, hi), maxfev=20000)
+                                p0=[const["a"], const["c"]], bounds=(lo, hi), maxfev=20000,
+                                **FIT_LOSS)
         p_amp, _ = curve_fit(lambda _, k, c, b: model(k, c, b, 0.0), idx, mi,
-                             p0=[k1, c1, 1.0], bounds=(lo + [0], hi + [3]), maxfev=20000)
+                             p0=[k1, c1, 1.0], bounds=(lo + [0], hi + [3]), maxfev=20000,
+                             **FIT_LOSS)
         p_shared, _ = curve_fit(lambda _, k, c, b: model(k, c, b, b), idx, mi,
-                                p0=[k1, c1, 1.0], bounds=(lo + [0], hi + [3]), maxfev=20000)
+                                p0=[k1, c1, 1.0], bounds=(lo + [0], hi + [3]), maxfev=20000,
+                             **FIT_LOSS)
         # Start from whichever nested fit is better so the free fit can't do worse.
         def rss(pred):
             return float(np.sum((mi - pred) ** 2))
@@ -777,7 +788,7 @@ def _fit_superposition_separate(sub: pd.DataFrame):
                  else list(p_shared) + [p_shared[2]])
         (k, c, beta, beta_n), _ = curve_fit(
             lambda _, k, c, b, bn: model(k, c, b, bn), idx, mi, p0=start,
-            bounds=(lo + [0, -3], hi + [3, 3]), maxfev=20000)
+            bounds=(lo + [0, -3], hi + [3, 3]), maxfev=20000, **FIT_LOSS)
     except (RuntimeError, ValueError):
         return None
     return {"k": float(k), "c": float(c), "beta": float(beta),
@@ -1270,6 +1281,9 @@ def joint_summary(j: dict) -> str:
             f"{SUPERPOSITION_FIELD['label']})"
             if j.get("predictor") == "superposition" else f"Joint fit ({j.get('predictor')})")
     lines = ["", "=" * 70, name, "=" * 70]
+    if j.get("predictor") == "superposition":
+        lines.append(f"robust fit (soft L1, scale {FIT_LOSS['f_scale']:g} MI): outliers down-weighted"
+                     if FIT_LOSS else "ordinary least squares")
     if "beta_n" in j:
         def exponent(key, what):
             lo, hi = ci.get(key, (np.nan, np.nan))
@@ -1363,6 +1377,8 @@ def main():
                                       # "amplitude" = per-pulse a1 only (pulses ignored),
                                       # "charge" = a1 x pulses (one exponent, default),
                                       # "separate" = a1 field and pulse count, own exponents
+    robust_fit = True                 # weighted-current fit down-weights outlier channels
+    robust_scale = 0.1                # (soft L1): residuals beyond this MI count linearly
     field_min_distance_um = 65.0      # field weight = (this / d)^2, d floored here (65 um =
                                       # one channel spacing; stim channel and neighbours = 1)
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
@@ -1417,6 +1433,9 @@ def main():
                 if pulses:
                     print("Pulses per ON trial: " + ", ".join(
                         f"{sid} {n:.1f}" for sid, n in sorted(pulses.items())))
+                FIT_LOSS.clear()
+                if robust_fit:
+                    FIT_LOSS.update(loss="soft_l1", f_scale=robust_scale)
                 table = add_stim_sources(table, coords, charges, field=superposition_field,
                                          pulses_by_session=pulses,
                                          min_distance_um=field_min_distance_um)
@@ -1476,6 +1495,8 @@ def main():
             "joint_predictor": joint_predictor,
             "superposition_field": superposition_field,
             "field_min_distance_um": field_min_distance_um,
+            "robust_fit": robust_fit,
+            "robust_scale": robust_scale,
             "distance_bin_um": distance_bin_um,
             "distance_fit_bootstraps": distance_fit_bootstraps,
         }, f, indent=2)
