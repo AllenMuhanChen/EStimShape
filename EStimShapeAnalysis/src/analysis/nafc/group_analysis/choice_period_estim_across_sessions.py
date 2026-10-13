@@ -1358,9 +1358,9 @@ def main():
     joint_predictor = "superposition"  # "superposition": field summed over each EStim channel
                                       # with its own distance (physics of several electrodes);
                                       # "total_current": session total x 1/r^2 to nearest
-    superposition_field = "separate"  # what each EStim channel contributes to the field:
+    superposition_field = "charge"    # what each EStim channel contributes to the field:
                                       # "amplitude" = per-pulse a1 only (pulses ignored),
-                                      # "charge" = a1 x pulses (one shared exponent),
+                                      # "charge" = a1 x pulses (one exponent, default),
                                       # "separate" = a1 field and pulse count, own exponents
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
         "current_per_second": (0, 5000),  # are left out of that metric's two panels and their
