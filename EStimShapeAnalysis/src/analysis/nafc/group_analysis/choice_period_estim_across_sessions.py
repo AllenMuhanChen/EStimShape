@@ -984,17 +984,19 @@ def plot_mi_vs_distance(table: pd.DataFrame, alpha: float, show_point_labels: bo
                         distance_bin_um: float = 65.0, joint_fit: bool = True,
                         joint_predictor: str = "superposition"):
     """Left: MI vs distance (with the 1/r^2 fit). For each metric in
-    current_metrics with data, a row on the right: the same scatter colored by
-    that metric, and per-session near-EStim MI vs the metric."""
+    current_metrics with data, a row on the right: per-session near-EStim MI vs
+    the metric (middle), then MI vs the weighted current with its fit (right)."""
     sub = table.dropna(subset=["distance_to_estim_um", "modulation_index"])
     current_metrics = [m for m in current_metrics
                        if m in sub.columns and sub[m].notna().any()]
     if current_metrics:
         n_rows = len(current_metrics)
         fig = plt.figure(figsize=(29, 7.5 * n_rows))
-        grid = fig.add_gridspec(n_rows, 3, width_ratios=[1, 1.12, 0.85])
+        # Order: distance, then current (near-EStim MI vs current), then the
+        # weighted-current fit that combines both.
+        grid = fig.add_gridspec(n_rows, 3, width_ratios=[1, 0.85, 1.12])
         ax = fig.add_subplot(grid[:, 0])
-        current_axes = [(fig.add_subplot(grid[i, 1]), fig.add_subplot(grid[i, 2]))
+        current_axes = [(fig.add_subplot(grid[i, 2]), fig.add_subplot(grid[i, 1]))
                         for i in range(n_rows)]
     else:
         fig, ax = plt.subplots(figsize=(10, 7))
