@@ -564,7 +564,7 @@ FIELDS = {
     "separate": {"f_ref": 100.0, "unit": "uA", "separate": True, "n_ref": 1.0,
                  "label": "per-pulse current a1, pulse count with its own exponent"},
 }
-SUPERPOSITION_FIELD = dict(FIELDS["amplitude"])
+SUPERPOSITION_FIELD = dict(FIELDS["amplitude"], d_min=65.0)
 
 
 def session_stim_charges(session_id: str, per_pulse: bool = True) -> dict:
@@ -635,14 +635,15 @@ def session_pulse_count(session_id: str) -> float:
 
 
 def add_stim_sources(table: pd.DataFrame, coords: dict, charges_by_session: dict,
-                     field: str = "amplitude", pulses_by_session: dict = None) -> pd.DataFrame:
+                     field: str = "amplitude", pulses_by_session: dict = None,
+                     min_distance_um: float = 65.0) -> pd.DataFrame:
     """stim_sources: per recorded channel, a list of (charge, distance um) for every
     stimulated channel of its session. field="separate" also adds n_pulses (per
     session, from pulses_by_session); n_ref is the median over sessions."""
     if field not in FIELDS:
         raise ValueError(f"superposition_field must be one of {list(FIELDS)}, got {field!r}")
     SUPERPOSITION_FIELD.clear()
-    SUPERPOSITION_FIELD.update(FIELDS[field])
+    SUPERPOSITION_FIELD.update(FIELDS[field], d_min=float(min_distance_um))
     table = table.copy()
     if field == "separate":
         table["n_pulses"] = table["session_id"].map(pulses_by_session or {})
@@ -673,16 +674,20 @@ def _source_arrays(sources_list):
     return np.asarray(rows), np.asarray(q, dtype=float), np.asarray(d, dtype=float)
 
 
-def effective_field(arrays, n_rows: int, r0: float) -> np.ndarray:
-    """Sum over stimulated channels of charge x r0^2 / (d^2 + r0^2): the 1/r^2
-    current-density falloff, in uA x pulses delivered at d = 0."""
+def effective_field(arrays, n_rows: int) -> np.ndarray:
+    """Distance-weighted total current: sum over stimulated channels of
+    charge x (d_min / d)^2, the 1/r^2 current-density falloff, with d floored at
+    d_min (one channel spacing) so the stimulated channel itself isn't infinite.
+    Fixed in advance, nothing fitted. Units: charge as if delivered d_min away."""
     rows, q, d = arrays
-    return np.bincount(rows, weights=q * r0 ** 2 / (d ** 2 + r0 ** 2), minlength=n_rows)
+    d_min = SUPERPOSITION_FIELD["d_min"]
+    return np.bincount(rows, weights=q * (d_min / np.maximum(d, d_min)) ** 2,
+                       minlength=n_rows)
 
 
-def superposition_model(arrays, n_rows, k, c, r0, beta=1.0, pulse_ratio=None, beta_n=0.0):
+def superposition_model(arrays, n_rows, k, c, beta=1.0, pulse_ratio=None, beta_n=0.0):
     """k (F / f_ref)^beta (n / n_ref)^beta_n + C; pulse_ratio = n / n_ref per row."""
-    drive = (effective_field(arrays, n_rows, r0) / SUPERPOSITION_FIELD["f_ref"]) ** beta
+    drive = (effective_field(arrays, n_rows) / SUPERPOSITION_FIELD["f_ref"]) ** beta
     if pulse_ratio is not None:
         drive = drive * pulse_ratio ** beta_n
     return k * drive + c
@@ -690,7 +695,7 @@ def superposition_model(arrays, n_rows, k, c, r0, beta=1.0, pulse_ratio=None, be
 
 def superposition_drive(sub: pd.DataFrame, fit: dict) -> np.ndarray:
     """(F / f_ref)^beta (n / n_ref)^beta_n per row: MI = k x drive + C."""
-    drive = (effective_field(_source_arrays(sub["stim_sources"]), len(sub), fit["r0"])
+    drive = (effective_field(_source_arrays(sub["stim_sources"]), len(sub))
              / SUPERPOSITION_FIELD["f_ref"]) ** fit["beta"]
     if "beta_n" in fit:
         drive = drive * (sub["n_pulses"].to_numpy(dtype=float)
@@ -721,21 +726,21 @@ def fit_superposition(sub: pd.DataFrame):
     if const is None:
         return None
     try:
-        (k1, c1, r01), _ = curve_fit(lambda _, k, c, r0: superposition_model(arrays, n, k, c, r0),
-                                     idx, mi, p0=[const["a"], const["c"], const["r0"]],
-                                     bounds=([-10, -1, 1], [10, 1, 2000]), maxfev=20000)
-        (k, c, r0, beta), _ = curve_fit(
-            lambda _, k, c, r0, beta: superposition_model(arrays, n, k, c, r0, beta), idx, mi,
-            p0=[k1, c1, r01, 1.0], bounds=([-10, -1, 1, 0], [10, 1, 2000, 3]), maxfev=20000)
+        (k1, c1), _ = curve_fit(lambda _, k, c: superposition_model(arrays, n, k, c),
+                                idx, mi, p0=[const["a"], const["c"]],
+                                bounds=([-10, -1], [10, 1]), maxfev=20000)
+        (k, c, beta), _ = curve_fit(
+            lambda _, k, c, beta: superposition_model(arrays, n, k, c, beta), idx, mi,
+            p0=[k1, c1, 1.0], bounds=([-10, -1, 0], [10, 1, 3]), maxfev=20000)
     except (RuntimeError, ValueError):
         return None
 
     def rss(pred):
         return float(np.sum((mi - pred) ** 2))
 
-    return {"k": float(k), "c": float(c), "r0": float(r0), "beta": float(beta), "n": n,
-            "aic": _aic(rss(superposition_model(arrays, n, k, c, r0, beta)), n, 4),
-            "aic_linear": _aic(rss(superposition_model(arrays, n, k1, c1, r01)), n, 3),
+    return {"k": float(k), "c": float(c), "beta": float(beta), "n": n,
+            "aic": _aic(rss(superposition_model(arrays, n, k, c, beta)), n, 3),
+            "aic_linear": _aic(rss(superposition_model(arrays, n, k1, c1)), n, 2),
             "aic_const": _aic(rss(falloff(sub["distance_to_estim_um"].to_numpy(dtype=float),
                                           const["a"], const["c"], const["r0"])), n, 3)}
 
@@ -753,38 +758,36 @@ def _fit_superposition_separate(sub: pd.DataFrame):
     if const is None:
         return None
 
-    def model(k, c, r0, beta=1.0, beta_n=0.0):
-        return superposition_model(arrays, n, k, c, r0, beta, ratio, beta_n)
+    def model(k, c, beta=1.0, beta_n=0.0):
+        return superposition_model(arrays, n, k, c, beta, ratio, beta_n)
 
-    lo, hi = [-10, -1, 1], [10, 1, 2000]
+    lo, hi = [-10, -1], [10, 1]
     try:
-        (k1, c1, r01), _ = curve_fit(lambda _, k, c, r0: model(k, c, r0, 1.0, 1.0), idx, mi,
-                                     p0=[const["a"], const["c"], const["r0"]],
-                                     bounds=(lo, hi), maxfev=20000)
-        p_amp, _ = curve_fit(lambda _, k, c, r0, b: model(k, c, r0, b, 0.0), idx, mi,
-                             p0=[k1, c1, r01, 1.0], bounds=(lo + [0], hi + [3]), maxfev=20000)
-        p_shared, _ = curve_fit(lambda _, k, c, r0, b: model(k, c, r0, b, b), idx, mi,
-                                p0=[k1, c1, r01, 1.0], bounds=(lo + [0], hi + [3]),
-                                maxfev=20000)
+        (k1, c1), _ = curve_fit(lambda _, k, c: model(k, c, 1.0, 1.0), idx, mi,
+                                p0=[const["a"], const["c"]], bounds=(lo, hi), maxfev=20000)
+        p_amp, _ = curve_fit(lambda _, k, c, b: model(k, c, b, 0.0), idx, mi,
+                             p0=[k1, c1, 1.0], bounds=(lo + [0], hi + [3]), maxfev=20000)
+        p_shared, _ = curve_fit(lambda _, k, c, b: model(k, c, b, b), idx, mi,
+                                p0=[k1, c1, 1.0], bounds=(lo + [0], hi + [3]), maxfev=20000)
         # Start from whichever nested fit is better so the free fit can't do worse.
         def rss(pred):
             return float(np.sum((mi - pred) ** 2))
         start = (list(p_amp) + [0.0]
-                 if rss(model(*p_amp, 0.0)) < rss(model(*p_shared, p_shared[3]))
-                 else list(p_shared) + [p_shared[3]])
-        (k, c, r0, beta, beta_n), _ = curve_fit(
-            lambda _, k, c, r0, b, bn: model(k, c, r0, b, bn), idx, mi, p0=start,
+                 if rss(model(*p_amp, 0.0)) < rss(model(*p_shared, p_shared[2]))
+                 else list(p_shared) + [p_shared[2]])
+        (k, c, beta, beta_n), _ = curve_fit(
+            lambda _, k, c, b, bn: model(k, c, b, bn), idx, mi, p0=start,
             bounds=(lo + [0, -3], hi + [3, 3]), maxfev=20000)
     except (RuntimeError, ValueError):
         return None
-    return {"k": float(k), "c": float(c), "r0": float(r0), "beta": float(beta),
+    return {"k": float(k), "c": float(c), "beta": float(beta),
             "beta_n": float(beta_n), "n": n,
-            "aic": _aic(rss(model(k, c, r0, beta, beta_n)), n, 5),
-            "aic_shared": _aic(rss(model(*p_shared, p_shared[3])), n, 4),
-            "beta_shared": float(p_shared[3]),
-            "aic_amp": _aic(rss(model(*p_amp, 0.0)), n, 4),
-            "beta_amp": float(p_amp[3]),
-            "aic_linear": _aic(rss(model(k1, c1, r01, 1.0, 1.0)), n, 3),
+            "aic": _aic(rss(model(k, c, beta, beta_n)), n, 4),
+            "aic_shared": _aic(rss(model(*p_shared, p_shared[2])), n, 3),
+            "beta_shared": float(p_shared[2]),
+            "aic_amp": _aic(rss(model(*p_amp, 0.0)), n, 3),
+            "beta_amp": float(p_amp[2]),
+            "aic_linear": _aic(rss(model(k1, c1, 1.0, 1.0)), n, 2),
             "aic_const": _aic(rss(falloff(sub["distance_to_estim_um"].to_numpy(dtype=float),
                                           const["a"], const["c"], const["r0"])), n, 3)}
 
@@ -794,7 +797,7 @@ def bootstrap_superposition(sub: pd.DataFrame, n_boot: int, seed: int = 0) -> di
     groups = {sid: g for sid, g in sub.dropna(subset=["stim_sources"]).groupby("session_id")}
     sids = list(groups)
     separate = bool(SUPERPOSITION_FIELD.get("separate"))
-    keys = ("k", "c", "r0", "beta") + (("beta_n",) if separate else ())
+    keys = ("k", "c", "beta") + (("beta_n",) if separate else ())
     aic_keys = ("const", "linear") + (("shared", "amp") if separate else ())
     draws = {key: [] for key in keys + tuple(f"d_aic_{a}" for a in aic_keys)}
     for _ in range(n_boot):
@@ -820,7 +823,7 @@ def plot_superposition(ax, sub: pd.DataFrame, fit: dict, binned_stat, fig):
         sub = sub.dropna(subset=["n_pulses"])
         field = superposition_drive(sub, fit)
     else:
-        field = effective_field(_source_arrays(sub["stim_sources"]), len(sub), fit["r0"])
+        field = effective_field(_source_arrays(sub["stim_sources"]), len(sub))
     mi = sub["modulation_index"].to_numpy(dtype=float)
     ok = field > 0
     sc = ax.scatter(field[ok], mi[ok], s=40, c=sub["distance_to_estim_um"].to_numpy()[ok],
@@ -835,12 +838,11 @@ def plot_superposition(ax, sub: pd.DataFrame, fit: dict, binned_stat, fig):
     if separate:
         handles = ax.plot(xs, fit["k"] * xs + fit["c"], color="black", linewidth=2.6, zorder=5,
                           label=f"k D + C (\u03b2 amplitude = {fit['beta']:.2f}, "
-                                f"\u03b2 pulses = {fit['beta_n']:.2f}, r0 = {fit['r0']:.0f} um)")
+                                f"\u03b2 pulses = {fit['beta_n']:.2f})")
     else:
         handles = ax.plot(xs, fit["k"] * (xs / SUPERPOSITION_FIELD["f_ref"]) ** fit["beta"]
                           + fit["c"], color="black", linewidth=2.6, zorder=5,
-                          label=f"k F^\u03b2 + C (\u03b2 = {fit['beta']:.2f}, "
-                                f"r0 = {fit['r0']:.0f} um)")
+                          label=f"k F^\u03b2 + C (\u03b2 = {fit['beta']:.2f})")
     if binned_stat:
         edges = np.logspace(np.log10(field[ok].min()), np.log10(field[ok].max()) + 1e-9, 13)
         which = np.digitize(field[ok], edges) - 1
@@ -871,9 +873,10 @@ def plot_superposition(ax, sub: pd.DataFrame, fit: dict, binned_stat, fig):
                       f"(pulses / {SUPERPOSITION_FIELD['n_ref']:g})^\u03b2n", fontsize=14)
         ax.set_title("Modulation vs field and pulse count", fontsize=15)
     else:
-        ax.set_xlabel(f"Summed field at channel, F ({SUPERPOSITION_FIELD['unit']} at d = 0)",
+        ax.set_xlabel(f"Distance-weighted total current, F "
+                      f"({SUPERPOSITION_FIELD['unit']} at {SUPERPOSITION_FIELD['d_min']:g} um)",
                       fontsize=14)
-        ax.set_title("Modulation vs field summed over EStim channels", fontsize=15)
+        ax.set_title("Modulation vs distance-weighted total current", fontsize=15)
     ax.set_ylabel("Modulation index (ON - OFF) / (ON + OFF)", fontsize=14)
     ax.legend(handles=handles, fontsize=11, frameon=False, loc="lower left")
     ax.tick_params(labelsize=12)
@@ -1218,12 +1221,13 @@ def joint_text(metric: str, j: dict) -> str:
         ref, n_ref = SUPERPOSITION_FIELD["f_ref"], SUPERPOSITION_FIELD["n_ref"]
         d_shared, d_amp = j["aic"] - j["aic_shared"], j["aic"] - j["aic_amp"]
         return (f"Superposition fit, MI = k (F / {ref:g})^beta_a (n / {n_ref:g})^beta_n + C, "
-                f"F = sum over EStim channels of per-pulse current a1 x r0^2 / (d^2 + r0^2), "
+                f"F = sum over EStim channels of per-pulse current a1 x (d_min / d)^2, "
+                f"d >= d_min = {SUPERPOSITION_FIELD['d_min']:g} um, "
                 f"n = pulses per trial ({j['n']} channels; 95% CI: bootstrap over sessions):\n"
                 f"  k (MI at F = {ref:g} uA and {n_ref:g} pulses, minus C) = "
                 f"{fmt('k', j['k'], '+.3f')}, beta_a (amplitude) = {fmt('beta', j['beta'], '.2f')}, "
                 f"beta_n (pulses) = {fmt('beta_n', j['beta_n'], '.2f')}, "
-                f"C = {fmt('c', j['c'], '+.3f')}, r0 = {fmt('r0', j['r0'], '.0f')} um\n"
+                f"C = {fmt('c', j['c'], '+.3f')}\n"
                 f"  AIC - AIC shared exponent (charge, beta = {j['beta_shared']:.2f}) = "
                 f"{fmt('d_aic_shared', d_shared, '+.1f')} ({verdict(d_shared, 'shared exponent')})\n"
                 f"  AIC - AIC amplitude only (beta = {j['beta_amp']:.2f}) = "
@@ -1236,12 +1240,11 @@ def joint_text(metric: str, j: dict) -> str:
         ref, funit = SUPERPOSITION_FIELD["f_ref"], SUPERPOSITION_FIELD["unit"]
         return (f"Superposition fit, MI = k (F / {ref:g})^beta + C, "
                 f"F = sum over EStim channels of {SUPERPOSITION_FIELD['label']} "
-                f"x r0^2 / (d^2 + r0^2) "
+                f"x (d_min / d)^2, d >= d_min = {SUPERPOSITION_FIELD['d_min']:g} um "
                 f"({j['n']} channels; 95% CI: bootstrap over sessions):\n"
                 f"  k (MI at F = {ref:g} {funit}, minus C) = {fmt('k', j['k'], '+.3f')}, "
                 f"beta = {fmt('beta', j['beta'], '.2f')} (1 = proportional to field, "
-                f"< 1 = saturating), C = {fmt('c', j['c'], '+.3f')}, "
-                f"r0 = {fmt('r0', j['r0'], '.0f')} um\n"
+                f"< 1 = saturating), C = {fmt('c', j['c'], '+.3f')}\n"
                 f"  AIC - AIC constant-amplitude falloff = {fmt('d_aic_const', d_const, '+.1f')} "
                 f"({verdict(d_const, 'constant amplitude')})\n"
                 f"  AIC - AIC beta = 1 = {fmt('d_aic_linear', d_lin, '+.1f')} "
@@ -1291,10 +1294,7 @@ def joint_summary(j: dict) -> str:
                   vs("aic_linear", "proportional to charge (1, 1):", "exponents differ from 1"),
                   vs("aic_const", "constant amplitude:",
                      "current explains part of the session differences")]
-        r0 = f"r0 = {j['r0']:.0f} um (half-effect distance from one electrode)"
-        if "r0" in ci:
-            r0 += f"  (95% CI {ci['r0'][0]:.0f} to {ci['r0'][1]:.0f})"
-        lines += [r0, f"pulses reference n_ref = {SUPERPOSITION_FIELD['n_ref']:g} "
+        lines += [f"pulses reference n_ref = {SUPERPOSITION_FIELD['n_ref']:g} "
                       f"(median over sessions)", f"far-field level C = {j['c']:+.3f}", "=" * 70]
         return "\n".join(lines)
     beta = f"beta = {j['beta']:.2f}"
@@ -1313,10 +1313,11 @@ def joint_summary(j: dict) -> str:
     lines.append(f"vs constant amplitude:  AIC difference {d_const:+.1f}  -> "
                  + ("current explains part of the session differences" if d_const < -2 else
                     "constant amplitude better" if d_const > 2 else "no clear difference"))
-    r0 = f"r0 = {j['r0']:.0f} um (half-effect distance from one electrode)"
-    if "r0" in ci:
-        r0 += f"  (95% CI {ci['r0'][0]:.0f} to {ci['r0'][1]:.0f})"
-    lines.append(r0)
+    if "r0" in j:
+        r0 = f"r0 = {j['r0']:.0f} um (half-effect distance from one electrode)"
+        if "r0" in ci:
+            r0 += f"  (95% CI {ci['r0'][0]:.0f} to {ci['r0'][1]:.0f})"
+        lines.append(r0)
     lines.append(f"far-field level C = {j['c']:+.3f}")
     lines.append("=" * 70)
     return "\n".join(lines)
@@ -1362,6 +1363,8 @@ def main():
                                       # "amplitude" = per-pulse a1 only (pulses ignored),
                                       # "charge" = a1 x pulses (one exponent, default),
                                       # "separate" = a1 field and pulse count, own exponents
+    field_min_distance_um = 65.0      # field weight = (this / d)^2, d floored here (65 um =
+                                      # one channel spacing; stim channel and neighbours = 1)
     current_ranges = {                # (min, max) per metric, e.g. (0, 3000); sessions outside
         "current_per_second": (0, 5000),  # are left out of that metric's two panels and their
         "total_current": None,        # correlation only. None = all; either end may be None
@@ -1415,7 +1418,8 @@ def main():
                     print("Pulses per ON trial: " + ", ".join(
                         f"{sid} {n:.1f}" for sid, n in sorted(pulses.items())))
                 table = add_stim_sources(table, coords, charges, field=superposition_field,
-                                         pulses_by_session=pulses)
+                                         pulses_by_session=pulses,
+                                         min_distance_um=field_min_distance_um)
             if split_by_polarity:
                 polarity = {sid: c.get("polarity") for sid, c in current.items()}
                 table["polarity"] = table["session_id"].map(polarity)
@@ -1471,6 +1475,7 @@ def main():
             "joint_current_fit": joint_current_fit,
             "joint_predictor": joint_predictor,
             "superposition_field": superposition_field,
+            "field_min_distance_um": field_min_distance_um,
             "distance_bin_um": distance_bin_um,
             "distance_fit_bootstraps": distance_fit_bootstraps,
         }, f, indent=2)
