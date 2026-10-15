@@ -26,7 +26,8 @@ Outputs (never overwritten): OUT_BASE/<RUN_TAG>_<timestamp>/
     rf_map_by_area.png          receptive fields (ReceptiveFieldInfo) drawn as
                                 circles at their location/size, colored by the
                                 area the site is in (solid) or nearest to (dashed)
-    v4_border_rf_check.png      RF radius / eccentricity vs distance to the V4v/V4d border
+    border_rf_check_<areas>.png RF radius / eccentricity vs distance to where the areas
+                                in each V4_BORDER_SETS entry meet (V4v/V4d, V4v/V4d/TEO)
     motion_site_closest_regions.csv   every row labelled MT / motion / direction: its
                                 closest atlas regions (also printed in the console)
 """
@@ -462,40 +463,54 @@ def plot_rf_map(df: pd.DataFrame, areas: List[str], out_path: str, title: str,
 
 
 def border_distance(sites: np.ndarray, atlas_data: np.ndarray, atlas_to_world: np.ndarray,
-                    idx_a: List[int], idx_b: List[int], tol_mm: float = 1.0) -> np.ndarray:
-    """Distance (mm) from each site to the border where areas a and b meet.
+                    area_idx_lists: List[List[int]], tol_mm: float = 1.0,
+                    name: str = 'border') -> np.ndarray:
+    """Distance (mm) from each site to the border where ALL the given areas meet.
 
-    Border = every voxel of a that has a voxel of b within tol_mm, plus every
-    voxel of b that has a voxel of a within tol_mm (voxel centers). Distance is
-    to the nearest border voxel center. Fails loudly if the areas never come
-    within tol_mm of each other in the atlas."""
-    def world(idxs):
+    Border = every voxel of any of the areas that has a voxel of EACH other
+    area within tol_mm (voxel centers). With 2 areas that is the shared edge;
+    with 3 it is the junction where all three touch. Distance is to the
+    nearest border voxel center. Fails loudly if the areas never all come
+    within tol_mm of each other, reporting how close they get.
+    """
+    worlds = []
+    for idxs in area_idx_lists:
         ijk = np.argwhere(np.isin(atlas_data, idxs))
-        return (atlas_to_world @ np.c_[ijk, np.ones(len(ijk))].T).T[:, :3]
-    wa, wb = world(idx_a), world(idx_b)
-    da, _ = cKDTree(wb).query(wa, distance_upper_bound=tol_mm)
-    db, _ = cKDTree(wa).query(wb, distance_upper_bound=tol_mm)
-    border = np.r_[wa[np.isfinite(da)], wb[np.isfinite(db)]]
+        worlds.append((atlas_to_world @ np.c_[ijk, np.ones(len(ijk))].T).T[:, :3])
+    trees = [cKDTree(w) for w in worlds]
+    border, best_gap = [], np.inf
+    for i, w in enumerate(worlds):
+        # distance from each voxel of area i to the farthest of the other areas' nearest voxels
+        far = np.max([trees[j].query(w)[0] for j in range(len(worlds)) if j != i], axis=0)
+        best_gap = min(best_gap, float(far.min()))
+        border.append(w[far < tol_mm])
+    border = np.concatenate(border)
     if len(border) == 0:
-        gap = float(cKDTree(wb).query(wa)[0].min())
-        raise ValueError(f"Areas never meet within {tol_mm} mm (closest voxels {gap:.2f} mm apart); "
-                         f"raise V4_BORDER_TOLERANCE_MM")
-    print(f"  V4v/V4d border: {len(border)} voxels within {tol_mm} mm of the other area")
+        raise ValueError(f"{name}: the areas never all come within {tol_mm} mm of each other "
+                         f"(closest: {best_gap:.2f} mm); raise V4_BORDER_TOLERANCE_MM")
+    print(f"  {name}: {len(border)} border voxels (within {tol_mm} mm of every other area)")
     return cKDTree(border).query(sites)[0]
 
 
-def plot_v4_border_check(df: pd.DataFrame, out_path: str, a: str = 'V4v', b: str = 'V4d'):
-    """Sanity check: sites close to BOTH V4v and V4d (the foveal confluence)
-    should have small, near-foveal RFs.
+def border_col(areas: List[str]) -> str:
+    return '_'.join(areas) + '_border'
 
-    x-axis of the middle/right panels = distance to the a/b border (where the
-    two areas meet, column f'{a}_{b}_border'; see border_distance).
-    Spearman correlation (rank-based, no linearity assumption) is reported
-    for RF radius and RF eccentricity against that distance.
+
+def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str],
+                         a: str = 'V4v', b: str = 'V4d'):
+    """Sanity check: sites close to where the border_areas meet (the foveal
+    confluence) should have small, near-foveal RFs.
+
+    Left: distance to a vs distance to b, colored by RF radius.
+    Middle/right: RF radius and RF eccentricity vs distance to the border
+    (column border_col(border_areas); see border_distance), with Pearson
+    (linear) and Spearman (rank-based: robust to outliers and the pile-up of
+    0 mm sites, only assumes a monotonic trend) correlations.
     """
-    from scipy.stats import spearmanr
+    from scipy.stats import pearsonr, spearmanr
+    name = '/'.join(border_areas)
     d_a, d_b = df[a].to_numpy(float), df[b].to_numpy(float)
-    score = df[f'{a}_{b}_border'].to_numpy(float)
+    score = df[border_col(border_areas)].to_numpy(float)
     radius = df['rf_radius'].to_numpy(float)
     ecc = np.hypot(df['rf_x'].to_numpy(float), df['rf_y'].to_numpy(float))
 
@@ -516,13 +531,15 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, a: str = 'V4v', b: str
                           (axes[2], ecc, 'RF eccentricity (deg)')):
         ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
         if len(score) >= 3:
-            rho, pval = spearmanr(score, y)
-            ax.text(0.03, 0.97, f"Spearman \u03c1 = {rho:.2f}\np = {pval:.3g}\nn = {len(score)}",
+            rho, p_s = spearmanr(score, y)
+            r, p_p = pearsonr(score, y)
+            ax.text(0.03, 0.97, f"Pearson r = {r:.2f}, p = {p_p:.3g}\n"
+                                f"Spearman \u03c1 = {rho:.2f}, p = {p_s:.3g}\nn = {len(score)}",
                     transform=ax.transAxes, va='top', fontsize=13)
-        ax.set_xlabel(f'Distance to {a}/{b} border (mm)', fontsize=14)
+        ax.set_xlabel(f'Distance to {name} border (mm)', fontsize=14)
         ax.set_ylabel(ylabel, fontsize=14)
         ax.set_xlim(left=-0.3); ax.set_ylim(bottom=0)
-        ax.set_title(f'{ylabel.split(" (")[0]} vs distance to {a}/{b} border', fontsize=15)
+        ax.set_title(f'{ylabel.split(" (")[0]} vs distance to {name} border', fontsize=15)
 
     for ax in axes:
         ax.tick_params(labelsize=12)
@@ -569,7 +586,9 @@ def main():
     # Receptive-field map (ReceptiveFieldInfo in the data repository)
     PLOT_RF_MAP = True
     PLOT_V4_BORDER_CHECK = True          # RF size/eccentricity vs distance to the V4v/V4d border
-    V4_BORDER_TOLERANCE_MM = 1.0         # voxels this close to the other area count as border
+    V4_BORDER_TOLERANCE_MM = 1.0         # voxels this close to every other area count as border
+    # One border-check figure per entry: the place where ALL listed areas meet
+    V4_BORDER_SETS = [['V4v', 'V4d'], ['V4v', 'V4d', 'TEO']]
     V4_CHECK_EXCLUDE_AREAS = ['V3v']     # drop sessions in (or nearest to) these areas from the V4 check
     # Motion-area sites: every Penetrations row whose label contains one of these
     # keywords (case-insensitive; 'MT' only as a whole word), distance to these areas
@@ -599,9 +618,11 @@ def main():
     df = compute_site_distances(pens, geom, AREAS, PER_SESSION_CORRECTIONS)
     if PLOT_V4_BORDER_CHECK:
         idx = df.attrs['area_indices']
-        df['V4v_V4d_border'] = border_distance(
-            df[['ML', 'AP', 'DV']].to_numpy(float), geom['atlas_data'],
-            geom['subj_corr'] @ geom['atlas_sform'], idx['V4v'], idx['V4d'], V4_BORDER_TOLERANCE_MM)
+        for areas in V4_BORDER_SETS:
+            df[border_col(areas)] = border_distance(
+                df[['ML', 'AP', 'DV']].to_numpy(float), geom['atlas_data'],
+                geom['subj_corr'] @ geom['atlas_sform'], [idx[a] for a in areas],
+                V4_BORDER_TOLERANCE_MM, name='/'.join(areas))
 
     with open(os.path.join(out_dir, 'config.json'), 'w') as f:
         json.dump(dict(
@@ -609,7 +630,7 @@ def main():
             corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
             pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
             plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK,
-            v4_border_tolerance_mm=V4_BORDER_TOLERANCE_MM,
+            v4_border_tolerance_mm=V4_BORDER_TOLERANCE_MM, v4_border_sets=V4_BORDER_SETS,
             v4_check_exclude_areas=V4_CHECK_EXCLUDE_AREAS, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
             print_areas=PRINT_AREAS, start_date=START_DATE,
             report_motion_sites=REPORT_MOTION_SITES, motion_label_keywords=MOTION_LABEL_KEYWORDS,
@@ -652,7 +673,9 @@ def main():
             dropped = sorted(rf_df.loc[rf_df['area'].isin(V4_CHECK_EXCLUDE_AREAS), 'session_id'])
             if dropped:
                 print(f"  V4 check: excluded {len(dropped)} sessions in/nearest {V4_CHECK_EXCLUDE_AREAS}: {dropped}")
-            plot_v4_border_check(v4_df, os.path.join(out_dir, 'v4_border_rf_check.png'))
+            for areas in V4_BORDER_SETS:
+                plot_v4_border_check(v4_df, os.path.join(
+                    out_dir, f"border_rf_check_{'_'.join(areas)}.png"), areas)
 
     if REPORT_MOTION_SITES:
         motion_pens = filter_by_start_date(
