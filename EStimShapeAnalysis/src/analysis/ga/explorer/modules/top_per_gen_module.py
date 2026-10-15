@@ -14,6 +14,12 @@ one row per generation and one panel per lineage. Differences:
     figure").
   - Border width is a text box (pixels added around the original thumbnail
     before it is scaled to the cell size, as in plot_generations).
+  - Optional zoom, the same for every thumbnail: a zoom factor and a zoom
+    center (x, y). (0, 0) is the image center; x = -1 / +1 are the left /
+    right edges and y = -1 / +1 the bottom / top edges. The zoomed region is
+    kept inside the image (a center near an edge is pulled in), scaled back
+    to the thumbnail's size, then bordered, so the border looks the same at
+    any zoom.
   - On screen, panels are drawn directly with PIL in the plotter's layout
     (thumbnails cached across redraws and sessions), which is much faster
     than rendering plotly figures. Save also writes the plotter's own
@@ -52,6 +58,21 @@ def parse_border_width(text) -> int:
     if value < 0:
         raise ValueError(f"Border width can't be negative, got {value}")
     return value
+
+
+def zoom_crop(img: Image.Image, zoom, cx, cy) -> Image.Image:
+    """``img`` zoomed in ``zoom`` times around (cx, cy), returned at the same
+    size. (0, 0) = image center, x/y = +-1 = the edges, +y up. The crop
+    window is kept inside the image."""
+    if zoom <= 1.0:
+        return img
+    w, h = img.size
+    cw, ch = w / zoom, h / zoom
+    x0 = w / 2 * (1 + cx) - cw / 2
+    y0 = h / 2 * (1 - cy) - ch / 2
+    x0 = min(max(0.0, x0), w - cw)
+    y0 = min(max(0.0, y0), h - ch)
+    return img.resize((w, h), Image.LANCZOS, box=(x0, y0, x0 + cw, y0 + ch))
 
 
 def rank_within_generation(data, response_col):
@@ -108,16 +129,18 @@ def _load_thumb(path):
     return hit
 
 
-def bordered_cell(path, color, border, cell) -> Image.Image | None:
+def bordered_cell(path, color, border, cell, zoom=(1.0, 0.0, 0.0)) -> Image.Image | None:
     """Thumbnail with a ``border``-px border (in original-image pixels) of
     ``color``, scaled to cell x cell: the same result as the plotter's
-    ImageOps.expand(img, border) followed by resize((cell, cell))."""
-    key = (path, border, cell)
+    ImageOps.expand(img, border) followed by resize((cell, cell)).
+    ``zoom``: (factor, cx, cy) for zoom_crop, applied before the border."""
+    key = (path, border, cell, tuple(zoom))
     inner = _cell_cache.get(key)
     if inner is None:
         size, src = _load_thumb(path)
         if src is None:
             return None
+        src = zoom_crop(src, *zoom)
         w, h = size
         iw = max(1, round(cell * w / (w + 2 * border)))
         ih = max(1, round(cell * h / (h + 2 * border)))
@@ -148,7 +171,7 @@ def _font(size):
 
 
 def draw_panel(cells: dict, row_values, col_values, *, cell, border, spacing, vmin, vmax,
-               colorbar=True, labels=False) -> Image.Image:
+               colorbar=True, labels=False, zoom=(1.0, 0.0, 0.0)) -> Image.Image:
     """One lineage panel. ``cells``: (row value, col value) -> (thumbnail
     path, mean response). Geometry follows GroupedStimuliPlotter.compute for
     one subgroup (margins, spacing, cell size)."""
@@ -176,7 +199,7 @@ def draw_panel(cells: dict, row_values, col_values, *, cell, border, spacing, vm
             if hit is None:
                 continue
             path, value = hit
-            tile = bordered_cell(path, border_color(value, vmin, vmax), border, cell)
+            tile = bordered_cell(path, border_color(value, vmin, vmax), border, cell, zoom)
             if tile is None:
                 draw.text((x + cell / 2, y + cell / 2), "Image not found", fill="black",
                           font=_font(12), anchor="mm")
@@ -206,6 +229,29 @@ def _draw_colorbar(img, draw, x, top, height, vmin, vmax):
                 y = y0 + bar_h - (t - vmin) / (vmax - vmin) * bar_h
                 draw.text((x + thickness + 6, y), f"{t:g}", fill="#2a3f5f", font=font,
                           anchor="lm")
+
+
+def zoomed_plotter_class(zoom):
+    """GroupedStimuliPlotter that zooms each image before bordering it, so
+    the saved svg/pdf match the panels on screen."""
+    from PIL import ImageOps
+    from src.analysis.modules.grouped_stims_by_response import GroupedStimuliPlotter
+    if zoom[0] <= 1.0:
+        return GroupedStimuliPlotter
+
+    class ZoomedPlotter(GroupedStimuliPlotter):
+        # As GroupedStimuliPlotter._process_image ('intensity' colors), plus the zoom.
+        def _process_image(self, img_path, response, min_val, max_val):
+            try:
+                with Image.open(img_path) as im:
+                    img = zoom_crop(im.convert("RGB"), *zoom)
+            except Exception:
+                return None
+            img = ImageOps.expand(img, border=self.border_width,
+                                  fill=border_color(response, min_val, max_val))
+            return img.resize(self.cell_size, Image.LANCZOS)
+
+    return ZoomedPlotter
 
 
 # ---------------------------------------------------------------------------
@@ -354,6 +400,15 @@ class TopPerGenModule(ExplorerModule):
                   tooltip="Pixels of response-colored border added around the "
                           "thumbnail before it's scaled to the cell size."),
             Param("cell_size", "Cell size (px)", "int", 100, minimum=20, maximum=1000, step=10),
+            Param("zoom", "Image zoom (x)", "float", 1.0, minimum=1.0, maximum=20.0,
+                  step=0.25, decimals=2,
+                  tooltip="Zoom into every thumbnail by this factor (1 = no zoom)."),
+            Param("zoom_x", "Zoom center x", "float", 0.0, minimum=-1.0, maximum=1.0,
+                  step=0.05, decimals=2,
+                  tooltip="0 = image center, -1 = left edge, +1 = right edge."),
+            Param("zoom_y", "Zoom center y", "float", 0.0, minimum=-1.0, maximum=1.0,
+                  step=0.05, decimals=2,
+                  tooltip="0 = image center, -1 = bottom edge, +1 = top edge."),
             Param("colorbar", "Colorbar", "bool", True,
                   tooltip="Response colorbar next to each panel (as plot_generations)."),
             Param("labels", "Generation / rank labels", "bool", False,
@@ -381,9 +436,11 @@ class TopPerGenModule(ExplorerModule):
     def _draw(self, values):
         from src.analysis.ga.response_spec import ResponseSpec
         from src.analysis.modules.grouped_stims_by_response import (
-            GroupedStimuliInputHandler, GroupedStimuliPlotter)
+            GroupedStimuliInputHandler)
 
         border = parse_border_width(values["border_width"])
+        zoom = (float(values.get("zoom", 1.0)), float(values.get("zoom_x", 0.0)),
+                float(values.get("zoom_y", 0.0)))
         data_type = values["data_type"]
         channel = "GA" if data_type == "GA" else parse_channel(values["channel"])
         if not channel:
@@ -423,8 +480,10 @@ class TopPerGenModule(ExplorerModule):
         whole = handler.prepare(data)
         labels = values["labels"]
 
+        plotter_class = zoomed_plotter_class(zoom)
+
         def plotter(vmin=None, vmax=None):
-            return GroupedStimuliPlotter(
+            return plotter_class(
                 cell_size=(values["cell_size"], values["cell_size"]),
                 border_width=border,
                 min_response=vmin, max_response=vmax,
@@ -457,7 +516,8 @@ class TopPerGenModule(ExplorerModule):
             images.append(draw_panel(
                 cells, whole["row_values"], whole["col_values"],
                 cell=values["cell_size"], border=border, spacing=SUBPLOT_SPACING,
-                vmin=vmin, vmax=vmax, colorbar=values["colorbar"], labels=labels))
+                vmin=vmin, vmax=vmax, colorbar=values["colorbar"], labels=labels,
+                zoom=zoom))
 
         n_stims = {lin: int(counts[lin]) for lin in whole["subgroup_values"]}
         self.panels = [(f"Lineage {lin}  ({n_stims[lin]} stims)", img)
