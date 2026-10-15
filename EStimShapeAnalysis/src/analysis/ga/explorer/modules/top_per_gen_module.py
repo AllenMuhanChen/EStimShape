@@ -42,6 +42,8 @@ from PyQt5.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel, QPush
 from src.analysis.ga.explorer.explorer_module import ExplorerModule, Param
 from src.analysis.ga.explorer.ga_data import (DATA_TYPES, load_ga_repository_data,
                                               parse_channel)
+from src.analysis.ga.explorer.modules.image_zoom import (zoom_crop, zoom_from_values,
+                                                         zoom_params)
 from src.analysis.ga.explorer.modules.stim_type_filter import (TYPE_FAMILIES, keep_types,
                                                                shown_families,
                                                                type_filter_params)
@@ -58,21 +60,6 @@ def parse_border_width(text) -> int:
     if value < 0:
         raise ValueError(f"Border width can't be negative, got {value}")
     return value
-
-
-def zoom_crop(img: Image.Image, zoom, cx, cy) -> Image.Image:
-    """``img`` zoomed in ``zoom`` times around (cx, cy), returned at the same
-    size. (0, 0) = image center, x/y = +-1 = the edges, +y up. The crop
-    window is kept inside the image."""
-    if zoom <= 1.0:
-        return img
-    w, h = img.size
-    cw, ch = w / zoom, h / zoom
-    x0 = w / 2 * (1 + cx) - cw / 2
-    y0 = h / 2 * (1 - cy) - ch / 2
-    x0 = min(max(0.0, x0), w - cw)
-    y0 = min(max(0.0, y0), h - ch)
-    return img.resize((w, h), Image.LANCZOS, box=(x0, y0, x0 + cw, y0 + ch))
 
 
 def rank_within_generation(data, response_col):
@@ -400,15 +387,7 @@ class TopPerGenModule(ExplorerModule):
                   tooltip="Pixels of response-colored border added around the "
                           "thumbnail before it's scaled to the cell size."),
             Param("cell_size", "Cell size (px)", "int", 100, minimum=20, maximum=1000, step=10),
-            Param("zoom", "Image zoom (x)", "float", 1.0, minimum=1.0, maximum=20.0,
-                  step=0.25, decimals=2,
-                  tooltip="Zoom into every thumbnail by this factor (1 = no zoom)."),
-            Param("zoom_x", "Zoom center x", "float", 0.0, minimum=-1.0, maximum=1.0,
-                  step=0.05, decimals=2,
-                  tooltip="0 = image center, -1 = left edge, +1 = right edge."),
-            Param("zoom_y", "Zoom center y", "float", 0.0, minimum=-1.0, maximum=1.0,
-                  step=0.05, decimals=2,
-                  tooltip="0 = image center, -1 = bottom edge, +1 = top edge."),
+            *zoom_params(),
             Param("colorbar", "Colorbar", "bool", True,
                   tooltip="Response colorbar next to each panel (as plot_generations)."),
             Param("labels", "Generation / rank labels", "bool", False,
@@ -439,8 +418,7 @@ class TopPerGenModule(ExplorerModule):
             GroupedStimuliInputHandler)
 
         border = parse_border_width(values["border_width"])
-        zoom = (float(values.get("zoom", 1.0)), float(values.get("zoom_x", 0.0)),
-                float(values.get("zoom_y", 0.0)))
+        zoom = zoom_from_values(values)
         data_type = values["data_type"]
         channel = "GA" if data_type == "GA" else parse_channel(values["channel"])
         if not channel:
