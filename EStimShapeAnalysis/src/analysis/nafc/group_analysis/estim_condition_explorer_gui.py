@@ -559,6 +559,15 @@ class EstimConditionExplorer(QMainWindow):
         self.x_role.combo.currentIndexChanged.connect(
             lambda *_: self.xlabels_edit.setText(""))
         self._x_ticks, self._x_names = [], {}
+        # axis titles: blank = the automatic title
+        self.title_edits = {}
+        for axis in ('x', 'y'):
+            edit = QLineEdit()
+            edit.setPlaceholderText("automatic")
+            edit.setToolTip(f"Your own {axis}-axis title; leave blank for the automatic "
+                            "one. \\n breaks a line.")
+            edit.editingFinished.connect(self.schedule_redraw)
+            self.title_edits[axis] = edit
         self.plot_box = _compact(QComboBox())
         self.plot_box.addItems([c[0] for c in PLOT_CHOICES])
         self.hist_unit_box = _compact(QComboBox())
@@ -661,6 +670,8 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow(QLabel("<b>Layout</b>"))
         form.addRow("X-axis by", self.x_role)
         form.addRow("x labels", self.xlabels_row)
+        form.addRow("x title", self.title_edits['x'])
+        form.addRow("y title", self.title_edits['y'])
         form.addRow("Colour by", self.color_role)
         form.addRow("Panels by", self.panel_role)
         form.addRow(QLabel("<b>Plot</b>"))
@@ -1001,11 +1012,18 @@ class EstimConditionExplorer(QMainWindow):
             axes.flat[0].legend(handles=self._legend_handles, fontsize=st['legend'],
                                 loc='best', title=self.color_role.column() or None,
                                 title_fontsize=st['legend'])
+        y_title = self._title('y', 'EStim effect: ON − OFF (%)' if mode in ('bars', 'violin')
+                              else '% chose hypothesized')
         for ax in axes[:, 0]:
-            ax.set_ylabel('EStim effect: ON − OFF (%)' if mode in ('bars', 'violin')
-                          else '% chose hypothesized', fontsize=st['axis_label'])
+            ax.set_ylabel(y_title, fontsize=st['axis_label'])
         for ax in axes[-1, :]:
-            ax.set_xlabel(self.x_role.column() or '', fontsize=st['axis_label'])
+            ax.set_xlabel(self._title('x', self.x_role.column() or ''),
+                          fontsize=st['axis_label'])
+
+    def _title(self, axis, default):
+        """The axis title typed in the side panel, else the automatic one."""
+        text = self.title_edits[axis].text().strip()
+        return text.replace('\\n', '\n') if text else default
 
     def _draw_hist(self, df, summary, panels, colors):
         """Effect histograms: effect on the x-axis, one row per X-axis value and a
@@ -1070,12 +1088,13 @@ class EstimConditionExplorer(QMainWindow):
         count = 'sessions' if unit == 'session' else 'conditions'
         if percent:
             count = f"% of {count}"
+        count = self._title('y', count)
         for x, ax in zip(rows, axes[:, 0]):
             # with panel titles on top, the rows are named on the left instead
             ax.set_ylabel(f"{self._x_name(x)}\n{count}" if self.panel_role.column()
                           else count, fontsize=st['axis_label'])
         # one x label, under the middle column
-        axes[-1, len(panels) // 2].set_xlabel('EStim effect: ON − OFF (%)',
+        axes[-1, len(panels) // 2].set_xlabel(self._title('x', 'EStim effect: ON − OFF (%)'),
                                                fontsize=st['axis_label'])
 
     def _dist_unit(self):
@@ -1455,6 +1474,7 @@ class EstimConditionExplorer(QMainWindow):
         layout = {'x': role(self.x_role), 'colour': role(self.color_role),
                   'panels': role(self.panel_role)}
         layout['x']['labels'] = self.xlabels_edit.text()
+        layout['titles'] = {axis: e.text() for axis, e in self.title_edits.items()}
         return {
             'version': SPEC_VERSION,
             'metric': self.metric_box.currentText(),
@@ -1517,6 +1537,9 @@ class EstimConditionExplorer(QMainWindow):
         self._plot_mode_changed()
         for w in widgets:
             w.blockSignals(False)
+        for axis, text in spec.get('layout', {}).get('titles', {}).items():
+            if axis in self.title_edits:
+                self.title_edits[axis].setText(text or "")
         if 'style' in spec:
             self.set_plot_style(spec['style'], redraw=False)
         known = set(self.df['session_id'])
