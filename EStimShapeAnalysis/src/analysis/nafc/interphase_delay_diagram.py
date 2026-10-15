@@ -3,7 +3,7 @@ Single-pulse figures for explaining stimulation parameters, in the same drawing
 style as waveform_diagram:
   - interphase delay: one biphasic pulse with the two phase widths and the
     interphase delay marked.
-  - polarity: a cathodic-first and an anodic-first pulse side by side (no
+  - polarity: a cathodic-first and an anodic-first pulse, one per row (no
     interphase delay).
 
 Amplitude is schematic (no y-axis). Durations are in µs.
@@ -72,9 +72,9 @@ def plot_interphase_delay_diagram(d1=200.0, d2=200.0, dp=100.0,
 
 
 def plot_polarity_diagram(d1=200.0, d2=200.0, pad=100.0, label_fs=13, save_path=None):
-    """Cathodic-first and anodic-first biphasic pulses (no interphase delay) side by
-    side. d1, d2: phase widths (µs). pad: flat baseline before and after (µs)."""
-    fig, axes = plt.subplots(1, 2, figsize=(9, 3.5), sharey=True)
+    """Cathodic-first and anodic-first biphasic pulses (no interphase delay), one
+    per row. d1, d2: phase widths (µs). pad: flat baseline before and after (µs)."""
+    fig, axes = plt.subplots(2, 1, figsize=(6, 4.2), sharex=True)
     for ax, polarity, title in zip(axes, ("NegativeFirst", "PositiveFirst"),
                                    ("Cathodic first", "Anodic first")):
         params = dict(shape="Biphasic", polarity=polarity, d1=d1, d2=d2, dp=0.0,
@@ -95,7 +95,7 @@ def plot_polarity_diagram(d1=200.0, d2=200.0, pad=100.0, label_fs=13, save_path=
         ax.tick_params(axis="x", color=_GRAY, labelcolor=_BLACK,
                        labelsize=label_fs - 2, length=3)
         ax.tick_params(axis="y", left=False, labelleft=False)
-        ax.set_xlabel("Time (µs)", fontsize=label_fs)
+    axes[-1].set_xlabel("Time (µs)", fontsize=label_fs)
     fig.tight_layout()
 
     if save_path:
