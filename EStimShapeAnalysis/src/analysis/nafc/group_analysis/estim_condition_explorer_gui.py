@@ -22,8 +22,9 @@ Left panel:
     the box to edit. Cleared when the X-axis column changes.
   - Plot: effect bars (mean of per-session mean effects ± SEM across sessions),
     ON vs OFF dots, effect violins (the distribution of effects at each bar's
-    place: per condition or per-session mean, see 'Distribution of'; stars,
-    n, points and brackets as for bars), or an effect histogram (effect on the x-axis; one row per
+    place: per condition or per-session mean, see 'Distribution of'; a box
+    inside each — median dot, IQR bar, 1.5 × IQR whiskers — on by default;
+    stars, n, points and brackets as for bars), or an effect histogram (effect on the x-axis; one row per
     X-axis value, a column per panel, colours overlaid; counts per condition or
     per-session mean, set bin width, y as count or % of each histogram's own n
     so groups of different sizes compare; dashed line at 0; pairs are listed in the
@@ -600,6 +601,13 @@ class EstimConditionExplorer(QMainWindow):
         self.points_box.setToolTip("Overlay individual data points: each session's mean "
                                    "(what the bar and its SEM summarise) or each "
                                    "condition")
+        self.violin_box_box = QCheckBox("box inside violins (median, IQR)")
+        self.violin_box_box.setChecked(True)
+        self.violin_box_box.setToolTip(
+            "White dot: median. Thick bar: interquartile range (25th–75th "
+            "percentile). Thin line: whiskers to the furthest values within "
+            "1.5 × IQR of the box.")
+        self.violin_box_box.stateChanged.connect(self.schedule_redraw)
         self.spread_box = QCheckBox("spread overlapping points")
         self.spread_box.setToolTip("Off: every point sits on its bar's centre line. "
                                    "On: points that would overlap step sideways "
@@ -688,6 +696,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Test", self.test_box)
         form.addRow("Points", self.points_box)
         form.addRow("", self.spread_box)
+        form.addRow("", self.violin_box_box)
         form.addRow("Compare pairs", self.compare_box)
         form.addRow("Pairwise test", self.pair_test_box)
         form.addRow("", self.n_box)
@@ -1120,9 +1129,12 @@ class EstimConditionExplorer(QMainWindow):
         # distribution settings only show for the plots that use them
         shown = {self.hist_unit_box: mode in ('hist', 'violin'),
                  self.hist_bin_box: hist, self.hist_y_box: hist}
+        shown[self.violin_box_box] = mode == 'violin'
         for w, on in shown.items():
             w.setVisible(on)
-            self._form.labelForField(w).setVisible(on)
+            label = self._form.labelForField(w)
+            if label is not None:
+                label.setVisible(on)
         # histograms have no x tick labels (x labels name the rows) and no points
         for w in (self.rotation_box, self.points_box, self.spread_box):
             w.setVisible(not hist)
@@ -1178,6 +1190,21 @@ class EstimConditionExplorer(QMainWindow):
             offsets[i] = slot * step
         return offsets
 
+    @staticmethod
+    def _violin_inner_box(ax, pos, vals):
+        """Box-plot marks inside a violin: thick bar = interquartile range
+        (25th–75th percentile), thin line = whiskers to the furthest values
+        within 1.5 × IQR of the box, white dot = median."""
+        q1, med, q3 = np.percentile(vals, [25, 50, 75])
+        iqr = q3 - q1
+        lo = vals[vals >= q1 - 1.5 * iqr].min()
+        hi = vals[vals <= q3 + 1.5 * iqr].max()
+        ax.plot([pos, pos], [lo, hi], color='black', lw=1, zorder=4)
+        ax.plot([pos, pos], [q1, q3], color='black', lw=5, solid_capstyle='butt',
+                zorder=4)
+        ax.scatter([pos], [med], s=22, color='white', edgecolor='black', lw=0.6,
+                   zorder=5)
+
     def _draw_panel(self, ax, summary, panel_df, orders, colors, mode):
         st = self.plot_style()
         x_order = [x for x in orders['__x'] if (summary['__x'] == x).any()]
@@ -1217,6 +1244,8 @@ class EstimConditionExplorer(QMainWindow):
                         # a single value (or all equal) has no density to draw
                         ax.plot([pos - width * 0.3, pos + width * 0.3], [vals[0]] * 2,
                                 color=color, lw=2.5)
+                    if len(vals) and self.violin_box_box.isChecked():
+                        self._violin_inner_box(ax, pos, vals)
                     top = vals.max() if len(vals) else r['effect']
                     bottom = vals.min() if len(vals) else r['effect']
                     if pts is not None:
@@ -1522,6 +1551,7 @@ class EstimConditionExplorer(QMainWindow):
                      'show_n': self.n_box.isChecked(),
                      'show_stats': self.stats_box.isChecked(),
                      'spread_points': self.spread_box.isChecked(),
+                     'violin_box': self.violin_box_box.isChecked(),
                      'hist_unit': self.hist_unit_box.currentText(),
                      'hist_bin_width': self.hist_bin_box.value(),
                      'hist_y': self.hist_y_box.currentText()},
@@ -1546,7 +1576,8 @@ class EstimConditionExplorer(QMainWindow):
         plot = spec.get('plot', {})
         widgets = [self.trials_box, self.plot_box, self.test_box, self.points_box,
                    self.compare_box, self.pair_test_box, self.n_box, self.stats_box,
-                   self.hist_unit_box, self.hist_bin_box, self.hist_y_box, self.spread_box]
+                   self.hist_unit_box, self.hist_bin_box, self.hist_y_box, self.spread_box,
+                   self.violin_box_box]
         for w in widgets:
             w.blockSignals(True)
         if 'min_trials' in spec:
@@ -1564,6 +1595,8 @@ class EstimConditionExplorer(QMainWindow):
             self.stats_box.setChecked(bool(plot['show_stats']))
         if 'spread_points' in plot:
             self.spread_box.setChecked(bool(plot['spread_points']))
+        if 'violin_box' in plot:
+            self.violin_box_box.setChecked(bool(plot['violin_box']))
         if 'hist_bin_width' in plot:
             self.hist_bin_box.setValue(float(plot['hist_bin_width']))
         self._plot_mode_changed()
