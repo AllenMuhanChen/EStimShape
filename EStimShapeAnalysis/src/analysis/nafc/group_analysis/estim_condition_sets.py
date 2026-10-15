@@ -60,6 +60,19 @@ def create_condition_set_tables(conn=None):
     """)
 
 
+# the tables are latin1 (like the other EStim tables): text going in is made to fit
+_LATIN1_SUBSTITUTES = {'−': '-', '–': '-', '—': '-', '≤': '<=', '≥': '>=',
+                       '→': '->', '…': '...', '×': 'x'}
+
+
+def _latin1(text, limit=None):
+    """text with characters latin1 can't store swapped for ASCII look-alikes (or
+    '?'), optionally cut to ``limit`` characters."""
+    text = "".join(_LATIN1_SUBSTITUTES.get(ch, ch) for ch in str(text or ""))
+    text = text.encode('latin-1', 'replace').decode('latin-1')
+    return text[:limit] if limit else text
+
+
 def save_condition_set(set_name, members, description="", source="", params=None):
     """Store (replacing any set of the same name) the set of (session_id, cond_dict)
     pairs ``members``. ``params``: the settings that produced it (JSON-serialisable;
@@ -72,7 +85,8 @@ def save_condition_set(set_name, members, description="", source="", params=None
     conn.execute(
         "INSERT INTO EStimConditionSetInfo (set_name, description, source, params) "
         "VALUES (%s, %s, %s, %s)",
-        (set_name, description, source, json.dumps(params or {}, default=str)))
+        (set_name, _latin1(description), _latin1(source, 100),
+         json.dumps(params or {}, default=str)))
     if rows:
         cursor = conn.mydb.cursor()
         cursor.executemany(
