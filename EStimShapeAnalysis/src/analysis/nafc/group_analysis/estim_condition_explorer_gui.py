@@ -13,17 +13,28 @@ Left panel:
   - Min trials: keep conditions with at least this many estim-ON AND estim-OFF trials.
   - Filters: "Add filter…" any column. Categorical columns get a tick-list of
     values; numeric ones a min / max range (inclusive) with "keep missing".
-  - Layout: X-axis by / Colour by / Panels by — any column (or session_id). A
+  - Layout: X-axis by / Colour by / Panels by — any column (or session_id), or
+    (none) for a single group (e.g. one histogram of everything). A
     numeric column with many values is binned; edit its bin edges (comma
-    separated) next to the dropdown.
-  - Plot: effect bars (mean of per-session mean effects ± SEM across sessions) or
-    ON vs OFF dots, with the permutation test against the stored
+    separated) next to the dropdown. "x labels": your own tick labels, one per x
+    point left to right (comma separated, or ';' if a label has a comma; blank
+    keeps that tick's value; \\n breaks a line). "fill" puts the current ticks in
+    the box to edit. Cleared when the X-axis column changes.
+  - Plot: effect bars (mean of per-session mean effects ± SEM across sessions),
+    ON vs OFF dots, or an effect histogram (effect on the x-axis; one row per
+    X-axis value, a column per panel, colours overlaid; counts per condition or
+    per-session mean, set bin width, y as count or % of each histogram's own n
+    so groups of different sizes compare; dashed line at 0; pairs are listed in the
+    stats box rather than drawn), with the permutation test against the stored
     EStimPermutationTests nulls (two-sided / greater / less / off).
+  - Stats box (on by default): to the right of the plot, the test used and each
+    bar's p-value, plus the pairwise tests (Holm-corrected p) when Compare is on.
   - Copy summary table: the numbers behind the plot, tab-separated, to the clipboard.
   - Style: font sizes and x-label rotation. "Save as default" stores them in
     ~/.estim_condition_explorer/style_defaults.json, used at every start-up.
   - Save spec… / Load spec…: the whole setup (metric, algorithm label, sessions,
-    min trials, filters, layout incl. bin edges, plot options, style) as a JSON file.
+    min trials, filters, layout incl. bin edges and x labels, plot options, style)
+    as a JSON file.
 The figure redraws in place; the toolbar zooms, pans and saves. RIGHT-CLICK a panel
 to copy just that panel (or the whole figure) to the clipboard as an image.
 
@@ -47,9 +58,9 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QEvent, QObject, Qt, QTimer
 from PyQt5.QtGui import QCursor, QImage
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
+from PyQt5.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
                              QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit,
                              QFileDialog, QListWidget, QListWidgetItem, QMainWindow,
                              QMenu, QPushButton, QScrollArea, QSpinBox, QVBoxLayout,
@@ -71,7 +82,14 @@ HIDDEN_COLUMNS = {'conditions', ect.EFFECT_COL, ect.ON_COL, ect.OFF_COL}
 # (label, alternative) — None = no test
 TEST_CHOICES = (('two-sided', 'two-sided'), ('one-sided: ON > OFF', 'greater'),
                 ('one-sided: ON < OFF', 'less'), ('off', None))
-PLOT_CHOICES = (('effect bars (ON − OFF)', 'bars'), ('ON vs OFF dots', 'dots'))
+PLOT_CHOICES = (('effect bars (ON − OFF)', 'bars'), ('ON vs OFF dots', 'dots'),
+                ('effect histogram', 'hist'))
+# what one histogram count is: (label, unit)
+HIST_UNIT_CHOICES = (('per condition', 'condition'), ('per-session mean', 'session'))
+DEFAULT_HIST_BIN_WIDTH = 5.0
+# histogram height: (label, mode) — 'percent' = % of that histogram's own n, so
+# groups of different sizes compare
+HIST_Y_CHOICES = (('count', 'count'), ('% of group', 'percent'))
 # individual points over each bar: (label, unit) — None = off
 POINT_CHOICES = (('none', None), ('one per session', 'session'),
                  ('one per condition', 'condition'))
@@ -95,10 +113,15 @@ SPEC_VERSION = 1
 # (key, label) of the font-size settings, in points
 STYLE_FONTS = (('tick', 'Tick labels'), ('axis_label', 'Axis labels'),
                ('title', 'Panel titles'), ('legend', 'Legend'),
-               ('stars', 'Stars / brackets'), ('n_label', 'n labels'))
+               ('stars', 'Stars / brackets'), ('n_label', 'n labels'),
+               ('stats', 'Stats box'))
 ROTATION_CHOICES = ('auto', '0', '30', '45', '90')
 BUILTIN_STYLE = {'tick': 14, 'axis_label': 16, 'title': 16, 'legend': 13,
-                 'stars': 15, 'n_label': 11, 'xtick_rotation': 'auto'}
+                 'stars': 15, 'n_label': 11, 'stats': 11, 'xtick_rotation': 'auto'}
+# pairwise lines listed in the stats box before the rest are summarised
+MAX_STATS_PAIRS = 12
+# most of the figure width the stats box may take (its text shrinks to fit)
+MAX_STATS_WIDTH = 0.45
 
 
 def _load_style_defaults():
@@ -185,6 +208,15 @@ def _parse_edges(text):
     except ValueError:
         return None
     return edges if len(edges) >= 2 and all(a < b for a, b in zip(edges, edges[1:])) else None
+
+
+def _parse_tick_labels(text):
+    """Custom x tick labels: ';'-separated if the text has a ';', else comma
+    separated; '\\n' becomes a line break, '' keeps that tick's own value."""
+    if not text.strip():
+        return []
+    parts = text.split(';') if ';' in text else text.split(',')
+    return [p.strip().replace('\\n', '\n') for p in parts]
 
 
 def _bin_labels(values, edges):
@@ -433,6 +465,23 @@ class RoleRow(QWidget):
         return labels, sorted(set(labels), key=_sort_key)
 
 
+class _PanelWheelGuard(QObject):
+    """Sends mouse-wheel events over a dropdown or number box in the side panel
+    to the panel's scroll bar, so scrolling never changes a setting."""
+
+    def __init__(self, panel, scroll):
+        super().__init__()
+        self.panel = panel
+        self.scroll = scroll
+
+    def eventFilter(self, obj, event):
+        if (event.type() == QEvent.Wheel and isinstance(obj, (QComboBox, QAbstractSpinBox))
+                and self.panel.isAncestorOf(obj)):
+            QApplication.sendEvent(self.scroll.verticalScrollBar(), event)
+            return True
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Main window
 # ---------------------------------------------------------------------------
@@ -487,11 +536,51 @@ class EstimConditionExplorer(QMainWindow):
         self.add_filter_box.activated.connect(self._add_filter_from_box)
 
         # -- layout / plot --
-        self.x_role = RoleRow(False, self.schedule_redraw)
+        self.x_role = RoleRow(True, self.schedule_redraw)
         self.color_role = RoleRow(True, self.schedule_redraw)
         self.panel_role = RoleRow(True, self.schedule_redraw)
+        self.xlabels_edit = QLineEdit()
+        self.xlabels_edit.setPlaceholderText("custom x labels (optional)")
+        self.xlabels_edit.setToolTip(
+            "Your own x tick labels, one per x point left to right, comma separated "
+            "(use ';' instead if a label has a comma). Leave an entry blank to keep "
+            "that tick's value; \\n breaks a line. Cleared when the X-axis column "
+            "changes.")
+        self.xlabels_edit.editingFinished.connect(self.schedule_redraw)
+        xlabels_fill = QPushButton("fill")
+        xlabels_fill.setToolTip("Put the current x tick labels in the box to edit")
+        xlabels_fill.clicked.connect(self._fill_xlabels)
+        self.xlabels_row = QHBoxLayout()
+        self.xlabels_row.addWidget(self.xlabels_edit, 1)
+        self.xlabels_row.addWidget(xlabels_fill)
+        # a new x column means new ticks, so old custom labels no longer apply
+        self.x_role.combo.currentIndexChanged.connect(
+            lambda *_: self.xlabels_edit.setText(""))
+        self._x_ticks, self._x_names = [], {}
         self.plot_box = _compact(QComboBox())
         self.plot_box.addItems([c[0] for c in PLOT_CHOICES])
+        self.hist_unit_box = _compact(QComboBox())
+        self.hist_unit_box.addItems([c[0] for c in HIST_UNIT_CHOICES])
+        self.hist_unit_box.setToolTip("Effect histogram: count each condition, or "
+                                      "each session's mean over its conditions")
+        self.hist_bin_box = QDoubleSpinBox()
+        self.hist_bin_box.setRange(0.1, 100)
+        self.hist_bin_box.setDecimals(1)
+        self.hist_bin_box.setSuffix(" %")
+        self.hist_bin_box.setValue(DEFAULT_HIST_BIN_WIDTH)
+        self.hist_bin_box.setKeyboardTracking(False)
+        self.hist_bin_box.setToolTip("Effect histogram bin width (bins are aligned "
+                                     "to 0)")
+        self.hist_y_box = _compact(QComboBox())
+        self.hist_y_box.addItems([c[0] for c in HIST_Y_CHOICES])
+        self.hist_y_box.setToolTip("Effect histogram height: raw count, or % of that "
+                                   "histogram's own conditions / sessions (each "
+                                   "histogram sums to 100%), for groups of "
+                                   "different sizes")
+        self.hist_y_box.currentIndexChanged.connect(self.schedule_redraw)
+        self.hist_unit_box.currentIndexChanged.connect(self.schedule_redraw)
+        self.hist_bin_box.valueChanged.connect(self.schedule_redraw)
+        self.plot_box.currentIndexChanged.connect(self._plot_mode_changed)
         self.test_box = _compact(QComboBox())
         self.test_box.addItems([c[0] for c in TEST_CHOICES])
         self.points_box = _compact(QComboBox())
@@ -514,6 +603,9 @@ class EstimConditionExplorer(QMainWindow):
             "bars otherwise (no normality assumption; coarse p with few sessions).")
         self.n_box = QCheckBox("show n (conditions / sessions)")
         self.n_box.setChecked(True)
+        self.stats_box = QCheckBox("stats box (test and p-values)")
+        self.stats_box.setChecked(True)
+        self.stats_box.stateChanged.connect(self.schedule_redraw)
         for w in (self.plot_box, self.test_box, self.points_box, self.compare_box,
                   self.pair_test_box):
             w.currentIndexChanged.connect(self.schedule_redraw)
@@ -552,6 +644,7 @@ class EstimConditionExplorer(QMainWindow):
             spec_buttons.addWidget(b)
 
         form = QFormLayout()
+        self._form = form
         form.addRow(spec_buttons)
         form.addRow("Metric", self.metric_box)
         form.addRow("Algorithm label", self.algo_box)
@@ -564,15 +657,20 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow(self.add_filter_box)
         form.addRow(QLabel("<b>Layout</b>"))
         form.addRow("X-axis by", self.x_role)
+        form.addRow("x labels", self.xlabels_row)
         form.addRow("Colour by", self.color_role)
         form.addRow("Panels by", self.panel_role)
         form.addRow(QLabel("<b>Plot</b>"))
         form.addRow("Plot", self.plot_box)
+        form.addRow("Histogram of", self.hist_unit_box)
+        form.addRow("Histogram bin", self.hist_bin_box)
+        form.addRow("Histogram y", self.hist_y_box)
         form.addRow("Test", self.test_box)
         form.addRow("Points", self.points_box)
         form.addRow("Compare pairs", self.compare_box)
         form.addRow("Pairwise test", self.pair_test_box)
         form.addRow("", self.n_box)
+        form.addRow("", self.stats_box)
         form.addRow(QLabel("<b>Style</b>"))
         for key, label in STYLE_FONTS:
             form.addRow(label, self.style_boxes[key])
@@ -589,6 +687,10 @@ class EstimConditionExplorer(QMainWindow):
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setFixedWidth(520)
+        # the wheel scrolls the side panel, never a dropdown / number box under
+        # the cursor (filters added later included, so filter app-wide)
+        self._wheel_guard = _PanelWheelGuard(side, scroll)
+        QApplication.instance().installEventFilter(self._wheel_guard)
 
         self.plot_area = QVBoxLayout()
         self.figure = Figure(figsize=(10, 7))
@@ -607,6 +709,7 @@ class EstimConditionExplorer(QMainWindow):
         central.setLayout(root)
         self.setCentralWidget(central)
 
+        self._plot_mode_changed()
         self.metric_box.currentIndexChanged.connect(self.reload)
         self.algo_box.activated.connect(self.reload)
         self.reload(first=True)
@@ -709,6 +812,8 @@ class EstimConditionExplorer(QMainWindow):
                 # older specs have no 'bin': binned exactly when they stored edges
                 role.set_binning(saved.get('bin', bool(saved.get('edges'))),
                                  saved.get('edges'))
+                if role is self.x_role:
+                    self.xlabels_edit.setText(saved.get('labels') or "")
             else:
                 current = defaults[role] if first else role.column()
                 role.set_columns(self.df, columns, current)
@@ -801,16 +906,72 @@ class EstimConditionExplorer(QMainWindow):
                                        alternative=alternative)
         self.summary = summary.rename(columns={
             '__panel': self.panel_role.column() or 'panel',
-            '__x': self.x_role.column(), '__color': self.color_role.column() or 'colour'})
+            '__x': self.x_role.column() or 'x', '__color': self.color_role.column() or 'colour'})
 
         panels = [p for p in orders['__panel'] if (summary['__panel'] == p).any()]
-        n_cols = min(len(panels), 3)
-        n_rows = math.ceil(len(panels) / n_cols)
-        axes = self.figure.subplots(n_rows, n_cols, squeeze=False, sharey=True)
+        # custom x tick labels apply in order to the x values shown anywhere in
+        # the figure, so a panel missing an x value still gets the right names
+        self._x_ticks = [x for x in orders['__x'] if (summary['__x'] == x).any()]
+        custom = _parse_tick_labels(self.xlabels_edit.text())
+        self._x_names = {x: c for x, c in zip(self._x_ticks, custom) if c}
         colors = self._colors(orders['__color'])
         mode = PLOT_CHOICES[self.plot_box.currentIndex()][1]
         pairs = self._pairwise(df, summary, panels, orders)
         st = self.plot_style()
+        legend = None
+        if mode == 'hist':
+            self._draw_hist(df, summary, panels, colors)
+            if self._legend_handles:
+                legend = self.figure.legend(
+                    handles=self._legend_handles, loc='upper center',
+                    ncol=len(self._legend_handles), fontsize=st['legend'],
+                    title=self.color_role.column() or None,
+                    title_fontsize=st['legend'], frameon=False)
+        else:
+            self._draw_bars(df, summary, panels, orders, colors, mode, pairs)
+        right = 1.0
+        if self.stats_box.isChecked():
+            text = self._stats_text(summary, pairs, panels, alternative)
+            box = self.figure.text(0.995, 0.5, text, ha='right', va='center',
+                                   multialignment='left', fontsize=st['stats'],
+                                   bbox=dict(boxstyle='round,pad=0.5', fc='white',
+                                             ec='#999999', lw=0.8))
+            # shrink the text if the box would take more than MAX_STATS_WIDTH of
+            # the figure or overflow its height, then give the plot the rest
+            renderer = self.canvas.get_renderer()
+            fig_w, fig_h = self.figure.bbox.width, self.figure.bbox.height
+            while True:
+                ext = box.get_window_extent(renderer)
+                if (ext.width <= MAX_STATS_WIDTH * fig_w and ext.height <= 0.97 * fig_h) \
+                        or box.get_fontsize() <= 6:
+                    break
+                box.set_fontsize(box.get_fontsize() - 1)
+            right = max(1 - MAX_STATS_WIDTH, 1 - ext.width / fig_w - 0.02)
+        top = 1.0
+        if legend is not None:
+            # centre the legend over the plot area and keep the grid below it
+            legend.set_bbox_to_anchor((right / 2, 1.0))
+            renderer = self.canvas.get_renderer()
+            top = 1 - legend.get_window_extent(renderer).height / self.figure.bbox.height
+        self.figure.tight_layout(rect=(0, 0, right, top))
+        self.canvas.draw_idle()
+
+        filt = [d for d in (r.describe() for r in self.filter_rows) if d]
+        self.status.setText(
+            f"{len(df)} of {len(self.df)} conditions, {df['session_id'].nunique()} sessions "
+            f"pass the filters.\nFilters: {'; '.join(filt) if filt else 'none'}"
+            + ("" if alternative else "\nTest off.")
+            + (self._pairwise_note(pairs) if pairs is not None else "")
+            + (f"\nx labels: {len(custom)} given for {len(self._x_ticks)} x points."
+               if custom and len(custom) != len(self._x_ticks) else ""))
+
+    def _draw_bars(self, df, summary, panels, orders, colors, mode, pairs):
+        """Bars / ON vs OFF dots: a panel per Panels-by value, x positions from
+        X-axis by, colours side by side."""
+        st = self.plot_style()
+        n_cols = min(len(panels), 3)
+        n_rows = math.ceil(len(panels) / n_cols)
+        axes = self.figure.subplots(n_rows, n_cols, squeeze=False, sharey=True)
         positions = {}
         for ax, panel in zip(axes.flat, panels):
             positions[panel] = self._draw_panel(ax, summary[summary['__panel'] == panel],
@@ -839,16 +1000,91 @@ class EstimConditionExplorer(QMainWindow):
             ax.set_ylabel('EStim effect: ON − OFF (%)' if mode == 'bars'
                           else '% chose hypothesized', fontsize=st['axis_label'])
         for ax in axes[-1, :]:
-            ax.set_xlabel(self.x_role.column(), fontsize=st['axis_label'])
-        self.figure.tight_layout()
-        self.canvas.draw_idle()
+            ax.set_xlabel(self.x_role.column() or '', fontsize=st['axis_label'])
 
-        filt = [d for d in (r.describe() for r in self.filter_rows) if d]
-        self.status.setText(
-            f"{len(df)} of {len(self.df)} conditions, {df['session_id'].nunique()} sessions "
-            f"pass the filters.\nFilters: {'; '.join(filt) if filt else 'none'}"
-            + ("" if alternative else "\nTest off.")
-            + (self._pairwise_note(pairs) if pairs is not None else ""))
+    def _draw_hist(self, df, summary, panels, colors):
+        """Effect histograms: effect on the x-axis, one row per X-axis value and a
+        column per panel, colours overlaid. Shared bins (aligned to 0) and axes."""
+        st = self.plot_style()
+        unit = HIST_UNIT_CHOICES[self.hist_unit_box.currentIndex()][1]
+        percent = HIST_Y_CHOICES[self.hist_y_box.currentIndex()][1] == 'percent'
+        groups = {}
+        for key, sub in df.groupby(['__panel', '__x', '__color'], observed=True):
+            vals = (sub.groupby('session_id')[ect.EFFECT_COL].mean() if unit == 'session'
+                    else sub[ect.EFFECT_COL])
+            vals = pd.to_numeric(vals, errors='coerce').dropna().to_numpy(dtype=float)
+            if len(vals):
+                groups[key] = vals
+        everything = np.concatenate(list(groups.values())) if groups else np.zeros(1)
+        width = self.hist_bin_box.value()
+        lo = math.floor(min(everything.min(), 0) / width) * width
+        hi = math.ceil(max(everything.max(), 0) / width) * width
+        bins = np.arange(lo, max(hi, lo + width) + width / 2, width)
+        rows = self._x_ticks
+        axes = self.figure.subplots(len(rows), len(panels), squeeze=False,
+                                    sharex=True, sharey=True)
+        overlaid = len(colors) > 1
+        for ri, x in enumerate(rows):
+            for ci, panel in enumerate(panels):
+                ax = axes[ri, ci]
+                n_lines = []
+                for c, color in colors.items():
+                    vals = groups.get((panel, x, c))
+                    if vals is None:
+                        continue
+                    weights = np.full(len(vals), 100 / len(vals)) if percent else None
+                    ax.hist(vals, bins, weights=weights, color=color,
+                            alpha=0.55 if overlaid else 0.85, edgecolor='black',
+                            linewidth=0.4)
+                    r = summary[(summary['__panel'] == panel) & (summary['__x'] == x)
+                                & (summary['__color'] == c)].iloc[0]
+                    n_lines.append((color if overlaid else '#555555',
+                                    f"n = {r['n_conditions']}/{r['n_sessions']} "
+                                    f"{ect.significance_marker(r['p'])}".rstrip()))
+                ax.axvline(0, color='black', lw=0.8, ls='--')
+                if self.n_box.isChecked():
+                    for i, (color, text) in enumerate(n_lines):
+                        ax.annotate(text, (1, 1), xycoords='axes fraction',
+                                    xytext=(-4, -4 - i * 1.4 * st['n_label']),
+                                    textcoords='offset points', ha='right', va='top',
+                                    fontsize=st['n_label'], color=color)
+                if not self.panel_role.column():
+                    ax.set_title(self._x_name(x), loc='left', fontsize=st['title'])
+                elif ri == 0:
+                    ax.set_title(f"{self.panel_role.column()} = {panel}",
+                                 fontsize=st['title'], fontweight='bold')
+                ax.tick_params(labelsize=st['tick'])
+                ax.grid(True, axis='y', alpha=0.3)
+                ax.spines[['top', 'right']].set_visible(False)
+        self._legend_handles = self._legend(colors, 'hist')
+        if self.n_box.isChecked():
+            # headroom above the tallest bar for the n labels (y is shared, so
+            # setting it on one panel sets them all)
+            y_lo, y_hi = axes[0, 0].get_ylim()
+            axes[0, 0].set_ylim(y_lo, y_hi * (1.1 + 0.12 * len(colors)))
+        # the colour legend goes in a row above the grid (see _draw), clear of
+        # the n labels
+        count = 'sessions' if unit == 'session' else 'conditions'
+        if percent:
+            count = f"% of {count}"
+        for x, ax in zip(rows, axes[:, 0]):
+            # with panel titles on top, the rows are named on the left instead
+            ax.set_ylabel(f"{self._x_name(x)}\n{count}" if self.panel_role.column()
+                          else count, fontsize=st['axis_label'])
+        # one x label, under the middle column
+        axes[-1, len(panels) // 2].set_xlabel('EStim effect: ON − OFF (%)',
+                                               fontsize=st['axis_label'])
+
+    def _plot_mode_changed(self, *_):
+        hist = PLOT_CHOICES[self.plot_box.currentIndex()][1] == 'hist'
+        # the histogram rows only show in histogram mode
+        for w in (self.hist_unit_box, self.hist_bin_box, self.hist_y_box):
+            w.setVisible(hist)
+            self._form.labelForField(w).setVisible(hist)
+        # histograms have no x tick labels (x labels name the rows) and no points
+        for w in (self.rotation_box, self.points_box):
+            w.setVisible(not hist)
+            self._form.labelForField(w).setVisible(not hist)
 
     @staticmethod
     def _colors(color_order):
@@ -955,7 +1191,7 @@ class EstimConditionExplorer(QMainWindow):
         ax.set_xticks(range(len(x_order)))
         rotation = (30 if len(x_order) > 4 else 0) if st['xtick_rotation'] == 'auto' \
             else int(st['xtick_rotation'])
-        ax.set_xticklabels(x_order, rotation=rotation,
+        ax.set_xticklabels([self._x_names.get(x, x) for x in x_order], rotation=rotation,
                            ha='right' if 0 < rotation < 90 else 'center',
                            rotation_mode='anchor', fontsize=st['tick'])
         ax.tick_params(axis='y', labelsize=st['tick'])
@@ -963,6 +1199,90 @@ class EstimConditionExplorer(QMainWindow):
         ax.grid(True, axis='y', alpha=0.3)
         ax.spines[['top', 'right']].set_visible(False)
         return positions
+
+    def _x_name(self, x):
+        return self._x_names.get(x, x).replace('\n', ' ')
+
+    @staticmethod
+    def _p_text(p, n_null=None):
+        if p is None or not np.isfinite(p):
+            return "p = n/a"
+        if p == 0 and n_null:
+            return f"p < {1 / n_null:.1g}"
+        return f"p = {p:.3f}" if p >= 0.001 else f"p = {p:.1g}"
+
+    def _stats_text(self, summary, pairs, panels, alternative):
+        """Text for the stats box: the test, each bar's p and the pairwise tests,
+        grouped under a header per panel."""
+        side = {'two-sided': 'two-sided', 'greater': 'one-sided, ON > OFF',
+                'less': 'one-sided, ON < OFF'}
+        panel_col = self.panel_role.column()
+
+        def by_panel(rows_of_panel, indent="  "):
+            out = []
+            for panel in panels:
+                rows = rows_of_panel(panel)
+                if panel_col and rows:
+                    out.append(f"{indent}{panel_col} = {panel}")
+                pad = indent + ("  " if panel_col else "")
+                out += [pad + r for r in rows]
+            return out
+
+        def p_line(name, p, n_null=None):
+            return f"{name}: {self._p_text(p, n_null)} {ect.significance_marker(p)}".rstrip()
+
+        lines = []
+        if alternative is None:
+            lines.append("Per-bar test: off")
+        else:
+            n_null = pd.to_numeric(summary.get('n_null'), errors='coerce').min() \
+                if 'n_null' in summary else np.nan
+            shuffles = f", {int(n_null):,} shuffles" if pd.notna(n_null) else ""
+            lines += [f"Per-bar test: permutation ({side[alternative]})",
+                      "EStim ON/OFF trial labels shuffled",
+                      f"within each condition{shuffles}"]
+
+            def bars(panel):
+                rows = []
+                for _, r in summary[summary['__panel'] == panel].iterrows():
+                    if r['__x'] not in self._x_ticks:
+                        continue
+                    name = ", ".join(str(v) for v in (self._x_name(r['__x']), r['__color'])
+                                     if v != '') or "all"
+                    n_null = r.get('n_null')
+                    rows.append(p_line(name, r['p'], n_null if pd.notna(n_null) else None))
+                return rows
+            lines += by_panel(bars)
+        if pairs is not None:
+            # Holm over a single test is the raw p, so only say so when it matters
+            holm = ", Holm-corrected" if pairs['p'].notna().sum() > 1 else ""
+            if PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][1] is ect.pairwise_welch:
+                lines += ["", "Pairwise: Welch t-test on per-session",
+                          f"mean effects{holm}"]
+            else:
+                lines += ["", "Pairwise: permutation, bar labels shuffled",
+                          "within sessions (whole sessions when a",
+                          f"session has only one bar){holm}"]
+            compare = COMPARE_CHOICES[self.compare_box.currentIndex()][1]
+            shown = pairs if len(pairs) <= MAX_STATS_PAIRS else \
+                pairs.nsmallest(MAX_STATS_PAIRS, 'p_holm')
+
+            def pair_rows(panel):
+                rows = []
+                for _, r in shown[shown['__panel'] == panel].iterrows():
+                    if compare == 'colors':   # colours at one x
+                        fixed, a, b = self._x_name(r['fixed']), r['a'], r['b']
+                    else:                     # x values for one colour
+                        fixed, a, b = r['fixed'], self._x_name(r['a']), self._x_name(r['b'])
+                    name = f"{fixed}: {a} vs {b}" if fixed != '' else f"{a} vs {b}"
+                    rows.append(p_line(name, r['p_holm'] if pd.notna(r['p']) else None))
+                return rows
+            lines += by_panel(pair_rows)
+            if len(pairs) > len(shown):
+                lines.append(f"  (+{len(pairs) - len(shown)} more in the summary table)")
+            if len(pairs) == 0:
+                lines.append("  no pairs to compare")
+        return "\n".join(lines)
 
     # -- pairwise comparisons ---------------------------------------------------------
     def _pairwise(self, df, summary, panels, orders):
@@ -995,10 +1315,10 @@ class EstimConditionExplorer(QMainWindow):
             pairs = pd.DataFrame(columns=['__panel', 'fixed', 'a', 'b', 'diff', 'p'])
         pairs['p_holm'] = ect.holm(list(pairs['p'])) if len(pairs) else []
         pairs['_compare'] = compare
-        fixed_name = (self.x_role.column() if compare == 'colors'
+        fixed_name = (self.x_role.column() or 'x' if compare == 'colors'
                       else self.color_role.column() or 'colour')
         varied_name = (self.color_role.column() or 'colour' if compare == 'colors'
-                       else self.x_role.column())
+                       else self.x_role.column() or 'x')
         self.pairwise = pairs.drop(columns='_compare').rename(columns={
             '__panel': self.panel_role.column() or 'panel', 'fixed': fixed_name,
             'a': f"{varied_name} A", 'b': f"{varied_name} B",
@@ -1050,6 +1370,13 @@ class EstimConditionExplorer(QMainWindow):
             top = max(top, y + step)
         ax.set_ylim(y_lo, top)
 
+    def _fill_xlabels(self):
+        """Put the current x ticks (custom names where set) in the box to edit."""
+        names = [self._x_names.get(x, x).replace('\n', '\\n')
+                 for x in self._x_ticks]
+        sep = '; ' if any(',' in n for n in names) else ', '
+        self.xlabels_edit.setText(sep.join(names))
+
     # -- style ----------------------------------------------------------------------
     def plot_style(self):
         style = {key: box.value() for key, box in self.style_boxes.items()}
@@ -1084,6 +1411,9 @@ class EstimConditionExplorer(QMainWindow):
         def role(r):
             return {'column': r.column(), 'bin': r.bin_box.isChecked(),
                     'edges': r.edges.text() if r.edges.isEnabled() else None}
+        layout = {'x': role(self.x_role), 'colour': role(self.color_role),
+                  'panels': role(self.panel_role)}
+        layout['x']['labels'] = self.xlabels_edit.text()
         return {
             'version': SPEC_VERSION,
             'metric': self.metric_box.currentText(),
@@ -1093,14 +1423,17 @@ class EstimConditionExplorer(QMainWindow):
                          if self.session_list.item(i).checkState() == Qt.Checked],
             'min_trials': self.trials_box.value(),
             'filters': [r.state() for r in self.filter_rows],
-            'layout': {'x': role(self.x_role), 'colour': role(self.color_role),
-                       'panels': role(self.panel_role)},
+            'layout': layout,
             'plot': {'plot': self.plot_box.currentText(),
                      'test': self.test_box.currentText(),
                      'points': self.points_box.currentText(),
                      'compare': self.compare_box.currentText(),
                      'pairwise_test': self.pair_test_box.currentText(),
-                     'show_n': self.n_box.isChecked()},
+                     'show_n': self.n_box.isChecked(),
+                     'show_stats': self.stats_box.isChecked(),
+                     'hist_unit': self.hist_unit_box.currentText(),
+                     'hist_bin_width': self.hist_bin_box.value(),
+                     'hist_y': self.hist_y_box.currentText()},
             'style': self.plot_style(),
         }
 
@@ -1121,18 +1454,26 @@ class EstimConditionExplorer(QMainWindow):
             return
         plot = spec.get('plot', {})
         widgets = [self.trials_box, self.plot_box, self.test_box, self.points_box,
-                   self.compare_box, self.pair_test_box, self.n_box]
+                   self.compare_box, self.pair_test_box, self.n_box, self.stats_box,
+                   self.hist_unit_box, self.hist_bin_box, self.hist_y_box]
         for w in widgets:
             w.blockSignals(True)
         if 'min_trials' in spec:
             self.trials_box.setValue(int(spec['min_trials']))
         for box, key in ((self.plot_box, 'plot'), (self.test_box, 'test'),
                          (self.points_box, 'points'), (self.compare_box, 'compare'),
-                         (self.pair_test_box, 'pairwise_test')):
+                         (self.pair_test_box, 'pairwise_test'),
+                         (self.hist_unit_box, 'hist_unit'),
+                         (self.hist_y_box, 'hist_y')):
             if key in plot and not _set_combo_text(box, plot[key]):
                 skipped.append(f"{key} {plot[key]!r}")
         if 'show_n' in plot:
             self.n_box.setChecked(bool(plot['show_n']))
+        if 'show_stats' in plot:
+            self.stats_box.setChecked(bool(plot['show_stats']))
+        if 'hist_bin_width' in plot:
+            self.hist_bin_box.setValue(float(plot['hist_bin_width']))
+        self._plot_mode_changed()
         for w in widgets:
             w.blockSignals(False)
         if 'style' in spec:
@@ -1242,7 +1583,8 @@ class EstimConditionExplorer(QMainWindow):
         ax.set_xlabel(old[0] or xlab, fontsize=st['axis_label'])
         ax.set_ylabel(old[1] or ylab, fontsize=st['axis_label'])
         ax.tick_params(axis='y', labelleft=True)
-        if not had_legend and self._legend_handles:
+        fig_legend = bool(self.figure.legends)
+        if not had_legend and not fig_legend and self._legend_handles:
             ax.legend(handles=self._legend_handles, fontsize=st['legend'], loc='best',
                       title=self.color_role.column(), title_fontsize=st['legend'])
         others = [a for a in panels if a is not ax]

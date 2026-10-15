@@ -1,30 +1,20 @@
+"""
+Preference cluster: the probe's per-channel preference columns plus ρ vs each GA
+channel, and the session's average distance-scaled correlation (saved to
+EStimShapeSessionData).
+
+The figure is now drawn by src/analysis/probe_analysis (also the explorer's "Probe
+analysis" module, where every column can be toggled on and off).
+"""
+
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap, BoundaryNorm
-from matplotlib.lines import Line2D
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
-from src.analysis.channel_data_loaders import (
-    ChannelResponseVectorLoader,
-    ClusterChannelLoader,
-    IsochromaticPreferenceLoader,
-    OrientationTuningWidthLoader,
-    PreferredFrequencyLoader,
-    PreferredOrientationLoader,
-    PreferredColorLoader,
-    SolidPreferenceLoader,
-)
-from src.analysis.isogabor.preferred_color import TYPE_ORDER, TYPE_DISPLAY_COLORS
-from src.analysis.channel_metric_plot import (
-    StimVectorCorrelation,
-    build_channel_strings,
-    cluster_marker_legend_handles,
-    default_cmap_norm,
-    render_metric,
-)
+from src.analysis.channel_metric_plot import build_channel_strings
 from src.cluster.cluster_app_classes import ChannelMapper
 from src.repository.export_to_repository import read_session_id_and_date_from_db_name
 from src.startup import context
+from src.startup.apply_session_context import apply_session_context
 
 
 class DBCChannelMapper(ChannelMapper):
@@ -165,302 +155,35 @@ def save_session_metric(conn: Connection, session_id: str, cluster_size: int,
           f"cluster_size={cluster_size}, avg_distance_scaled_correlation={avg_dist_corr_value}")
 
 
-def plot_channel_preferences(session_id: str, headstage_label: str = "A", save_path: str = None):
+def plot_channel_preferences(session_id: str, headstage_label: str = "A",
+                             save_root: str = None):
     """
-    Plot raw channels ordered top-to-bottom, colored by isochromatic preference index.
+    Preference-cluster figure: the probe top -> bottom with the tuning columns
+    (preferred frequency, orientation tuning frequency, preferred orientation,
+    preferred colour, isochromatic preference per frequency, solid preference and its
+    significance) and ρ vs each GA channel. Drawn by probe_analysis (the same figure
+    as the explorer's "Probe analysis" module, which can toggle more columns).
 
-    Args:
-        session_id: The session identifier to query
-        headstage_label: The headstage label (default "A")
-        save_path: Optional path to save the figure as PNG (e.g., "output.png")
+    Then computes the average distance-scaled correlation of the GA channels and
+    saves it to EStimShapeSessionData.
     """
-    channel_strings = build_channel_strings(headstage_label)
-    conn = Connection("allen_data_repository")
+    from src.analysis.probe_analysis.probe_analysis import run_probe_analysis
+    from src.analysis.probe_analysis.probe_data import ProbeData
 
-    # ---- load data via loader classes ----
-    cluster_channels = ClusterChannelLoader(session_id, conn).load()
-    print(f"Cluster channels for session {session_id}: {cluster_channels}")
+    columns = ['pref_freq', 'orient_freq', 'pref_orient', 'pref_color', 'iso',
+               'solid', 'solid_sig', 'corr_each']
+    data = ProbeData(session_id, headstage=headstage_label)
+    _fig, blocks, _out_dir = run_probe_analysis(session_id, columns, save_root=save_root, data=data)
 
-    response_matrix = ChannelResponseVectorLoader(session_id, conn).load()
-    if response_matrix:
-        print(f"Loaded response vectors for {len(response_matrix)} channels")
-    else:
-        print("Warning: No response vectors found - correlation analysis will be skipped")
-
-    iso_loader = IsochromaticPreferenceLoader(session_id, conn)
-    iso_metrics = iso_loader.as_metrics()
-    frequencies = iso_loader.frequencies
-    n_frequencies = len(frequencies)
-
-    solid_loader = SolidPreferenceLoader(session_id, conn)
-    solid_metric = solid_loader.as_metric(title='Solid Preference')
-    solid_sig_metric = solid_loader.as_significance_metric(title='Solid Pref\nSignificance')
-
-    freq_metric = PreferredFrequencyLoader(session_id, conn).as_normalized_metric(
-        frequencies, title='Preferred\nFrequency')
-
-    orient_width_metric = OrientationTuningWidthLoader(session_id, conn).as_normalized_metric(
-        frequencies, title='Preferred\nFrequency\nby Orientation')
-
-    # Preferred orientation (at the preferred frequency, falling back to the next
-    # highest frequency with orientation data). Folded modulo 180 deg so opposite
-    # orientations share a colour, plotted with a cyclic colormap (see below).
-    orientation_period = 180.0
-    pref_orient_metric = PreferredOrientationLoader(session_id, conn).as_cyclic_metric(
-        period=orientation_period, title='Preferred\nOrientation')
-
-    # Preferred colour (gabor type) at the preferred frequency, falling back to the
-    # next highest frequency with colour data. Categorical: each type maps to its
-    # index in TYPE_ORDER and is rendered with a discrete colormap (see below).
-    pref_color_metric = PreferredColorLoader(session_id, conn).as_categorical_metric(
-        TYPE_ORDER, title='Preferred\nColor')
-
-    if not iso_metrics and solid_metric.compute() == {}:
-        print(f"No data found for session {session_id}")
-        return
-
-    print(f"Found isochromatic data for {n_frequencies} frequencies: {frequencies}")
-    print(f"Found solid preference data for {len(solid_metric.compute())} channels")
-    print(f"Plotting {len(channel_strings)} channels")
-
-    cluster_channel_list = sorted(c for c in cluster_channels if c in response_matrix)
-    corr_metrics = [
-        StimVectorCorrelation.vs_channel(
-            response_matrix, ch,
-            method='spearman', zscore=False,
-            title=f'ρ vs {ch}',
-        )
-        for ch in cluster_channel_list
-    ]
-    n_corr_cols = len(corr_metrics)
-
-    # Create subplots - adjust based on number of correlation columns
-    # Layout: [preferred freq (1 col), orientation tuning width (1 col),
-    #          preferred orientation (1 col), preferred colour (1 col),
-    #          isochromatic (4 cols), solid (1 col), solid significance (1 col),run
-    #          correlation cols (n_corr_cols)]
-    if n_corr_cols > 0:
-        width_ratios = [1, 1, 1, 1, 4, 1, 1] + [1] * n_corr_cols
-        n_cols = 7 + n_corr_cols
-        fig, axes = plt.subplots(1, n_cols, figsize=(20 + 2 * n_corr_cols, 12),
-                                 sharey=True, gridspec_kw={'width_ratios': width_ratios, 'wspace': 0.15})
-        ax_freq = axes[0]
-        ax_orient = axes[1]
-        ax_pref_orient = axes[2]
-        ax_pref_color = axes[3]
-        ax_iso = axes[4]
-        ax_solid = axes[5]
-        ax_solid_sig = axes[6]
-        ax_corr_list = axes[7:]
-    else:
-        fig, (ax_freq, ax_orient, ax_pref_orient, ax_pref_color, ax_iso, ax_solid, ax_solid_sig) = plt.subplots(
-            1, 7, figsize=(19, 12),
-            sharey=True, gridspec_kw={'width_ratios': [1, 1, 1, 1, 4, 1, 1], 'wspace': 0.15})
-        ax_corr_list = []
-
-    # Set up colormap (diverging around 0)
-    cmap, norm = default_cmap_norm()
-
-    # Plot preferred frequency as the leftmost column (owns the y-tick labels)
-    scatter = None
-    _, ref = render_metric(
-        ax_freq, freq_metric, channel_strings, cluster_channels,
-        cmap=cmap, norm=norm,
-        show_yticks=True,
-    )
-    scatter = ref or scatter
-
-    # Orientation tuning width: frequency of deepest orientation tuning,
-    # coloured high freq = red, low freq = blue (same scale as preferred freq)
-    _, ref = render_metric(
-        ax_orient, orient_width_metric, channel_strings, cluster_channels,
-        cmap=cmap, norm=norm,
-        show_yticks=False,
-    )
-    scatter = ref or scatter
-
-    # Preferred orientation: cyclic colormap so opposite orientations (180 deg
-    # apart) and the 0/180 wrap-around share a colour. Kept separate from the
-    # diverging `scatter` mappable (it gets its own colorbar below).
-    orient_cmap = plt.cm.hsv
-    orient_color_norm = plt.Normalize(vmin=-1.0, vmax=1.0)
-    _, pref_orient_ref = render_metric(
-        ax_pref_orient, pref_orient_metric, channel_strings, cluster_channels,
-        cmap=orient_cmap, norm=orient_color_norm,
-        show_yticks=False,
-    )
-
-    # Preferred colour: categorical, one discrete colour per gabor type. Each
-    # channel's value is the type's index in TYPE_ORDER; a ListedColormap maps those
-    # indices to the type display colours. Uses a legend instead of a colorbar.
-    color_listed_cmap = ListedColormap([TYPE_DISPLAY_COLORS[t] for t in TYPE_ORDER])
-    color_cat_norm = BoundaryNorm(np.arange(-0.5, len(TYPE_ORDER) + 0.5, 1.0),
-                                  color_listed_cmap.N)
-    render_metric(
-        ax_pref_color, pref_color_metric, channel_strings, cluster_channels,
-        cmap=color_listed_cmap, norm=color_cat_norm,
-        show_yticks=False,
-    )
-
-    # Plot isochromatic preferences - one metric per frequency, all on ax_iso
-    for freq_idx, metric in enumerate(iso_metrics):
-        _, ref = render_metric(
-            ax_iso, metric, channel_strings, cluster_channels,
-            cmap=cmap, norm=norm,
-            x_position=freq_idx,
-            show_yticks=False,
-            format_axis=False, set_title=False,
-        )
-        scatter = ref or scatter
-
-    # Multi-column axis formatting (frequency labels along x-axis)
-    ax_iso.set_xlim(-0.2, n_frequencies - 0.8)  # Tighter limits to reduce gaps
-    ax_iso.set_xticks(range(n_frequencies))
-    ax_iso.set_xticklabels([f'{freq} Hz' for freq in frequencies], fontsize=10)
-    ax_iso.set_title('Isochromatic Preference by Frequency', fontsize=12, fontweight='bold')
-    ax_iso.grid(True, axis='y', alpha=0.3, linestyle='--')
-    ax_iso.grid(True, axis='x', alpha=0.2, linestyle='--')
-
-    # Plot solid preference, its significance, and correlations through the same pipeline
-    correlations: dict = {}  # {cluster_channel: {channel: rho}} for downstream stats
-    for ax, metric in [(ax_solid, solid_metric), (ax_solid_sig, solid_sig_metric),
-                       *zip(ax_corr_list, corr_metrics)]:
-        data, ref = render_metric(
-            ax, metric, channel_strings, cluster_channels,
-            cmap=cmap, norm=norm,
-        )
-        scatter = ref or scatter
-        if metric.self_channel is not None:
-            correlations[metric.self_channel] = data
-
-    # Overall title
-    title_text = f'Channel Preference Indices\nSession: {session_id}'
-    if n_corr_cols > 0:
-        title_text += f' | Correlations based on {len(response_matrix)} channels with response vectors'
-    fig.suptitle(title_text, fontsize=14, fontweight='bold', y=0.95)
-
-    # Adjust layout to make room for colorbar at bottom
-    plt.tight_layout(rect=[0, 0.06, 1, 0.93])
-
-    # Add colorbar at the bottom
-    cbar_ax = fig.add_axes([0.15, 0.02, 0.7, 0.02])  # [left, bottom, width, height]
-    cbar = plt.colorbar(scatter, cax=cbar_ax, orientation='horizontal')
-    cbar.set_label('Preference Index (Red = Prefers Isochromatic/3D, Blue = Prefers Isoluminant/2D)',
-                   fontsize=10)
-
-    # Dedicated cyclic colorbar for the Preferred Orientation column (angles in
-    # degrees over [0, period); the two ends share a colour to show the wrap).
-    orient_sm = plt.cm.ScalarMappable(norm=orient_color_norm, cmap=orient_cmap)
-    orient_sm.set_array([])
-    ocbar_ax = fig.add_axes([0.92, 0.30, 0.012, 0.40])  # [left, bottom, width, height]
-    ocbar = plt.colorbar(orient_sm, cax=ocbar_ax)
-    ocbar.set_ticks([-1.0, -0.5, 0.0, 0.5, 1.0])
-    ocbar.set_ticklabels([f'{0:.0f}°', f'{orientation_period * 0.25:.0f}°',
-                          f'{orientation_period * 0.5:.0f}°', f'{orientation_period * 0.75:.0f}°',
-                          f'{orientation_period:.0f}°'])
-    ocbar.set_label('Preferred Orientation', fontsize=9)
-
-    # Discrete legend for the Preferred Colour column (one entry per gabor type).
-    color_handles = [
-        Line2D([0], [0], marker='o', color='w', markerfacecolor=TYPE_DISPLAY_COLORS[t],
-               markeredgecolor='black', markersize=9, markeredgewidth=0.5,
-               label=t, linestyle='None')
-        for t in TYPE_ORDER
-    ]
-    ax_pref_color.legend(handles=color_handles, title='Preferred Colour',
-                         loc='upper center', bbox_to_anchor=(0.5, -0.02),
-                         fontsize=7, title_fontsize=8, framealpha=0.9)
-
-    # Add legend for cluster channels
-    if cluster_channels:
-        ax_iso.legend(
-            handles=cluster_marker_legend_handles(),
-            loc='upper left', fontsize=9,
-        )
-
-    # Save figure if path provided
-    if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"\nFigure saved to: {save_path}")
-    plt.show()
-
-    # Print summary statistics
-    print(f"\n=== Summary for session {session_id} ===")
-    print(f"Cluster channels: {sorted(cluster_channels) if cluster_channels else 'None'}")
-
-    print(f"\n--- Isochromatic Preference (by frequency) ---")
-    for metric, frequency in zip(iso_metrics, frequencies):
-        freq_data = metric.compute()
-        if freq_data:
-            values = list(freq_data.values())
-            cluster_values = [v for ch, v in freq_data.items() if ch in cluster_channels]
-            print(f"\nFrequency {frequency} Hz:")
-            print(f"  Channels with data: {len(freq_data)}/{len(channel_strings)}")
-            print(f"  Index range: [{min(values):.3f}, {max(values):.3f}]")
-            print(f"  Mean index: {np.mean(values):.3f}")
-            if cluster_values:
-                print(f"  Cluster channel indices: {[f'{v:.3f}' for v in cluster_values]}")
-
-    print(f"\n--- Solid Preference Index ---")
-    solid_data = solid_metric.compute()
-    if solid_data:
-        values = list(solid_data.values())
-        cluster_values = [v for ch, v in solid_data.items() if ch in cluster_channels]
-        print(f"  Channels with data: {len(solid_data)}/{len(channel_strings)}")
-        print(f"  Index range: [{min(values):.3f}, {max(values):.3f}]")
-        print(f"  Mean index: {np.mean(values):.3f}")
-        if cluster_values:
-            print(f"  Cluster channel indices: {[f'{v:.3f}' for v in cluster_values]}")
-    else:
-        print("  No solid preference data available")
-
-    print(f"\n--- Solid Preference Significance (0=n.s., +1=sig 3D, -1=sig 2D) ---")
-    sig_data = solid_loader.load_significance()
-    if sig_data:
-        n_sig_3d = sum(1 for v in sig_data.values() if v == 1)
-        n_sig_2d = sum(1 for v in sig_data.values() if v == -1)
-        n_nonsig = sum(1 for v in sig_data.values() if v == 0)
-        print(f"  Channels tested: {len(sig_data)}/{len(channel_strings)}")
-        print(f"  Significant 3D (+1): {n_sig_3d}")
-        print(f"  Significant 2D (-1): {n_sig_2d}")
-        print(f"  Not significant (0): {n_nonsig}")
-        cluster_sig = {ch: v for ch, v in sig_data.items() if ch in cluster_channels}
-        if cluster_sig:
-            print(f"  Cluster channel categories: {cluster_sig}")
-    else:
-        print("  No significance data available (permutation test may not have been run)")
-
-    # Print correlation statistics
-    if correlations:
-        print(f"\n--- Channel Correlations (Spearman's ρ) ---")
-        for cluster_channel in cluster_channel_list:
-            corr_data = correlations[cluster_channel]
-            valid_corrs = [v for v in corr_data.values() if not np.isnan(v)]
-
-            if valid_corrs:
-                print(f"\nCorrelations with {cluster_channel}:")
-                print(f"  Channels with data: {len(valid_corrs)}/{len(channel_strings)}")
-                print(f"  Correlation range: [{min(valid_corrs):.3f}, {max(valid_corrs):.3f}]")
-                print(f"  Mean correlation: {np.mean(valid_corrs):.3f}")
-
-                # Top 5 most correlated channels (excluding self)
-                sorted_corrs = sorted([(ch, v) for ch, v in corr_data.items()
-                                       if not np.isnan(v) and ch != cluster_channel],
-                                      key=lambda x: abs(x[1]), reverse=True)[:5]
-                if sorted_corrs:
-                    print(f"  Top 5 most correlated:")
-                    for ch, corr in sorted_corrs:
-                        print(f"    {ch}: ρ = {corr:.3f}")
-
-    # Calculate and save session-level metric
+    # {GA channel: {channel: rho}} from the "ρ vs each GA channel" columns
+    correlations = {sub.self_channel: sub.data
+                    for b in blocks if b.key == 'corr_each' for sub in b.subs}
+    cluster_channels = data.ga_channels()
     print(f"\n--- Average Distance-Scaled Correlation ---")
     avg_dist_scaled_corr = calculate_avg_distance_scaled_correlation(
-        cluster_channels, channel_strings, correlations
+        cluster_channels, data.channel_strs(), correlations
     )
-
-    # Save to database
-    # cluster_size = len(cluster_channels)
-    save_session_metric(conn, session_id, None, avg_dist_scaled_corr)
+    save_session_metric(data.repo_conn(), session_id, None, avg_dist_scaled_corr)
 
 
 def main():
@@ -469,12 +192,12 @@ def main():
     session_ids = [session_id]
     # session_ids = ["260120_0", "260115_0", "260113_0", "260108_0", "260107_0", "251231_0", "251226_0"]
     headstage_label = "A"
-
-    # Optional: save figure as PNG
-    # save_path = f"channel_preferences_{session_id}.png"
+    # Figures go in <save_root>/<session>/probe_analysis/<timestamp>/; None = don't save
+    save_root = "/home/connorlab/Documents/plots"
     for session_id in session_ids:
-        save_path = f"/home/connorlab/Documents/plots/{session_id}/preference_clusters.png"  # Set to None to skip saving
-        plot_channel_preferences(session_id, headstage_label, save_path=save_path)
+        if len(session_ids) > 1:
+            apply_session_context(session_id)
+        plot_channel_preferences(session_id, headstage_label, save_root=save_root)
 
 
 if __name__ == '__main__':

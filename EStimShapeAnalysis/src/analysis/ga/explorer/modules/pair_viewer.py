@@ -487,12 +487,14 @@ class PairsFigureDialog(QDialog):
         lay.addLayout(bar)
 
     def copy(self):
+        from PyQt5.QtWidgets import QApplication
         try:
-            img = self.view.copy_to_clipboard()
+            img = self.view.clipboard_image()
         except Exception as exc:
             QMessageBox.critical(self, "Copy failed", str(exc))
             return
         if img is not None:
+            QApplication.clipboard().setImage(img)
             self.saved_label.setText(f"Copied figure to clipboard ({img.width()}×{img.height()} px)")
 
     def save(self):

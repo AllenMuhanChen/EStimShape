@@ -49,7 +49,8 @@ import pandas as pd
 class Param:
     """One user-facing setting of a module.
 
-    kind: 'int', 'float', 'bool', 'str' or 'choice'.
+    kind: 'int', 'float', 'bool', 'str' or 'choice'; or 'header' for a bold
+        section title in the panel (no value; key must still be unique).
     live: True redraws as soon as the value changes (good for cheap display
         toggles); False waits for the Apply button (good for anything that
         recomputes).
@@ -150,6 +151,11 @@ class ExplorerModule:
         reused). Return the files written. Default: a screenshot of the view."""
         return []
 
+    def clipboard_image(self):
+        """QImage that "Copy to clipboard" puts on the clipboard, or None for the
+        default: a screenshot of the view."""
+        return None
+
 
 class FigureModule(ExplorerModule):
     """A module that draws one matplotlib or plotly figure per refresh."""
@@ -174,6 +180,9 @@ class FigureModule(ExplorerModule):
 
     def save(self, folder):
         return self._view.save(folder, basename=_slug(self.name))
+
+    def clipboard_image(self):
+        return self._view.clipboard_image() if self._view is not None else None
 
 
 def new_output_folder(save_root: str, session_id: str, name: str) -> str:
