@@ -58,8 +58,23 @@ SORT_OPTIONS = (
 )
 SHOW_CHOICES = ["all", "included in estim exp", "not included", "selected"]
 
-# Width (px) of the response-colored border drawn around each thumbnail.
+# Default width (px) of the response-colored border drawn around each
+# thumbnail ("Border width" param).
 THUMB_BORDER = 6
+
+
+def parse_border_width(text, thumb_size) -> int:
+    """Border width from its text box: whole pixels, and leaving some image."""
+    try:
+        value = int(str(text).strip())
+    except ValueError:
+        raise ValueError(f"Border width must be a whole number of pixels, got {text!r}")
+    if value < 0:
+        raise ValueError(f"Border width can't be negative, got {value}")
+    if 2 * value >= thumb_size:
+        raise ValueError(f"Border width {value} px leaves no image in a {thumb_size} px "
+                         "thumbnail; use less than half the thumbnail size.")
+    return value
 
 # Component-index -> RGB color used by the Java comp-map renderer
 # (AllenMatchStick.drawSkeleton's colorCode, 1-indexed).
@@ -164,8 +179,9 @@ def read_estim_included_pairs() -> set | None:
 class ThumbnailRenderer:
     """Bordered (optionally comp-highlighted) thumbnails, cached."""
 
-    def __init__(self, thumb_size=140):
+    def __init__(self, thumb_size=140, border=THUMB_BORDER):
         self.thumb_size = thumb_size
+        self.border = border
         self._image_cache: dict[str, Image.Image] = {}
         self._compmap_cache: dict[str, object] = {}
         self._pixmap_cache: dict[tuple, QPixmap] = {}
@@ -181,9 +197,14 @@ class ThumbnailRenderer:
             self.thumb_size = size
             self.clear(keep_images=False)
 
+    def set_border(self, border):
+        if border != self.border:
+            self.border = border
+            self.clear(keep_images=False)  # the image inside the border changes size
+
     @property
     def inner(self):
-        return max(1, self.thumb_size - 2 * THUMB_BORDER)
+        return max(1, self.thumb_size - 2 * self.border)
 
     @staticmethod
     def compmap_path(thumb_path):
@@ -266,7 +287,7 @@ class ThumbnailRenderer:
                 ring_img = Image.new("RGB", img.size, NOISE_RING_COLOR)
                 ring_alpha = Image.fromarray((ring * 255).astype("uint8"), mode="L")
                 img = Image.composite(ring_img, img, ring_alpha)
-        return ImageOps.expand(img, border=THUMB_BORDER,
+        return ImageOps.expand(img, border=self.border,
                                fill=self.border_color(response, vmin, vmax))
 
     def pixmap(self, path, response, vmin, vmax, overlay_comps=None):
@@ -365,12 +386,14 @@ class PairGridView(QScrollArea):
 
 def make_pairs_figure(rows: list[dict], *, child_label="Child", parent_label="Parent",
                       title="", pairs_per_row=0, show_values=True, pair_size=2.0,
-                      show_comps=True):
+                      show_comps=True, border_frac=THUMB_BORDER / 140):
     """Matplotlib figure: one column per pair, child above its parent.
 
     ``rows``: dicts with child_resp, parent_resp, child_path, parent_path,
     child_comps, parent_comps. Borders use one black->red scale shared by all
-    pairs in the figure (colorbar on the right).
+    pairs in the figure (colorbar on the right). ``border_frac``: border width
+    as a fraction of the thumbnail, so the figure's borders look like the
+    grid's.
     """
     from matplotlib.colors import LinearSegmentedColormap, Normalize
     from matplotlib.cm import ScalarMappable
@@ -382,7 +405,7 @@ def make_pairs_figure(rows: list[dict], *, child_label="Child", parent_label="Pa
     resp = [r[k] for r in rows for k in ("child_resp", "parent_resp")
             if r[k] is not None and not pd.isna(r[k])]
     vmin, vmax = (float(min(resp)), float(max(resp))) if resp else (0.0, 1.0)
-    renderer = ThumbnailRenderer(FIGURE_THUMB_PX)
+    renderer = ThumbnailRenderer(FIGURE_THUMB_PX, round(border_frac * FIGURE_THUMB_PX))
 
     label_h = 0.35 if show_values else 0.0
     fig_w = pair_size * per_row + 2.0
@@ -541,6 +564,10 @@ class PairViewerModule(ExplorerModule):
                           "experiments that generated comp-map thumbnails."),
             Param("thumb_size", "Thumbnail size (px)", "int", 140, minimum=60, maximum=400,
                   step=10, live=True),
+            Param("border_width", "Border width (px)", "str", str(THUMB_BORDER),
+                  tooltip="Width of the response-colored border around each thumbnail, "
+                          "in screen pixels at the thumbnail size above. The figure from "
+                          "selected pairs uses the same proportion."),
             # Figure of selected pairs (used when you press the button).
             Param("fig_title", "Figure: title", "str", "", live=True,
                   tooltip="Empty = no title."),
@@ -577,6 +604,8 @@ class PairViewerModule(ExplorerModule):
     def refresh(self, values, changed=None):
         self.values = dict(values)
         self.thumbs.set_size(values["thumb_size"])
+        self.thumbs.set_border(parse_border_width(values.get("border_width", THUMB_BORDER),
+                                                  values["thumb_size"]))
         if changed and changed <= FIGURE_KEYS and self.pairs is not None:
             return  # figure settings only matter when the figure is made
         if changed is None or self.pairs is None or (changed & RECOMPUTE_KEYS):
@@ -657,8 +686,10 @@ class PairViewerModule(ExplorerModule):
                                 parent_label=self.parent_label, title=v["fig_title"],
                                 pairs_per_row=v["fig_pairs_per_row"],
                                 show_values=v["fig_show_values"], pair_size=v["fig_pair_size"],
-                                show_comps=v["show_comps"])
-        params = {k: v[k] for k in v if k in RECOMPUTE_KEYS | FIGURE_KEYS | {"show_comps"}
+                                show_comps=v["show_comps"],
+                                border_frac=self.thumbs.border / self.thumbs.thumb_size)
+        params = {k: v[k] for k in v if k in RECOMPUTE_KEYS | FIGURE_KEYS
+                  | {"show_comps", "border_width", "thumb_size"}
                   or k in {p.key for p in self.extra_params()}}
         dlg = PairsFigureDialog(self.view.window(), fig, save_root=self.save_root,
                                 session=self.session, rows=rows, params=params, name=self.slug)
