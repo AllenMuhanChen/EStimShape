@@ -266,7 +266,7 @@ def plot_spi_histogram(table: pd.DataFrame):
     return fig
 
 
-def plot_spi_vs_estim_effect(table: pd.DataFrame):
+def plot_spi_vs_estim_effect(table: pd.DataFrame, show_stats: bool = False):
     """Scatter of mean GA-channel SPI vs best-condition estim effect, one point per session,
     colored by the session's SPI significance (same colors as the histogram)."""
     data = table.dropna(subset=["mean_spi", "estim_effect"])
@@ -283,6 +283,8 @@ def plot_spi_vs_estim_effect(table: pd.DataFrame):
 
     if len(data) >= 3:
         rho, p = spearmanr(data["mean_spi"], data["estim_effect"])
+        print(f"SPI vs estim effect: Spearman rho = {rho:.2f}, p = {p:.3g} (n = {len(data)})")
+    if show_stats and len(data) >= 3:
         ax.text(0.02, 0.97, f"Spearman ρ = {rho:.2f}, p = {p:.3g}", transform=ax.transAxes,
                 va="top", ha="left", fontsize=9, color="#444444")
 
@@ -307,6 +309,7 @@ def save_figure(fig, name: str):
 
 def main():
     SHOW_PLOTS = True
+    SHOW_STATS_ON_PLOT = False  # Spearman rho/p on the scatter; always printed to console
     # Edit this list to target specific sessions; None = every session in EStimShapeTrials.
     session_ids = None
 
@@ -333,7 +336,7 @@ def main():
 
     save_figure(plot_category_pie(table), "estim_3d_2d_category_pie.png")
     save_figure(plot_spi_histogram(table), "estim_session_spi_histogram.png")
-    save_figure(plot_spi_vs_estim_effect(table), "estim_session_spi_vs_estim_effect.png")
+    save_figure(plot_spi_vs_estim_effect(table, show_stats=SHOW_STATS_ON_PLOT), "estim_session_spi_vs_estim_effect.png")
     if SHOW_PLOTS:
         plt.show()
 
