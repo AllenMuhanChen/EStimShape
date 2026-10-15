@@ -762,6 +762,10 @@ class EstimConditionExplorer(QMainWindow):
         self.plot_area.addWidget(self.toolbar)
         self.plot_area.addWidget(self.canvas, 1)
         self.canvas.mpl_connect('button_press_event', self._on_click)
+        # the layout (room for titles, stats box, legend) depends on the canvas size,
+        # so redo it when the window is resized or maximised
+        self.canvas.mpl_connect('resize_event',
+                                lambda event: self._redraw_timer.start(150))
         plot_widget = QWidget()
         plot_widget.setLayout(self.plot_area)
 
@@ -1078,7 +1082,10 @@ class EstimConditionExplorer(QMainWindow):
             renderer = self.canvas.get_renderer()
             top = 1 - legend.get_window_extent(renderer).height / self.figure.bbox.height
         self.figure.tight_layout(rect=(0, 0, right, top))
-        if self._wrap_long_ylabels():
+        # a re-layout moves the axes (and the title centred on them): re-check
+        for _ in range(3):
+            if not self._wrap_long_ylabels():
+                break
             self.figure.tight_layout(rect=(0, 0, right, top))
         self.canvas.draw_idle()
 
@@ -1134,21 +1141,25 @@ class EstimConditionExplorer(QMainWindow):
                           fontsize=st['axis_label'])
 
     def _wrap_long_ylabels(self):
-        """Break a one-line y title that is taller than the figure onto as few lines
-        as fit (at spaces, font size kept), so the plot leaves room for it. Returns
-        whether any title changed."""
+        """Break a y title that runs past the top or bottom of the figure onto
+        more lines (at spaces, font size kept), so the plot leaves room for it.
+        Returns whether any title changed."""
         renderer = self.canvas.get_renderer()
-        room = 0.95 * self.figure.bbox.height
+        fig_h = self.figure.bbox.height
+        margin = 0.01 * fig_h
+
+        def overflows(label):
+            ext = label.get_window_extent(renderer)
+            return ext.y0 < margin or ext.y1 > fig_h - margin
         changed = False
         for ax in self.figure.axes:
             label = ax.yaxis.label
             text = label.get_text()
-            if not ax.get_visible() or not text or '\n' in text:
+            if not ax.get_visible() or not text or not overflows(label):
                 continue
-            words = text.split(' ')
-            n_lines = 1
-            while label.get_window_extent(renderer).height > room \
-                    and n_lines < min(4, len(words)):
+            words = text.replace('\n', ' ').split(' ')
+            n_lines = text.count('\n') + 1
+            while overflows(label) and n_lines < min(4, len(words)):
                 n_lines += 1
                 label.set_text(self._split_lines(words, n_lines))
                 changed = True
