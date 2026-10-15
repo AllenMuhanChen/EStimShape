@@ -1,170 +1,46 @@
 """
 pub_single_column.py
 --------------------
-Publication-quality single-column figure: all channels top → bottom,
-coloured by one chosen metric.
+Publication figure: all channels top → bottom, coloured by one chosen column, with
+depth along the probe on the y axis and the estim channels hatched.
 
-Usage: edit the USER SETTINGS block, then run.
+Drawn by src/analysis/probe_analysis (the explorer's "Probe analysis" module has the
+same columns as toggles, and its 'Y axis labels: depth' / 'EStim spec' settings give
+the same figure).
+
+Usage: edit the settings at the top of main(), then run.
 """
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from clat.util.connection import Connection
-from src.analysis.channel_data_loaders import (
-    ChannelResponseVectorLoader,
-    ClusterChannelLoader,
-    DeltaVariantStimLoader,
-    GAResponseLoader,
-    IsochromaticPreferenceLoader,
-    RawSpikeResponseLoader,
-    SolidPreferenceLoader,
-)
-from src.analysis.channel_metric_plot import (
-    LookupMetric,
-    StimVectorCorrelation,
-    build_channel_strings,
-    cluster_marker_legend_handles,
-    default_cmap_norm,
-    format_single_column_axis,
-    plot_metric_column,
-)
-from src.startup import context
+import sys
+from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parents[2]))
 
-# ─── USER SETTINGS ────────────────────────────────────────────────────────────
-
-SESSION_ID  = "260426_0"
-HEADSTAGE   = "A"
-SAVE_PATH   = "/home/connorlab/Documents/plots/260426_0/probe_correlation"   # e.g. "/home/connorlab/Documents/plots/pub_column.png"
-
-# Open connections once so metric choices below can share them.
-conn    = Connection("allen_data_repository")
-ga_conn = Connection(context.ga_database)
-
-# ── Pick ONE metric ──────────────────────────────────────────────────────────
-# Assign the one you want to `metric` and leave the rest commented out.
-
-# Solid preference index
-# metric = SolidPreferenceLoader(SESSION_ID, conn).as_metric(title='Solid Preference')
-
-# Isochromatic preference at a specific frequency
-# iso_data = IsochromaticPreferenceLoader(SESSION_ID, conn).load()
-# metric = LookupMetric(iso_data[12.0], title='Iso Pref  12 Hz')
-
-# Raw Spearman correlation vs a cluster channel (from pre-computed GA vectors)
-matrix = ChannelResponseVectorLoader(SESSION_ID, conn).load()
-target_channel = "A-022"
-metric = StimVectorCorrelation.vs_channel(matrix, target_channel, title=f'Correlation vs GA Channel')
-
-# Z-scored Spearman on delta/variant stims
-# dv_ids = DeltaVariantStimLoader(ga_conn, included_only=True).load()
-# matrix = RawSpikeResponseLoader(conn, dv_ids).load()
-# metric = StimVectorCorrelation.vs_channel(matrix, "A-001", zscore=True, title='ρ vs A-001 (Δ/var)')
-
-# Z-scored Spearman on top-N GA stims
-# ga_resp = GAResponseLoader(SESSION_ID, conn).load()
-# top_ids = set(sorted(ga_resp, key=ga_resp.get, reverse=True)[:20])
-# matrix  = RawSpikeResponseLoader(conn, top_ids).load()
-# metric  = StimVectorCorrelation.vs_channel(matrix, "A-001", zscore=True, title='ρ vs A-001 (top-N)')
-
-# ─────────────────────────────────────────────────────────────────────────────
-
-CHANNEL_SPACING_MM = 0.065  # 65 µm center-to-center
-ESTIM_HATCH_COLOR  = '#8B8000'  # used for both hatch and "EStim" label
+from src.analysis.probe_analysis.probe_analysis import run_probe_analysis
 
 
 def main():
-    """
-    Args:
-        estim_channels: Optional set of channel strings (e.g. {"A-007", "A-025"})
-                        to mark with a hatched band so they are visually distinct
-                        from cluster channels without obscuring the dot colour.
-    """
-    estim_channels = {"A-008", target_channel}
+    # ---------------------------------------------------------------- settings
+    SESSION_ID = "260426_0"
+    SAVE_ROOT = "/home/connorlab/Documents/plots"   # <root>/<session>/probe_analysis/<time>/
+    # The ONE column to show, e.g.
+    #   'corr_each'  Spearman ρ vs REFERENCE_CHANNEL (GA mean response vectors)
+    #   'solid'      solid preference index
+    #   'iso'        isochromatic preference (set ISO_FREQUENCIES to pick one)
+    #   'corr_dv'    z-scored ρ vs REFERENCE_CHANNEL on the delta/variant stims
+    #   'corr_topn'  z-scored ρ vs REFERENCE_CHANNEL on the top-N GA stims
+    COLUMN = 'corr_each'
+    REFERENCE_CHANNEL = "A-022"
+    ISO_FREQUENCIES = [12.0]
+    TOP_N = 20
+    ESTIM = "A-008, A-022"       # hatched: channels, estim spec ids ("3,5"), "all" or "none"
+    FONT_SIZE = 12
+    # -------------------------------------------------------------------------
 
-    channel_strings  = build_channel_strings(HEADSTAGE)
-    cluster_channels = ClusterChannelLoader(SESSION_ID, conn).load()
-    cmap, norm       = default_cmap_norm()
-    n                = len(channel_strings)
-
-    fig, ax = plt.subplots(figsize=(5, 12))
-    # Reserve right-side room for the EStim labels, the tall colorbar,
-    # and the marker legend stacked above it.
-    fig.subplots_adjust(left=0.18, right=0.62, top=0.92, bottom=0.05)
-
-    scatter = plot_metric_column(
-        ax, metric.compute(), channel_strings, cluster_channels,
-        cmap=cmap, norm=norm,
-        self_channel=metric.self_channel,
-        show_yticks=True,
-    )
-
-    # Replace channel-name tick labels with depth in mm.
-    # y=n → top channel (index 0, depth 0 mm); y=1 → bottom (depth (n-1)*spacing)
-    depth_labels = [f'{(n - 1 - i) * CHANNEL_SPACING_MM:.2f}' for i in range(n)]
-    ax.set_yticklabels(depth_labels, fontsize=10)
-    ax.set_ylabel('Depth Along Probe (mm)', fontsize=12)
-
-    format_single_column_axis(ax)
-
-    if metric.title:
-        ax.set_title(metric.title, fontsize=11, fontweight='bold', pad=8)
-
-    # Hatched bands for estim channels (drawn behind the dots).
-    if estim_channels:
-        for row_idx, ch in enumerate(channel_strings):
-            if ch in estim_channels:
-                y_pos = n - row_idx  # matches y positions in plot_metric_column
-                ax.axhspan(
-                    y_pos - 0.5, y_pos + 0.5,
-                    facecolor='none', hatch='////',
-                    edgecolor=ESTIM_HATCH_COLOR, linewidth=0.4,
-                    zorder=0,
-                )
-                ax.text(
-                    1.02, y_pos, 'EStim',
-                    transform=ax.get_yaxis_transform(),
-                    ha='left', va='center',
-                    fontsize=12, color=ESTIM_HATCH_COLOR,
-                    clip_on=False,
-                )
-
-    # Colorbar: 75% of the axes height, bottom-anchored on the right side.
-    # The EStim labels sit at x=1.02 (axes fraction); start the colorbar at
-    # x=1.30 so the labels have clear horizontal space.
-    if scatter:
-        cax = inset_axes(
-            ax, width="5%", height="75%",
-            loc='lower left',
-            bbox_to_anchor=(1.30, 0.0, 1, 1),
-            bbox_transform=ax.transAxes,
-            borderpad=0,
-        )
-        cbar = fig.colorbar(
-            plt.cm.ScalarMappable(norm=norm, cmap=cmap),
-            cax=cax, orientation='vertical',
-        )
-        cbar.set_label(metric.title, fontsize=12)
-
-    # Marker legend stacked above the colorbar, sharing the same left anchor.
-    ax.legend(
-        handles=cluster_marker_legend_handles(include_no_data=False),
-        fontsize=12,
-        bbox_to_anchor=(1.28, 1.0),
-        bbox_transform=ax.transAxes,
-        loc='upper left',
-        borderaxespad=0,
-        framealpha=0.8,
-    )
-
-    if SAVE_PATH:
-        fig.savefig(SAVE_PATH, dpi=300, bbox_inches='tight')
-        # replace extension with .svg
-        svg_path = SAVE_PATH.rsplit('.', 1)[0] + '.svg'
-        fig.savefig(svg_path, dpi=300, bbox_inches='tight')
-        print(f"Saved to {SAVE_PATH}")
-
-    plt.show()
+    run_probe_analysis(SESSION_ID, [COLUMN], estim_spec=ESTIM, y_labels='depth',
+                       options=dict(corr_reference=REFERENCE_CHANNEL,
+                                    iso_frequencies=ISO_FREQUENCIES, top_n=TOP_N),
+                       font_size=FONT_SIZE, save_root=SAVE_ROOT)
 
 
 if __name__ == "__main__":
