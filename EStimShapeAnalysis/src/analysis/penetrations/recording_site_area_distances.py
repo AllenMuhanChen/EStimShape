@@ -570,6 +570,7 @@ def main():
     PLOT_RF_MAP = True
     PLOT_V4_BORDER_CHECK = True          # RF size/eccentricity vs distance to the V4v/V4d border
     V4_BORDER_TOLERANCE_MM = 1.0         # voxels this close to the other area count as border
+    V4_CHECK_EXCLUDE_AREAS = ['V3v']     # drop sessions in (or nearest to) these areas from the V4 check
     # Motion-area sites: every Penetrations row whose label contains one of these
     # keywords (case-insensitive; 'MT' only as a whole word), distance to these areas
     REPORT_MOTION_SITES = True
@@ -608,7 +609,8 @@ def main():
             corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
             pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
             plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK,
-            v4_border_tolerance_mm=V4_BORDER_TOLERANCE_MM, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
+            v4_border_tolerance_mm=V4_BORDER_TOLERANCE_MM,
+            v4_check_exclude_areas=V4_CHECK_EXCLUDE_AREAS, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
             print_areas=PRINT_AREAS, start_date=START_DATE,
             report_motion_sites=REPORT_MOTION_SITES, motion_label_keywords=MOTION_LABEL_KEYWORDS,
             motion_top_n=MOTION_TOP_N, motion_search_radius_mm=MOTION_SEARCH_RADIUS_MM,
@@ -646,7 +648,11 @@ def main():
                         "Receptive fields by recording area",
                         LABEL_SESSIONS)
         if PLOT_V4_BORDER_CHECK:
-            plot_v4_border_check(rf_df, os.path.join(out_dir, 'v4_border_rf_check.png'))
+            v4_df = rf_df[~rf_df['area'].isin(V4_CHECK_EXCLUDE_AREAS)]
+            dropped = sorted(rf_df.loc[rf_df['area'].isin(V4_CHECK_EXCLUDE_AREAS), 'session_id'])
+            if dropped:
+                print(f"  V4 check: excluded {len(dropped)} sessions in/nearest {V4_CHECK_EXCLUDE_AREAS}: {dropped}")
+            plot_v4_border_check(v4_df, os.path.join(out_dir, 'v4_border_rf_check.png'))
 
     if REPORT_MOTION_SITES:
         motion_pens = filter_by_start_date(
