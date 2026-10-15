@@ -21,7 +21,9 @@ Left panel:
     keeps that tick's value; \\n breaks a line). "fill" puts the current ticks in
     the box to edit. Cleared when the X-axis column changes.
   - Plot: effect bars (mean of per-session mean effects ± SEM across sessions),
-    ON vs OFF dots, or an effect histogram (effect on the x-axis; one row per
+    ON vs OFF dots, effect violins (the distribution of effects at each bar's
+    place: per condition or per-session mean, see 'Distribution of'; stars,
+    n, points and brackets as for bars), or an effect histogram (effect on the x-axis; one row per
     X-axis value, a column per panel, colours overlaid; counts per condition or
     per-session mean, set bin width, y as count or % of each histogram's own n
     so groups of different sizes compare; dashed line at 0; pairs are listed in the
@@ -83,8 +85,8 @@ HIDDEN_COLUMNS = {'conditions', ect.EFFECT_COL, ect.ON_COL, ect.OFF_COL}
 TEST_CHOICES = (('two-sided', 'two-sided'), ('one-sided: ON > OFF', 'greater'),
                 ('one-sided: ON < OFF', 'less'), ('off', None))
 PLOT_CHOICES = (('effect bars (ON − OFF)', 'bars'), ('ON vs OFF dots', 'dots'),
-                ('effect histogram', 'hist'))
-# what one histogram count is: (label, unit)
+                ('effect violins', 'violin'), ('effect histogram', 'hist'))
+# what one histogram count / violin value is: (label, unit)
 HIST_UNIT_CHOICES = (('per condition', 'condition'), ('per-session mean', 'session'))
 DEFAULT_HIST_BIN_WIDTH = 5.0
 # histogram height: (label, mode) — 'percent' = % of that histogram's own n, so
@@ -561,8 +563,9 @@ class EstimConditionExplorer(QMainWindow):
         self.plot_box.addItems([c[0] for c in PLOT_CHOICES])
         self.hist_unit_box = _compact(QComboBox())
         self.hist_unit_box.addItems([c[0] for c in HIST_UNIT_CHOICES])
-        self.hist_unit_box.setToolTip("Effect histogram: count each condition, or "
-                                      "each session's mean over its conditions")
+        self.hist_unit_box.setToolTip("Effect histogram / violins: one value per "
+                                      "condition, or each session's mean over its "
+                                      "conditions")
         self.hist_bin_box = QDoubleSpinBox()
         self.hist_bin_box.setRange(0.1, 100)
         self.hist_bin_box.setDecimals(1)
@@ -662,7 +665,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Panels by", self.panel_role)
         form.addRow(QLabel("<b>Plot</b>"))
         form.addRow("Plot", self.plot_box)
-        form.addRow("Histogram of", self.hist_unit_box)
+        form.addRow("Distribution of", self.hist_unit_box)
         form.addRow("Histogram bin", self.hist_bin_box)
         form.addRow("Histogram y", self.hist_y_box)
         form.addRow("Test", self.test_box)
@@ -921,14 +924,16 @@ class EstimConditionExplorer(QMainWindow):
         legend = None
         if mode == 'hist':
             self._draw_hist(df, summary, panels, colors)
-            if self._legend_handles:
+        else:
+            self._draw_bars(df, summary, panels, orders, colors, mode, pairs)
+        # histograms / violins fill their axes, so the colour legend goes in a
+        # row above the grid instead of over the data
+        if mode in ('hist', 'violin') and self._legend_handles:
                 legend = self.figure.legend(
                     handles=self._legend_handles, loc='upper center',
                     ncol=len(self._legend_handles), fontsize=st['legend'],
                     title=self.color_role.column() or None,
                     title_fontsize=st['legend'], frameon=False)
-        else:
-            self._draw_bars(df, summary, panels, orders, colors, mode, pairs)
         right = 1.0
         if self.stats_box.isChecked():
             text = self._stats_text(summary, pairs, panels, alternative)
@@ -992,12 +997,12 @@ class EstimConditionExplorer(QMainWindow):
             for ax, panel in zip(axes.flat, panels):
                 self._draw_brackets(ax, pairs[pairs['__panel'] == panel], positions[panel])
         self._legend_handles = self._legend(colors, mode)
-        if self._legend_handles:
+        if self._legend_handles and mode != 'violin':
             axes.flat[0].legend(handles=self._legend_handles, fontsize=st['legend'],
                                 loc='best', title=self.color_role.column() or None,
                                 title_fontsize=st['legend'])
         for ax in axes[:, 0]:
-            ax.set_ylabel('EStim effect: ON − OFF (%)' if mode == 'bars'
+            ax.set_ylabel('EStim effect: ON − OFF (%)' if mode in ('bars', 'violin')
                           else '% chose hypothesized', fontsize=st['axis_label'])
         for ax in axes[-1, :]:
             ax.set_xlabel(self.x_role.column() or '', fontsize=st['axis_label'])
@@ -1006,13 +1011,11 @@ class EstimConditionExplorer(QMainWindow):
         """Effect histograms: effect on the x-axis, one row per X-axis value and a
         column per panel, colours overlaid. Shared bins (aligned to 0) and axes."""
         st = self.plot_style()
-        unit = HIST_UNIT_CHOICES[self.hist_unit_box.currentIndex()][1]
+        unit = self._dist_unit()
         percent = HIST_Y_CHOICES[self.hist_y_box.currentIndex()][1] == 'percent'
         groups = {}
         for key, sub in df.groupby(['__panel', '__x', '__color'], observed=True):
-            vals = (sub.groupby('session_id')[ect.EFFECT_COL].mean() if unit == 'session'
-                    else sub[ect.EFFECT_COL])
-            vals = pd.to_numeric(vals, errors='coerce').dropna().to_numpy(dtype=float)
+            vals = self._dist_values(sub)
             if len(vals):
                 groups[key] = vals
         everything = np.concatenate(list(groups.values())) if groups else np.zeros(1)
@@ -1075,12 +1078,25 @@ class EstimConditionExplorer(QMainWindow):
         axes[-1, len(panels) // 2].set_xlabel('EStim effect: ON − OFF (%)',
                                                fontsize=st['axis_label'])
 
+    def _dist_unit(self):
+        return HIST_UNIT_CHOICES[self.hist_unit_box.currentIndex()][1]
+
+    def _dist_values(self, sub):
+        """Effects of one group for a histogram / violin: one per condition, or
+        one per session (its mean), as floats without NaNs."""
+        vals = (sub.groupby('session_id')[ect.EFFECT_COL].mean()
+                if self._dist_unit() == 'session' else sub[ect.EFFECT_COL])
+        return pd.to_numeric(vals, errors='coerce').dropna().to_numpy(dtype=float)
+
     def _plot_mode_changed(self, *_):
-        hist = PLOT_CHOICES[self.plot_box.currentIndex()][1] == 'hist'
-        # the histogram rows only show in histogram mode
-        for w in (self.hist_unit_box, self.hist_bin_box, self.hist_y_box):
-            w.setVisible(hist)
-            self._form.labelForField(w).setVisible(hist)
+        mode = PLOT_CHOICES[self.plot_box.currentIndex()][1]
+        hist = mode == 'hist'
+        # distribution settings only show for the plots that use them
+        shown = {self.hist_unit_box: mode in ('hist', 'violin'),
+                 self.hist_bin_box: hist, self.hist_y_box: hist}
+        for w, on in shown.items():
+            w.setVisible(on)
+            self._form.labelForField(w).setVisible(on)
         # histograms have no x tick labels (x labels name the rows) and no points
         for w in (self.rotation_box, self.points_box):
             w.setVisible(not hist)
@@ -1138,7 +1154,32 @@ class EstimConditionExplorer(QMainWindow):
                 color = colors.get(c, BAR_COLOR)
                 pts = self._points(panel_df[(panel_df['__x'] == x)
                                             & (panel_df['__color'] == c)])
-                if mode == 'bars':
+                if mode == 'violin':
+                    vals = self._dist_values(panel_df[(panel_df['__x'] == x)
+                                                      & (panel_df['__color'] == c)])
+                    if len(np.unique(vals)) >= 2:
+                        parts = ax.violinplot([vals], positions=[pos], widths=width * 0.9,
+                                              showextrema=False)
+                        for body in parts['bodies']:
+                            body.set_facecolor(color)
+                            body.set_edgecolor('black')
+                            body.set_linewidth(0.5)
+                            body.set_alpha(0.85)
+                    elif len(vals):
+                        # a single value (or all equal) has no density to draw
+                        ax.plot([pos - width * 0.3, pos + width * 0.3], [vals[0]] * 2,
+                                color=color, lw=2.5)
+                    top = vals.max() if len(vals) else r['effect']
+                    bottom = vals.min() if len(vals) else r['effect']
+                    if pts is not None:
+                        jit = self._jitter(len(pts), width * 0.15, (xi, ci))
+                        ax.scatter(pos + jit, pts['effect'], s=10, color=POINT_COLOR,
+                                   alpha=0.6, lw=0, zorder=3)
+                        top = max(top, pts['effect'].max())
+                        bottom = min(bottom, pts['effect'].min())
+                    # stars above the whole violin, whichever way the effect goes
+                    star_y, va = top, 'bottom'
+                elif mode == 'bars':
                     ax.bar(pos, r['effect'], width * 0.9, color=color, alpha=0.85,
                            edgecolor='black', linewidth=0.5)
                     ax.errorbar(pos, r['effect'], yerr=r['effect_sem'], color='black',
@@ -1179,14 +1220,14 @@ class EstimConditionExplorer(QMainWindow):
                     ax.annotate(marker, (pos, star_y), xytext=(0, 2 if va == 'bottom' else -2),
                                 textcoords='offset points', ha='center', va=va,
                                 fontsize=st['stars'])
-                upper = max(star_y, 0) if mode == 'bars' else star_y
+                upper = max(star_y, 0) if mode in ('bars', 'violin') else star_y
                 positions[(x, c)] = (pos, upper)
                 if show_n:
                     ax.annotate(f"{r['n_conditions']}/{r['n_sessions']}", (pos, 0),
                                 xycoords=('data', 'axes fraction'), xytext=(0, 2),
                                 textcoords='offset points', ha='center', va='bottom',
                                 fontsize=st['n_label'], color='#555555')
-        if mode == 'bars':
+        if mode in ('bars', 'violin'):
             ax.axhline(0, color='black', lw=0.8, ls='--')
         ax.set_xticks(range(len(x_order)))
         rotation = (30 if len(x_order) > 4 else 0) if st['xtick_rotation'] == 'auto' \
