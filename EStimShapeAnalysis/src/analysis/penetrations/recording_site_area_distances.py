@@ -503,19 +503,28 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str
 
     RF radius and RF eccentricity vs distance to the border
     (column border_col(border_areas); see border_distance), with Spearman
-    correlation (rank-based, no linearity assumption).
+    correlation (rank-based, no linearity assumption). Dots are colored by
+    which of border_areas the site is in, else the nearest one.
     """
     from scipy.stats import spearmanr
     name = '/'.join(border_areas)
     score = df[border_col(border_areas)].to_numpy(float)
     radius = df['rf_radius'].to_numpy(float)
     ecc = np.hypot(df['rf_x'].to_numpy(float), df['rf_y'].to_numpy(float))
+    # Dot color = which of border_areas the site is in, else the nearest one
+    site_area = assign_area(df, list(border_areas))['area'].to_numpy()
+    fallback = plt.get_cmap('tab10')
+    colors = {a: AREA_COLORS.get(a, fallback(i % 10)) for i, a in enumerate(border_areas)}
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.8))
 
     for ax, y, ylabel in ((axes[0], radius, 'RF radius (deg)'),
                           (axes[1], ecc, 'RF eccentricity (deg)')):
-        ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
+        for a in border_areas:
+            m = site_area == a
+            if m.any():
+                ax.scatter(score[m], y[m], s=90, color=colors[a], edgecolor='black',
+                           linewidth=0.6, label=f"{a} (n={int(m.sum())})")
         if regression_line and len(score) >= 2:
             slope, intercept = np.polyfit(score, y, 1)   # ordinary least squares
             xs = np.array([score.min(), score.max()])
@@ -532,6 +541,7 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str
     for ax in axes:
         ax.tick_params(labelsize=12)
         ax.spines[['top', 'right']].set_visible(False)
+    axes[1].legend(fontsize=12, loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150, bbox_inches='tight')
     return fig
