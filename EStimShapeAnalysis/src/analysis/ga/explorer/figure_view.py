@@ -15,6 +15,8 @@ from PyQt5.QtWidgets import (QCheckBox, QHBoxLayout, QLabel, QPushButton,
                              QScrollArea, QSpinBox, QVBoxLayout, QWidget)
 
 MPL_SAVE_DPI = 300
+# Lower than for saving, so a pasted figure isn't huge.
+MPL_CLIPBOARD_DPI = 150
 
 
 def _is_plotly(fig) -> bool:
@@ -163,6 +165,26 @@ class FigureView(QWidget):
                 and self._fit_check.isChecked()):
             self._rescale()
         return False
+
+    # ---------------------------------------------------------------- copy
+    def copy_to_clipboard(self) -> QImage | None:
+        """Put the whole figure on the clipboard as an image (as saved, not
+        as zoomed on screen). Returns the image, or None if there's none."""
+        from PyQt5.QtWidgets import QApplication
+        if self._fig is None:
+            return None
+        fig = self._fig
+        if _is_plotly(fig):
+            png = fig.to_image(format="png", width=fig.layout.width,
+                               height=fig.layout.height, scale=2)
+        else:
+            import io
+            buf = io.BytesIO()
+            fig.savefig(buf, format="png", dpi=MPL_CLIPBOARD_DPI, bbox_inches="tight")
+            png = buf.getvalue()
+        img = QImage.fromData(png, "PNG")
+        QApplication.clipboard().setImage(img)
+        return img
 
     # ---------------------------------------------------------------- save
     def save(self, folder: str, basename: str) -> list[str]:

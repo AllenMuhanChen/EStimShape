@@ -476,11 +476,24 @@ class PairsFigureDialog(QDialog):
         bar = QHBoxLayout()
         self.saved_label = QLabel("")
         self.saved_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        copy_btn = QPushButton("Copy to clipboard")
+        copy_btn.setToolTip("Copy the whole figure as an image, to paste elsewhere.")
+        copy_btn.clicked.connect(self.copy)
         save_btn = QPushButton("Save figure…")
         save_btn.clicked.connect(self.save)
         bar.addWidget(self.saved_label, stretch=1)
+        bar.addWidget(copy_btn)
         bar.addWidget(save_btn)
         lay.addLayout(bar)
+
+    def copy(self):
+        try:
+            img = self.view.copy_to_clipboard()
+        except Exception as exc:
+            QMessageBox.critical(self, "Copy failed", str(exc))
+            return
+        if img is not None:
+            self.saved_label.setText(f"Copied figure to clipboard ({img.width()}×{img.height()} px)")
 
     def save(self):
         try:
