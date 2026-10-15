@@ -496,38 +496,24 @@ def border_col(areas: List[str]) -> str:
     return '_'.join(areas) + '_border'
 
 
-def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str],
-                         a: str = 'V4v', b: str = 'V4d'):
+def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str]):
     """Sanity check: sites close to where the border_areas meet (the foveal
     confluence) should have small, near-foveal RFs.
 
-    Left: distance to a vs distance to b, colored by RF radius.
-    Middle/right: RF radius and RF eccentricity vs distance to the border
+    RF radius and RF eccentricity vs distance to the border
     (column border_col(border_areas); see border_distance), with Spearman
     correlation (rank-based, no linearity assumption).
     """
     from scipy.stats import spearmanr
     name = '/'.join(border_areas)
-    d_a, d_b = df[a].to_numpy(float), df[b].to_numpy(float)
     score = df[border_col(border_areas)].to_numpy(float)
     radius = df['rf_radius'].to_numpy(float)
     ecc = np.hypot(df['rf_x'].to_numpy(float), df['rf_y'].to_numpy(float))
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5.8))
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.8))
 
-    ax = axes[0]
-    sc = ax.scatter(d_a, d_b, c=radius, cmap='viridis', s=90, edgecolor='black', linewidth=0.6)
-    lim = max(1.0, float(np.nanmax(np.r_[d_a, d_b])) * 1.08)
-    ax.set_xlim(-0.3, lim); ax.set_ylim(-0.3, lim); ax.set_aspect('equal')
-    ax.set_xlabel(f'Distance to {a} (mm)', fontsize=14)
-    ax.set_ylabel(f'Distance to {b} (mm)', fontsize=14)
-    ax.set_title(f'Distance to {a} vs {b}', fontsize=15)
-    cb = fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.04)
-    cb.set_label('RF radius (deg)', fontsize=13)
-    cb.ax.tick_params(labelsize=11)
-
-    for ax, y, ylabel in ((axes[1], radius, 'RF radius (deg)'),
-                          (axes[2], ecc, 'RF eccentricity (deg)')):
+    for ax, y, ylabel in ((axes[0], radius, 'RF radius (deg)'),
+                          (axes[1], ecc, 'RF eccentricity (deg)')):
         ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
         if len(score) >= 3:
             rho, pval = spearmanr(score, y)
