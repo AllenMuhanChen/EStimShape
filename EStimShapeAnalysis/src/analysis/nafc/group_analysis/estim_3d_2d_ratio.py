@@ -179,11 +179,18 @@ def estim_effect_summary(session_id: str) -> dict:
     return {"estim_effect": result["observed_raw"], "estim_effect_p": result["p_value"]}
 
 
-def compute_ratio_table(session_ids=None) -> pd.DataFrame:
-    """One row per session. Sessions whose GA database can't be read are reported and skipped."""
+def compute_ratio_table(exclude_session_ids=None, start_session_id=None) -> pd.DataFrame:
+    """One row per session in EStimShapeTrials, filtered the same way as
+    max_estim_per_experiment: drop ``exclude_session_ids``, then keep only sessions whose
+    session_id >= ``start_session_id`` (if given). Sessions whose GA database can't be read
+    are reported and skipped."""
     repo_conn = Connection("allen_data_repository")
-    if session_ids is None:
-        session_ids = all_estim_session_ids(repo_conn)
+    session_ids = all_estim_session_ids(repo_conn)
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
 
     rows = []
     for sid in session_ids:
@@ -310,10 +317,12 @@ def save_figure(fig, name: str):
 def main():
     SHOW_PLOTS = True
     SHOW_STATS_ON_PLOT = False  # Spearman rho/p on the scatter; always printed to console
-    # Edit this list to target specific sessions; None = every session in EStimShapeTrials.
-    session_ids = None
+    # Same session selection as max_estim_per_experiment.main().
+    exclude_session_ids = ["260421_0", "260410_0"]
+    start_session_id = "260402_0"  # first variant experiment; None = no lower bound
 
-    table = compute_ratio_table(session_ids)
+    table = compute_ratio_table(exclude_session_ids=exclude_session_ids,
+                                start_session_id=start_session_id)
     if table.empty:
         print("No sessions found.")
         return
