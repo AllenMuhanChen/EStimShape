@@ -19,6 +19,7 @@ up), and its info row records when and with which settings it was made.
 """
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -28,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).parents[3]))
 
 from clat.util.connection import Connection
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
-    _cond_dicts_equal, _normalize_cond_key)
+    _cond_val_equal, _normalize_cond_key)
 
 REPOSITORY_DB = "allen_data_repository"
 
@@ -125,23 +126,76 @@ def load_condition_set(set_name):
                  "WHERE set_name = %s", (set_name,))
     out = {}
     for sid, cond in conn.fetch_all():
-        out.setdefault(sid, []).append(json.loads(cond))
+        out.setdefault(_text(sid), []).append(json.loads(_text(cond)))
     return out
+
+
+def _text(v):
+    return v.decode() if isinstance(v, (bytes, bytearray)) else str(v)
+
+
+def _canonical(cond):
+    """A condition dict with comparable values: one-element lists unwrapped (old
+    EStimEffects rows store [10.0]), numbers as floats, NaN as None."""
+    out = {}
+    for k, v in cond.items():
+        if isinstance(v, (list, tuple)) and len(v) == 1:
+            v = v[0]
+        if isinstance(v, bool):
+            v = float(v)
+        elif isinstance(v, (int, float)) or hasattr(v, 'dtype'):
+            try:
+                v = float(v)
+            except (TypeError, ValueError):
+                pass
+        if isinstance(v, float) and math.isnan(v):
+            v = None
+        out[k] = v
+    return out
+
+
+# keys a condition must share with a set member to match on their common keys
+_REQUIRED_KEYS = {'trial_type', 'estim_spec_id'}
+
+
+def _same_condition(a, b):
+    """a, b canonical dicts. Equal values on every key; or, when the key sets
+    differ (rows computed when a condition key didn't exist yet), equal values on
+    the shared keys, which must include trial_type and estim_spec_id."""
+    keys = set(a) & set(b)
+    if set(a) != set(b) and not _REQUIRED_KEYS <= keys:
+        return False
+    return all(_cond_val_equal(a[k], b[k]) for k in keys)
 
 
 def in_condition_set(session_ids, conditions_json, members):
     """Boolean list: is each (session_id, EStimEffects conditions JSON) pair in the
-    set ``members`` (from load_condition_set)? Matches by condition value, so a
-    stored 10 matches 10.0."""
-    keyed = {sid: ({_normalize_cond_key(c) for c in conds}, conds)
-             for sid, conds in members.items()}
+    set ``members`` (from load_condition_set)? Matches by condition value (10 ==
+    10.0 == [10.0], NaN == None), and on the shared keys when the stored set and
+    the table were computed with different condition keys."""
+    keyed = {_text(sid): [_canonical(c) for c in conds] for sid, conds in members.items()}
     out = []
     for sid, cond_json in zip(session_ids, conditions_json):
-        if sid not in keyed:
+        conds = keyed.get(_text(sid))
+        if not conds:
             out.append(False)
             continue
-        cond = json.loads(cond_json)
-        exact, conds = keyed[sid]
-        out.append(_normalize_cond_key(cond) in exact
-                   or any(_cond_dicts_equal(cond, c) for c in conds))
+        cond = _canonical(json.loads(_text(cond_json)))
+        out.append(any(_same_condition(cond, c) for c in conds))
     return out
+
+
+def describe_mismatch(session_ids, conditions_json, members):
+    """Text explaining why a set matches nothing in a table: sessions in common and,
+    for the first shared session, a set condition next to a table condition."""
+    table = {}
+    for sid, cond_json in zip(session_ids, conditions_json):
+        table.setdefault(_text(sid), []).append(json.loads(_text(cond_json)))
+    shared = sorted(set(table) & set(members))
+    if not shared:
+        return (f"no session in common (set: {sorted(members)[:5]}..., "
+                f"table: {sorted(table)[:5]}...)")
+    sid = shared[0]
+    return (f"{len(shared)} sessions in common; e.g. {sid}: set has "
+            f"{json.dumps(members[sid][0], sort_keys=True)}, table has "
+            f"{json.dumps(table[sid][0], sort_keys=True)}")

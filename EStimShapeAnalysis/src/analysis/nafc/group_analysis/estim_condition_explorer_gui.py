@@ -506,6 +506,7 @@ class EstimConditionExplorer(QMainWindow):
         self.set_lister = set_lister
         self.set_loader = set_loader
         self._set_masks = {}  # (set name, data key) -> boolean mask over self.df
+        self._set_notes = {}  # (set name, data key) -> how many rows matched
         self._tables = {}
         self._nulls = {}
         self.df = None
@@ -937,6 +938,7 @@ class EstimConditionExplorer(QMainWindow):
             sets = None
             self.set_box.setToolTip(f"Could not read condition sets: {exc}")
         self._set_masks.clear()
+        self._set_notes.clear()
         self.set_box.blockSignals(True)
         self.set_box.clear()
         self.set_box.addItem(ALL_CONDITIONS_LABEL)
@@ -962,8 +964,16 @@ class EstimConditionExplorer(QMainWindow):
         key = (name, self._data_key())
         if key not in self._set_masks:
             members = self.set_loader(name)
-            self._set_masks[key] = np.array(ecs.in_condition_set(
+            mask = np.array(ecs.in_condition_set(
                 self.df['session_id'], self.df['conditions'], members), dtype=bool)
+            n_members = sum(len(v) for v in members.values())
+            self._set_notes[key] = f"set {name}: {mask.sum()} conditions match its {n_members}"
+            if n_members and not mask.any():
+                why = ecs.describe_mismatch(self.df['session_id'], self.df['conditions'],
+                                            members)
+                print(f"Condition set {name!r} matches nothing: {why}")
+                self._set_notes[key] += f" (nothing matches: {why})"
+            self._set_masks[key] = mask
         return self._set_masks[key]
 
     # -- drawing -------------------------------------------------------------------
@@ -990,7 +1000,9 @@ class EstimConditionExplorer(QMainWindow):
         self.pairwise = None
         if len(df) == 0:
             self.canvas.draw_idle()
-            self.status.setText("No conditions pass the filters.")
+            note = (self._set_notes.get((self.condition_set(), self._data_key()), "")
+                    if self.condition_set() else "")
+            self.status.setText("No conditions pass the filters." + (f"\n{note}" if note else ""))
             return
         df = df.copy()
         orders = {}
@@ -1061,7 +1073,8 @@ class EstimConditionExplorer(QMainWindow):
 
         filt = [d for d in (r.describe() for r in self.filter_rows) if d]
         if self.condition_set():
-            filt.insert(0, f"set {self.condition_set()}")
+            filt.insert(0, self._set_notes.get((self.condition_set(), self._data_key()),
+                                               f"set {self.condition_set()}"))
         self.status.setText(
             f"{len(df)} of {len(self.df)} conditions, {df['session_id'].nunique()} sessions "
             f"pass the filters.\nFilters: {'; '.join(filt) if filt else 'none'}"
