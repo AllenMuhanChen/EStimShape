@@ -38,7 +38,7 @@ def plot_interphase_delay_diagram(d1=200.0, d2=200.0, dp=100.0,
     y_dim = -1.45
     for x in edges:
         ax.plot([x, x], [y_dim - 0.08, 0], color=_GRAY, lw=0.8, ls="--", zorder=0)
-    labels = [f"d1\n{d1:g} µs", f"interphase\ndelay\n{dp:g} µs", f"d2\n{d2:g} µs"]
+    labels = [f"{d1:g} µs", f"interphase\ndelay\n{dp:g} µs", f"{d2:g} µs"]
     for (lo, hi), text in zip(zip(edges[:-1], edges[1:]), labels):
         ax.annotate("", xy=(lo, y_dim), xytext=(hi, y_dim),
                     arrowprops=dict(arrowstyle="<->", color=_BLACK, lw=1.0,

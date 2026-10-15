@@ -754,6 +754,10 @@ class EstimConditionExplorer(QMainWindow):
         self.plot_area = QVBoxLayout()
         self.figure = Figure(figsize=(10, 7))
         self.canvas = FigureCanvas(self.figure)
+        # the toolbar's Save crops at the figure edge by default, cutting off a y
+        # title longer than the plot is tall; save everything drawn instead
+        matplotlib.rcParams['savefig.bbox'] = 'tight'
+        matplotlib.rcParams['savefig.pad_inches'] = 0.15
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.plot_area.addWidget(self.toolbar)
         self.plot_area.addWidget(self.canvas, 1)
