@@ -109,7 +109,11 @@ PAIR_ALPHA = 0.05
 # (label, function) for the pairwise test
 PAIR_TEST_CHOICES = (('permutation (within / between sessions)',
                       ect.pairwise_label_permutation),
-                     ('Welch t-test on session means', ect.pairwise_welch))
+                     ('Welch t-test on session means', ect.pairwise_welch),
+                     ("Student's t-test on session means", ect.pairwise_student))
+# stats-box wording for the t-tests
+T_TEST_NAMES = {ect.pairwise_welch: "Welch t-test (unequal variances)",
+                ect.pairwise_student: "Student's t-test (equal variances)"}
 NONE_LABEL = '(none)'
 ALL_CONDITIONS_LABEL = '(all conditions)'
 BAR_COLOR = '#4C72B0'
@@ -647,7 +651,8 @@ class EstimConditionExplorer(QMainWindow):
         self.pair_test_box.addItems([c[0] for c in PAIR_TEST_CHOICES])
         self.pair_test_box.setToolTip(
             "Welch t-test: unequal-variance t-test on the per-session means (one "
-            "value per session per bar). Permutation: shuffles bar labels among a "
+            "value per session per bar). Student's t-test: the standard pooled-"
+            "variance t-test on the same values. Permutation: shuffles bar labels among a "
             "session's conditions where it has both, and whole sessions between the "
             "bars otherwise (no normality assumption; coarse p with few sessions).")
         self.n_box = QCheckBox("show n (conditions / sessions)")
@@ -1460,9 +1465,10 @@ class EstimConditionExplorer(QMainWindow):
         if pairs is not None:
             # Holm over a single test is the raw p, so only say so when it matters
             holm = ", Holm-corrected" if pairs['p'].notna().sum() > 1 else ""
-            if PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][1] is ect.pairwise_welch:
-                lines += ["", "Pairwise: Welch t-test on per-session",
-                          f"mean effects{holm}"]
+            pair_test = PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][1]
+            if pair_test in T_TEST_NAMES:
+                lines += ["", f"Pairwise: {T_TEST_NAMES[pair_test]}",
+                          f"on per-session mean effects{holm}"]
             else:
                 lines += ["", "Pairwise: permutation, bar labels shuffled",
                           "within sessions (whole sessions when a",
