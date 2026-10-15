@@ -1078,6 +1078,8 @@ class EstimConditionExplorer(QMainWindow):
             renderer = self.canvas.get_renderer()
             top = 1 - legend.get_window_extent(renderer).height / self.figure.bbox.height
         self.figure.tight_layout(rect=(0, 0, right, top))
+        if self._wrap_long_ylabels():
+            self.figure.tight_layout(rect=(0, 0, right, top))
         self.canvas.draw_idle()
 
         filt = [d for d in (r.describe() for r in self.filter_rows) if d]
@@ -1130,6 +1132,40 @@ class EstimConditionExplorer(QMainWindow):
         for ax in axes[-1, :]:
             ax.set_xlabel(self._title('x', self.x_role.column() or ''),
                           fontsize=st['axis_label'])
+
+    def _wrap_long_ylabels(self):
+        """Break a one-line y title that is taller than the figure onto as few lines
+        as fit (at spaces, font size kept), so the plot leaves room for it. Returns
+        whether any title changed."""
+        renderer = self.canvas.get_renderer()
+        room = 0.95 * self.figure.bbox.height
+        changed = False
+        for ax in self.figure.axes:
+            label = ax.yaxis.label
+            text = label.get_text()
+            if not ax.get_visible() or not text or '\n' in text:
+                continue
+            words = text.split(' ')
+            n_lines = 1
+            while label.get_window_extent(renderer).height > room \
+                    and n_lines < min(4, len(words)):
+                n_lines += 1
+                label.set_text(self._split_lines(words, n_lines))
+                changed = True
+        return changed
+
+    @staticmethod
+    def _split_lines(words, n_lines):
+        """words joined into n_lines lines of about equal length."""
+        target = len(' '.join(words)) / n_lines
+        lines, line = [], []
+        for w in words:
+            if line and len(' '.join(line + [w])) > target and len(lines) < n_lines - 1:
+                lines.append(' '.join(line))
+                line = []
+            line.append(w)
+        lines.append(' '.join(line))
+        return '\n'.join(lines)
 
     def _title(self, axis, default):
         """The axis title typed in the side panel, else the automatic one."""
