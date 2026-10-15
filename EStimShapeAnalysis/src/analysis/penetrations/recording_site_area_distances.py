@@ -496,7 +496,8 @@ def border_col(areas: List[str]) -> str:
     return '_'.join(areas) + '_border'
 
 
-def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str]):
+def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str],
+                         regression_line: bool = False):
     """Sanity check: sites close to where the border_areas meet (the foveal
     confluence) should have small, near-foveal RFs.
 
@@ -515,6 +516,10 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str
     for ax, y, ylabel in ((axes[0], radius, 'RF radius (deg)'),
                           (axes[1], ecc, 'RF eccentricity (deg)')):
         ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
+        if regression_line and len(score) >= 2:
+            slope, intercept = np.polyfit(score, y, 1)   # ordinary least squares
+            xs = np.array([score.min(), score.max()])
+            ax.plot(xs, slope * xs + intercept, color='#d62728', lw=2)
         if len(score) >= 3:
             rho, pval = spearmanr(score, y)
             ax.text(0.03, 0.97, f"Spearman \u03c1 = {rho:.2f}\np = {pval:.3g}\nn = {len(score)}",
@@ -587,6 +592,7 @@ def main():
     V4_BORDER_TOLERANCE_MM = 1.0         # voxels this close to every other area count as border
     # One border-check figure per entry: the place where ALL listed areas meet
     V4_BORDER_SETS = [['V4v', 'V4d'], ['V4v', 'V4d', 'TEO']]
+    V4_REGRESSION_LINE_SETS = [['V4v', 'V4d', 'TEO']]   # border plots that get a least-squares line
     V4_CHECK_EXCLUDE_AREAS = ['V3v']     # drop sessions in (or nearest to) these areas from the V4 check
     # Motion-area sites: every Penetrations row whose label contains one of these
     # keywords (case-insensitive; 'MT' only as a whole word), distance to these areas
@@ -677,7 +683,8 @@ def main():
                 print(f"  V4 check: excluded {len(dropped)} sessions in/nearest {V4_CHECK_EXCLUDE_AREAS}: {dropped}")
             for areas in V4_BORDER_SETS:
                 plot_v4_border_check(v4_df, os.path.join(
-                    out_dir, f"border_rf_check_{'_'.join(areas)}.png"), areas)
+                    out_dir, f"border_rf_check_{'_'.join(areas)}.png"), areas,
+                    regression_line=areas in V4_REGRESSION_LINE_SETS)
 
     if REPORT_MOTION_SITES:
         motion_pens = filter_by_start_date(
