@@ -546,6 +546,20 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str
     return fig
 
 
+def filter_by_label_substring(pens: List[dict], keywords: List[str]) -> List[dict]:
+    """Keep rows whose label contains any keyword (case-insensitive substring,
+    so 'rec' also matches 'recording'). Prints the rows it drops."""
+    if not keywords:
+        return pens
+    kws = [k.lower() for k in keywords]
+    kept = [p for p in pens if any(k in (p['label'] or '').lower() for k in kws)]
+    dropped = [p for p in pens if p not in kept]
+    print(f"  Label filter {keywords}: kept {len(kept)} of {len(pens)} sites")
+    for p in dropped:
+        print(f"    dropped {p['session_id']} (pen {p['id']}): {p['label']!r}")
+    return kept
+
+
 def filter_by_start_date(pens: List[dict], start_date: Optional[str]) -> List[dict]:
     """Keep sessions whose id date (YYMMDD prefix, e.g. 260402_0) is on/after start_date."""
     if not start_date:
@@ -568,6 +582,7 @@ def main():
     PER_SESSION_CORRECTIONS = True       # viewer's "Sess.Corr: ON" (its default)
     PEN_TABLE = None                     # None -> config's penetration_table
     FINAL_SITE_COLOR = "red"
+    FINAL_SITE_LABEL_KEYWORDS = ['rec', 'loc']   # red rows also need one of these in the label (case-insensitive)
     SHOW_PLOTS = True                    # open the figure in a window after saving
     # Area -> atlas label name(s) to match (case-insensitive, whole name or
     # any comma-separated token of the D99 label).
@@ -611,7 +626,10 @@ def main():
     table = PEN_TABLE or geom['cfg'].get('penetration_table', 'Penetrations')
 
     conn = Connection(**DB)
-    pens = filter_by_start_date(fetch_red_penetrations(conn, table, FINAL_SITE_COLOR), START_DATE)
+    pens = filter_by_start_date(
+        filter_by_label_substring(fetch_red_penetrations(conn, table, FINAL_SITE_COLOR),
+                                  FINAL_SITE_LABEL_KEYWORDS),
+        START_DATE)
     df = compute_site_distances(pens, geom, AREAS, PER_SESSION_CORRECTIONS)
     if PLOT_V4_BORDER_CHECK:
         idx = df.attrs['area_indices']
@@ -625,7 +643,8 @@ def main():
         json.dump(dict(
             timestamp=ts, run_tag=RUN_TAG, mri_config=os.path.abspath(MRI_CONFIG),
             corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
-            pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
+            pen_table=table, final_site_color=FINAL_SITE_COLOR,
+            final_site_label_keywords=FINAL_SITE_LABEL_KEYWORDS, areas=AREAS, show_plots=SHOW_PLOTS,
             plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK,
             v4_border_tolerance_mm=V4_BORDER_TOLERANCE_MM, v4_border_sets=V4_BORDER_SETS,
             v4_check_exclude_areas=V4_CHECK_EXCLUDE_AREAS, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
