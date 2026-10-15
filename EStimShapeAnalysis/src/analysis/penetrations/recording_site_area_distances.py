@@ -27,7 +27,7 @@ Outputs (never overwritten): OUT_BASE/<RUN_TAG>_<timestamp>/
                                 circles at their location/size, colored by the
                                 area the site is in (solid) or nearest to (dashed)
     v4_border_rf_check.png      RF radius / eccentricity vs closeness to both V4v and V4d
-    motion_site_distances.*     every CYAN (motion-area) row's distance to MT, V3v, V4v
+    motion_site_distances.*     every row labelled MT / motion / direction: distance to MT, V3v, V4v
 """
 import datetime
 import importlib.util
@@ -241,6 +241,28 @@ def fetch_red_penetrations(conn, table: str, color: str = 'red') -> List[dict]:
         f"FROM {table} WHERE LOWER(color) = %s ORDER BY session_id, id", (color.lower(),))
     keys = ['id', 'session_id', 'label', 'az_deg', 'el_deg', 'dist_mm', 'pen_type', 'color', 'notes']
     return [dict(zip(keys, row)) for row in conn.fetch_all()]
+
+
+def label_matches(label: str, keywords: List[str]) -> bool:
+    """Case-insensitive keyword match on a penetration label. Keywords of 3
+    characters or fewer (e.g. 'MT') must be whole words so they don't match
+    inside other words; longer ones match at a word start ('direction'
+    also matches 'directional')."""
+    import re
+    for kw in keywords:
+        pat = r'(?<![A-Za-z])' + re.escape(kw) + (r'(?![A-Za-z])' if len(kw) <= 3 else '')
+        if re.search(pat, label or '', flags=re.IGNORECASE):
+            return True
+    return False
+
+
+def fetch_penetrations_by_label(conn, table: str, keywords: List[str]) -> List[dict]:
+    conn.execute(
+        f"SELECT id, session_id, label, az_deg, el_deg, dist_mm, pen_type, color, notes "
+        f"FROM {table} ORDER BY session_id, id")
+    keys = ['id', 'session_id', 'label', 'az_deg', 'el_deg', 'dist_mm', 'pen_type', 'color', 'notes']
+    rows = [dict(zip(keys, row)) for row in conn.fetch_all()]
+    return [r for r in rows if label_matches(r['label'], keywords)]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -490,9 +512,10 @@ def main():
     # Receptive-field map (ReceptiveFieldInfo in the data repository)
     PLOT_RF_MAP = True
     PLOT_V4_BORDER_CHECK = True          # RF size/eccentricity vs closeness to both V4v and V4d
-    # Motion-area sites: every Penetrations row of this color, distance to these areas
+    # Motion-area sites: every Penetrations row whose label contains one of these
+    # keywords (case-insensitive; 'MT' only as a whole word), distance to these areas
     PLOT_MOTION_SITES = True
-    MOTION_SITE_COLOR = "cyan"
+    MOTION_LABEL_KEYWORDS = ['MT', 'motion', 'direction']
     MOTION_AREAS = ['MT', 'V3v', 'V4v']  # names from AREAS
     RF_CHANNEL = 'SUPRA-000'             # which channel's RF to draw per session
     LABEL_SESSIONS = False               # session id next to each RF center
@@ -522,7 +545,7 @@ def main():
             pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
             plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
             print_areas=PRINT_AREAS, start_date=START_DATE,
-            plot_motion_sites=PLOT_MOTION_SITES, motion_site_color=MOTION_SITE_COLOR,
+            plot_motion_sites=PLOT_MOTION_SITES, motion_label_keywords=MOTION_LABEL_KEYWORDS,
             motion_areas=MOTION_AREAS,
             area_label_indices=df.attrs['area_indices'],
             sources=geom['sources'],
@@ -561,9 +584,9 @@ def main():
             plot_v4_border_check(rf_df, os.path.join(out_dir, 'v4_border_rf_check.png'))
 
     if PLOT_MOTION_SITES:
-        print(f"\n{MOTION_SITE_COLOR} (motion-area) sites:")
+        print(f"\nMotion-area sites (label contains {MOTION_LABEL_KEYWORDS}):")
         motion_pens = filter_by_start_date(
-            fetch_red_penetrations(conn, table, MOTION_SITE_COLOR), START_DATE)
+            fetch_penetrations_by_label(conn, table, MOTION_LABEL_KEYWORDS), START_DATE)
         motion_df = compute_site_distances(motion_pens, geom, {a: AREAS[a] for a in MOTION_AREAS},
                                            PER_SESSION_CORRECTIONS)
         motion_df.to_csv(os.path.join(out_dir, 'motion_site_distances.csv'), index=False)
