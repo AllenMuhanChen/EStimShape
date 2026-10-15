@@ -27,7 +27,8 @@ Outputs (never overwritten): OUT_BASE/<RUN_TAG>_<timestamp>/
                                 circles at their location/size, colored by the
                                 area the site is in (solid) or nearest to (dashed)
     v4_border_rf_check.png      RF radius / eccentricity vs closeness to both V4v and V4d
-    motion_site_distances.*     every row labelled MT / motion / direction: distance to MT, V3v, V4v
+    motion_site_closest_regions.csv   every row labelled MT / motion / direction: its
+                                closest atlas regions (also printed in the console)
 """
 import datetime
 import importlib.util
@@ -254,6 +255,39 @@ def label_matches(label: str, keywords: List[str]) -> bool:
         if re.search(pat, label or '', flags=re.IGNORECASE):
             return True
     return False
+
+
+def closest_regions(sites: np.ndarray, atlas_data: np.ndarray, atlas_to_world: np.ndarray,
+                    label_names: Dict[int, str], top_n: int = 3,
+                    search_radius_mm: float = 20.0) -> List[List[tuple]]:
+    """For each site, the top_n closest atlas regions (any label) as
+    [(name, distance_mm), ...], nearest first. Distance is to the nearest
+    voxel center of that region; the region the site sits in gets 0."""
+    world_to_vox = np.linalg.inv(atlas_to_world)
+    vox_mm = np.sqrt((atlas_to_world[:3, :3] ** 2).sum(axis=0))
+    half = np.ceil(search_radius_mm / vox_mm).astype(int)
+    shape = np.array(atlas_data.shape[:3])
+    out = []
+    for w in sites:
+        c = np.round((world_to_vox @ np.r_[w, 1])[:3]).astype(int)
+        own = int(atlas_data[tuple(c)]) if np.all((c >= 0) & (c < shape)) else 0
+        lo, hi = np.maximum(c - half, 0), np.minimum(c + half + 1, shape)
+        if np.any(hi <= lo):
+            out.append([])
+            continue
+        block = atlas_data[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]]
+        ijk = np.argwhere(block > 0)
+        if len(ijk) == 0:
+            out.append([])
+            continue
+        labs = block[tuple(ijk.T)]
+        world = (atlas_to_world @ np.c_[ijk + lo, np.ones(len(ijk))].T).T[:, :3]
+        best = pd.Series(np.linalg.norm(world - w, axis=1)).groupby(labs).min()
+        if own:
+            best[own] = 0.0
+        best = best[best <= search_radius_mm].sort_values().head(top_n)
+        out.append([(label_names.get(int(l), f"label {l}"), float(d)) for l, d in best.items()])
+    return out
 
 
 def fetch_penetrations_by_label(conn, table: str, keywords: List[str]) -> List[dict]:
@@ -514,9 +548,10 @@ def main():
     PLOT_V4_BORDER_CHECK = True          # RF size/eccentricity vs closeness to both V4v and V4d
     # Motion-area sites: every Penetrations row whose label contains one of these
     # keywords (case-insensitive; 'MT' only as a whole word), distance to these areas
-    PLOT_MOTION_SITES = True
+    REPORT_MOTION_SITES = True
     MOTION_LABEL_KEYWORDS = ['MT', 'motion', 'direction']
-    MOTION_AREAS = ['MT', 'V3v', 'V4v']  # names from AREAS
+    MOTION_TOP_N = 3                     # closest atlas regions to report per motion site
+    MOTION_SEARCH_RADIUS_MM = 20.0       # regions farther than this aren't considered
     RF_CHANNEL = 'SUPRA-000'             # which channel's RF to draw per session
     LABEL_SESSIONS = False               # session id next to each RF center
     PRINT_AREAS = ['TEO']                # print sessions in (or nearest to) these areas
@@ -545,8 +580,8 @@ def main():
             pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
             plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
             print_areas=PRINT_AREAS, start_date=START_DATE,
-            plot_motion_sites=PLOT_MOTION_SITES, motion_label_keywords=MOTION_LABEL_KEYWORDS,
-            motion_areas=MOTION_AREAS,
+            report_motion_sites=REPORT_MOTION_SITES, motion_label_keywords=MOTION_LABEL_KEYWORDS,
+            motion_top_n=MOTION_TOP_N, motion_search_radius_mm=MOTION_SEARCH_RADIUS_MM,
             area_label_indices=df.attrs['area_indices'],
             sources=geom['sources'],
             subject_correction=geom['subj_corr'].tolist(),
@@ -583,16 +618,22 @@ def main():
         if PLOT_V4_BORDER_CHECK:
             plot_v4_border_check(rf_df, os.path.join(out_dir, 'v4_border_rf_check.png'))
 
-    if PLOT_MOTION_SITES:
-        print(f"\nMotion-area sites (label contains {MOTION_LABEL_KEYWORDS}):")
+    if REPORT_MOTION_SITES:
         motion_pens = filter_by_start_date(
             fetch_penetrations_by_label(conn, table, MOTION_LABEL_KEYWORDS), START_DATE)
-        motion_df = compute_site_distances(motion_pens, geom, {a: AREAS[a] for a in MOTION_AREAS},
-                                           PER_SESSION_CORRECTIONS)
-        motion_df.to_csv(os.path.join(out_dir, 'motion_site_distances.csv'), index=False)
-        plot_distance_heatmap(motion_df, MOTION_AREAS,
-                              os.path.join(out_dir, 'motion_site_distances.png'),
-                              "Motion-area site distance to area")
+        motion_df = compute_site_distances(motion_pens, geom, {}, PER_SESSION_CORRECTIONS)
+        top = closest_regions(motion_df[['ML', 'AP', 'DV']].to_numpy(float), geom['atlas_data'],
+                              geom['subj_corr'] @ geom['atlas_sform'], geom['label_names'],
+                              MOTION_TOP_N, MOTION_SEARCH_RADIUS_MM)
+        print(f"\nClosest {MOTION_TOP_N} regions to each motion site "
+              f"(label contains {MOTION_LABEL_KEYWORDS}; 0.0 = inside):")
+        for k in range(MOTION_TOP_N):
+            motion_df[f'region_{k + 1}'] = [t[k][0] if len(t) > k else '' for t in top]
+            motion_df[f'region_{k + 1}_mm'] = [t[k][1] if len(t) > k else np.nan for t in top]
+        for (_, r), t in zip(motion_df.iterrows(), top):
+            regions = ', '.join(f"{n} {d:.1f} mm" for n, d in t) or 'none within search radius'
+            print(f"  {r['session_id']}  {r['label']:<24}  {regions}")
+        motion_df.to_csv(os.path.join(out_dir, 'motion_site_closest_regions.csv'), index=False)
 
     print(f"Wrote {len(df)} sites from {df['session_id'].nunique()} sessions -> {out_dir}")
     if SHOW_PLOTS:
