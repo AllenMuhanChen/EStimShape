@@ -11,6 +11,10 @@ Left panel:
   - Sessions: tick which sessions to include (defaults to the shared COMPARISON_*
     session range / exclusions).
   - Min trials: keep conditions with at least this many estim-ON AND estim-OFF trials.
+  - Condition set: keep only the conditions of a named set saved by another script
+    (EStimConditionSets, see estim_condition_sets), e.g. avg_estim_per_experiment's
+    estim_rule_top_half or max_estim_per_experiment's max_estim_default. ↻ re-reads
+    the list of sets.
   - Filters: "Add filter…" any column. Categorical columns get a tick-list of
     values; numeric ones a min / max range (inclusive) with "keep missing".
   - Layout: X-axis by / Colour by / Panels by — any column (or session_id), or
@@ -71,6 +75,7 @@ from PyQt5.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBo
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
+from src.analysis.nafc.group_analysis import estim_condition_sets as ecs
 from src.analysis.nafc.group_analysis import estim_condition_table as ect
 
 CLIPBOARD_DPI = 200
@@ -106,6 +111,7 @@ PAIR_TEST_CHOICES = (('permutation (within / between sessions)',
                       ect.pairwise_label_permutation),
                      ('Welch t-test on session means', ect.pairwise_welch))
 NONE_LABEL = '(none)'
+ALL_CONDITIONS_LABEL = '(all conditions)'
 BAR_COLOR = '#4C72B0'
 ON_COLOR, OFF_COLOR = '#D32F2F', '#333333'
 
@@ -492,10 +498,14 @@ class _PanelWheelGuard(QObject):
 class EstimConditionExplorer(QMainWindow):
     def __init__(self, loader=ect.load_condition_table, null_loader=ect.load_permutation_nulls,
                  algorithm_labels=None, metric=ect.METRIC_PCT_HYP_VS_DELTA,
-                 algorithm_label='none'):
+                 algorithm_label='none', set_lister=ecs.list_condition_sets,
+                 set_loader=ecs.load_condition_set):
         super().__init__()
         self.loader = loader
         self.null_loader = null_loader
+        self.set_lister = set_lister
+        self.set_loader = set_loader
+        self._set_masks = {}  # (set name, data key) -> boolean mask over self.df
         self._tables = {}
         self._nulls = {}
         self.df = None
@@ -531,6 +541,18 @@ class EstimConditionExplorer(QMainWindow):
         self.trials_box.setValue(DEFAULT_MIN_TRIALS)
         self.trials_box.setKeyboardTracking(False)
         self.trials_box.valueChanged.connect(self.schedule_redraw)
+
+        # -- condition set --
+        self.set_box = _compact(QComboBox())
+        self.set_box.currentIndexChanged.connect(self._set_changed)
+        set_refresh = QPushButton("↻")
+        set_refresh.setToolTip("Re-read the list of condition sets from the database")
+        set_refresh.setFixedWidth(36)
+        set_refresh.clicked.connect(lambda: self._refresh_condition_sets())
+        self.set_row = QHBoxLayout()
+        self.set_row.addWidget(self.set_box, 1)
+        self.set_row.addWidget(set_refresh)
+        self._refresh_condition_sets(redraw=False)
 
         # -- filters --
         self.filter_rows = []
@@ -678,6 +700,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow(self.session_list)
         form.addRow(sess_buttons)
         form.addRow("Min trials (ON && OFF)", self.trials_box)
+        form.addRow("Condition set", self.set_row)
         form.addRow(QLabel("<b>Filters</b>"))
         form.addRow(self.filter_area)
         form.addRow(self.add_filter_box)
@@ -893,7 +916,55 @@ class EstimConditionExplorer(QMainWindow):
         keep &= ((df[ect.N_ON_COL] >= n) & (df[ect.N_OFF_COL] >= n)).to_numpy(dtype=bool)
         for row in self.filter_rows:
             keep &= row.mask(df)
+        name = self.condition_set()
+        if name:
+            keep &= self._set_mask(name)
         return df[keep]
+
+    # -- condition sets ----------------------------------------------------------------
+    def condition_set(self):
+        text = self.set_box.currentText()
+        return None if text in ('', ALL_CONDITIONS_LABEL) else text
+
+    def _refresh_condition_sets(self, redraw=True):
+        """(Re-)read the stored condition sets into the dropdown, keeping the
+        current choice if it still exists."""
+        current = self.condition_set()
+        try:
+            sets = self.set_lister()
+        except Exception as exc:
+            traceback.print_exc()
+            sets = None
+            self.set_box.setToolTip(f"Could not read condition sets: {exc}")
+        self._set_masks.clear()
+        self.set_box.blockSignals(True)
+        self.set_box.clear()
+        self.set_box.addItem(ALL_CONDITIONS_LABEL)
+        if sets is not None:
+            for r in sets.itertuples():
+                self.set_box.addItem(r.set_name)
+                self.set_box.setItemData(
+                    self.set_box.count() - 1,
+                    f"{r.description or ''}\n{r.n_conditions} conditions, {r.n_sessions} "
+                    f"sessions; from {r.source or '?'}, {r.created_at}", Qt.ToolTipRole)
+        if current:
+            _set_combo_text(self.set_box, current)
+        self.set_box.blockSignals(False)
+        if redraw:
+            self.schedule_redraw()
+
+    def _set_changed(self, *_):
+        self.set_box.setToolTip(self.set_box.itemData(self.set_box.currentIndex(),
+                                                      Qt.ToolTipRole) or "")
+        self.schedule_redraw()
+
+    def _set_mask(self, name):
+        key = (name, self._data_key())
+        if key not in self._set_masks:
+            members = self.set_loader(name)
+            self._set_masks[key] = np.array(ecs.in_condition_set(
+                self.df['session_id'], self.df['conditions'], members), dtype=bool)
+        return self._set_masks[key]
 
     # -- drawing -------------------------------------------------------------------
     def schedule_redraw(self, *_):
@@ -989,6 +1060,8 @@ class EstimConditionExplorer(QMainWindow):
         self.canvas.draw_idle()
 
         filt = [d for d in (r.describe() for r in self.filter_rows) if d]
+        if self.condition_set():
+            filt.insert(0, f"set {self.condition_set()}")
         self.status.setText(
             f"{len(df)} of {len(self.df)} conditions, {df['session_id'].nunique()} sessions "
             f"pass the filters.\nFilters: {'; '.join(filt) if filt else 'none'}"
@@ -1541,6 +1614,7 @@ class EstimConditionExplorer(QMainWindow):
                          for i in range(self.session_list.count())
                          if self.session_list.item(i).checkState() == Qt.Checked],
             'min_trials': self.trials_box.value(),
+            'condition_set': self.condition_set(),
             'filters': [r.state() for r in self.filter_rows],
             'layout': layout,
             'plot': {'plot': self.plot_box.currentText(),
@@ -1580,6 +1654,13 @@ class EstimConditionExplorer(QMainWindow):
                    self.violin_box_box]
         for w in widgets:
             w.blockSignals(True)
+        if 'condition_set' in spec:
+            self.set_box.blockSignals(True)
+            if not _set_combo_text(self.set_box, spec['condition_set'] or ALL_CONDITIONS_LABEL):
+                skipped.append(f"condition set {spec['condition_set']!r} (not in the "
+                               "database)")
+                self.set_box.setCurrentIndex(0)
+            self.set_box.blockSignals(False)
         if 'min_trials' in spec:
             self.trials_box.setValue(int(spec['min_trials']))
         for box, key in ((self.plot_box, 'plot'), (self.test_box, 'test'),

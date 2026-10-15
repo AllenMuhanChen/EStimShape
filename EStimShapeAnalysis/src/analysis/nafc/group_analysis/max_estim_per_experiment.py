@@ -88,6 +88,31 @@ def _load_qualifying_conditions(session_id, algorithm_label='none', metric=METRI
     return entries
 
 
+def save_default_condition_set(set_name, exclude_session_ids=None, start_session_id=None,
+                               algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED,
+                               min_trials=DEFAULT_MIN_TRIALS):
+    """Save every condition the population tests here consider — the same sessions
+    (permutation data, minus exclusions, from start_session_id) and the same
+    min_trials filter — as the named condition set ``set_name``
+    (estim_condition_sets), replacing any set of that name."""
+    from src.analysis.nafc.group_analysis.estim_condition_sets import save_condition_set
+    session_ids = _get_sessions_with_permutation_data(algorithm_label, metric)
+    if exclude_session_ids:
+        excluded = set(exclude_session_ids)
+        session_ids = [s for s in session_ids if s not in excluded]
+    if start_session_id is not None:
+        session_ids = [s for s in session_ids if s >= start_session_id]
+    members = [(sid, e['cond_dict']) for sid in session_ids
+               for e in _load_qualifying_conditions(sid, algorithm_label, metric, min_trials)]
+    return save_condition_set(
+        set_name, members,
+        description=f"Every condition the max-stat tests use (n >= {min_trials} ON and OFF)",
+        source='max_estim_per_experiment',
+        params=dict(exclude_session_ids=exclude_session_ids,
+                    start_session_id=start_session_id, algorithm_label=algorithm_label,
+                    metric=metric, min_trials=min_trials))
+
+
 DIRECTION_MAX = 'max'
 DIRECTION_MIN = 'min'
 
@@ -1138,6 +1163,17 @@ def main():
     # start_session_id = "260402_0"
     start_session_id = "260402_0"
     algorithm_label = 'None'
+    min_trials = 10
+    # Save the conditions these tests use as a named condition set (in the data
+    # repository) for the condition explorer / other scripts; None = don't save.
+    # Re-running replaces it.
+    default_condition_set_name = 'max_estim_default'
+    if default_condition_set_name:
+        save_default_condition_set(default_condition_set_name,
+                                   exclude_session_ids=exclude_session_ids,
+                                   start_session_id=start_session_id,
+                                   algorithm_label=algorithm_label, metric=metric,
+                                   min_trials=min_trials)
     # algorithm_label = 'first_drop_w5_s1_t0_n3_m10_g5_xestim'
     # algorithm_label = 'first_drop_w50_s5_t0_n3_m10_g5'
     plot_max_stat_per_experiment(
@@ -1160,7 +1196,7 @@ def main():
         #                     condition by its own null before taking the max
         #                     (fairer across conditions with very different n).
         studentize=True,
-        min_trials=10
+        min_trials=min_trials
     )
 
     # ---- Test 1b: min-stat per experiment (is the WORST condition < chance?) ----
@@ -1174,7 +1210,7 @@ def main():
         x_spacing=0.75,
         width_per_exp=1.0,
         studentize=True,
-        min_trials=10
+        min_trials=min_trials
     )
 
     # ---- Test 2: exceedance-count (are there more conditions over x% than chance?) ----
@@ -1190,7 +1226,7 @@ def main():
         # studentize=True -> count exceedances of z = effect/own-null SD instead of raw %
         studentize=True,
         save_path="/home/connorlab/Documents/plots/across_experiments/exceedance_count_test.png",
-        min_trials=10
+        min_trials=min_trials
     )
 
     # ---- Test 3: studentized winners — raw vs studentized effect (diagnostic) ----
@@ -1199,7 +1235,7 @@ def main():
         start_session_id=start_session_id,
         algorithm_label=algorithm_label,
         metric=metric,
-        min_trials=10,
+        min_trials=min_trials,
         save_path="/home/connorlab/Documents/plots/across_experiments/studentized_winners.png",
     )
 
@@ -1209,7 +1245,7 @@ def main():
         start_session_id=start_session_id,
         algorithm_label=algorithm_label,
         metric=metric,
-        min_trials=10,
+        min_trials=min_trials,
         studentize=True,   # tally winners of the studentized maxT
         save_path="/home/connorlab/Documents/plots/across_experiments/winning_conditions.png",
     )
