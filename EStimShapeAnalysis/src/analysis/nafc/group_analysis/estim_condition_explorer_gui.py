@@ -600,6 +600,12 @@ class EstimConditionExplorer(QMainWindow):
         self.points_box.setToolTip("Overlay individual data points: each session's mean "
                                    "(what the bar and its SEM summarise) or each "
                                    "condition")
+        self.spread_box = QCheckBox("spread overlapping points")
+        self.spread_box.setToolTip("Off: every point sits on its bar's centre line. "
+                                   "On: points that would overlap step sideways "
+                                   "just enough to be seen (a swarm); position "
+                                   "across still means nothing.")
+        self.spread_box.stateChanged.connect(self.schedule_redraw)
         self.compare_box = _compact(QComboBox())
         self.compare_box.addItems([c[0] for c in COMPARE_CHOICES])
         self.compare_box.setToolTip(
@@ -681,6 +687,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Histogram y", self.hist_y_box)
         form.addRow("Test", self.test_box)
         form.addRow("Points", self.points_box)
+        form.addRow("", self.spread_box)
         form.addRow("Compare pairs", self.compare_box)
         form.addRow("Pairwise test", self.pair_test_box)
         form.addRow("", self.n_box)
@@ -1117,9 +1124,11 @@ class EstimConditionExplorer(QMainWindow):
             w.setVisible(on)
             self._form.labelForField(w).setVisible(on)
         # histograms have no x tick labels (x labels name the rows) and no points
-        for w in (self.rotation_box, self.points_box):
+        for w in (self.rotation_box, self.points_box, self.spread_box):
             w.setVisible(not hist)
-            self._form.labelForField(w).setVisible(not hist)
+            label = self._form.labelForField(w)
+            if label is not None:
+                label.setVisible(not hist)
 
     @staticmethod
     def _colors(color_order):
@@ -1151,13 +1160,33 @@ class EstimConditionExplorer(QMainWindow):
                                    ect.OFF_COL: 'off'})
 
     @staticmethod
-    def _jitter(n, half_width, seed):
-        return np.random.default_rng(seed).uniform(-half_width, half_width, n)
+    def _offsets(values, half_width, tol, spread):
+        """Horizontal point offsets from the bar centre. Not spread: all 0, every
+        point on the centre line. Spread: a deterministic swarm — a point moves
+        sideways only as far as needed to clear points within tol of it in y."""
+        values = np.asarray(values, dtype=float)
+        offsets = np.zeros(len(values))
+        if not spread or len(values) < 2 or not tol > 0:
+            return offsets
+        step = half_width / 4
+        slots = [0] + [k * sign for k in range(1, 5) for sign in (1, -1)]
+        placed = []  # (value, slot)
+        for i in np.argsort(values, kind='stable'):
+            near = {slot for v, slot in placed if abs(v - values[i]) < tol}
+            slot = next((sl for sl in slots if sl not in near), slots[-1])
+            placed.append((values[i], slot))
+            offsets[i] = slot * step
+        return offsets
 
     def _draw_panel(self, ax, summary, panel_df, orders, colors, mode):
         st = self.plot_style()
         x_order = [x for x in orders['__x'] if (summary['__x'] == x).any()]
         show_n = self.n_box.isChecked()
+        spread = self.spread_box.isChecked()
+        # points closer than this in y count as overlapping (2% of the data range)
+        cols = [ect.EFFECT_COL] if mode != 'dots' else [ect.ON_COL, ect.OFF_COL]
+        span = pd.to_numeric(panel_df[cols].stack(), errors='coerce')
+        tol = 0.02 * (span.max() - span.min()) if span.notna().any() else 0
         positions = {}  # (x, colour) -> (bar centre, top of everything drawn for it)
         # one bar width for the panel (set by the most crowded x), so a lone bar
         # isn't drawn wider than its neighbours
@@ -1191,7 +1220,7 @@ class EstimConditionExplorer(QMainWindow):
                     top = vals.max() if len(vals) else r['effect']
                     bottom = vals.min() if len(vals) else r['effect']
                     if pts is not None:
-                        jit = self._jitter(len(pts), width * 0.15, (xi, ci))
+                        jit = self._offsets(pts['effect'], width * 0.3, tol, spread)
                         ax.scatter(pos + jit, pts['effect'], s=10, color=POINT_COLOR,
                                    alpha=0.6, lw=0, zorder=3)
                         top = max(top, pts['effect'].max())
@@ -1206,7 +1235,7 @@ class EstimConditionExplorer(QMainWindow):
                     top = r['effect'] + (r['effect_sem'] if np.isfinite(r['effect_sem']) else 0)
                     bottom = r['effect'] - (r['effect_sem'] if np.isfinite(r['effect_sem']) else 0)
                     if pts is not None:
-                        jit = self._jitter(len(pts), width * 0.25, (xi, ci))
+                        jit = self._offsets(pts['effect'], width * 0.4, tol, spread)
                         ax.scatter(pos + jit, pts['effect'], s=10, color=POINT_COLOR,
                                    alpha=0.6, lw=0, zorder=3)
                         top = max(top, pts['effect'].max())
@@ -1224,7 +1253,7 @@ class EstimConditionExplorer(QMainWindow):
                                  r['off'] + np.nan_to_num(r['off_sem']))
                     if pts is not None:
                         # each unit's OFF -> ON pair, joined by a faint line
-                        jit = self._jitter(len(pts), width * 0.06, (xi, ci))
+                        jit = self._offsets(pts['on'], width * 0.15, tol, spread)
                         for (_, p), j in zip(pts.iterrows(), jit):
                             ax.plot([off_x + j, on_x + j], [p['off'], p['on']],
                                     color=color, lw=0.6, alpha=0.4, zorder=1)
@@ -1492,6 +1521,7 @@ class EstimConditionExplorer(QMainWindow):
                      'pairwise_test': self.pair_test_box.currentText(),
                      'show_n': self.n_box.isChecked(),
                      'show_stats': self.stats_box.isChecked(),
+                     'spread_points': self.spread_box.isChecked(),
                      'hist_unit': self.hist_unit_box.currentText(),
                      'hist_bin_width': self.hist_bin_box.value(),
                      'hist_y': self.hist_y_box.currentText()},
@@ -1516,7 +1546,7 @@ class EstimConditionExplorer(QMainWindow):
         plot = spec.get('plot', {})
         widgets = [self.trials_box, self.plot_box, self.test_box, self.points_box,
                    self.compare_box, self.pair_test_box, self.n_box, self.stats_box,
-                   self.hist_unit_box, self.hist_bin_box, self.hist_y_box]
+                   self.hist_unit_box, self.hist_bin_box, self.hist_y_box, self.spread_box]
         for w in widgets:
             w.blockSignals(True)
         if 'min_trials' in spec:
@@ -1532,6 +1562,8 @@ class EstimConditionExplorer(QMainWindow):
             self.n_box.setChecked(bool(plot['show_n']))
         if 'show_stats' in plot:
             self.stats_box.setChecked(bool(plot['show_stats']))
+        if 'spread_points' in plot:
+            self.spread_box.setChecked(bool(plot['spread_points']))
         if 'hist_bin_width' in plot:
             self.hist_bin_box.setValue(float(plot['hist_bin_width']))
         self._plot_mode_changed()
