@@ -25,7 +25,14 @@ channel signed by its SPI, so z_i = sign(SPI_i) * Phi^-1(1 - p_i / 2) and
 Z = sum(z_i) / sqrt(k). A session is significantly 3D when Z > 0 and p(Z) < SIGNIFICANCE_ALPHA,
 significantly 2D when Z < 0 and p(Z) < SIGNIFICANCE_ALPHA, otherwise n.s. Sessions with no
 p-values (permutation test not run) are "no test".
-Both figures are shown and saved to SAVE_DIR.
+
+A scatterplot puts each session's mean_spi against its estim effect. The estim effect is
+the per-experiment max-stat effect from max_estim_per_experiment (EStimPermutationTests):
+the session's best condition, chosen after studentizing each condition by its own null,
+reported as the raw effect in percentage points, with the max-stat p-value. The metric,
+cutoff label and min-trials filter are the ESTIM_EFFECT_* settings below, matching that
+script's main(). Sessions without permutation data have no estim effect and are left off.
+All figures are shown and saved to SAVE_DIR.
 """
 
 from __future__ import annotations
@@ -35,11 +42,13 @@ import traceback
 
 import numpy as np
 import pandas as pd
-from scipy.stats import norm
+from scipy.stats import norm, spearmanr
 from matplotlib import pyplot as plt
 from clat.util.connection import Connection
 
 from src.analysis.channel_data_loaders import ClusterChannelLoader, SolidPreferenceLoader
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYP_VS_DELTA
+from src.analysis.nafc.group_analysis.max_estim_per_experiment import _build_max_stat_for_session
 from src.pga.stim_types import THREE_D_TEXTURES
 from src.startup.startup_system import ExperimentManager
 
@@ -48,6 +57,11 @@ TWO_D_TEXTURE = "2D"
 SAVE_DIR = "/home/connorlab/Documents/plots/across_experiments/"
 
 SIGNIFICANCE_ALPHA = 0.05
+
+# Estim effect per session, same settings as max_estim_per_experiment.main().
+ESTIM_EFFECT_METRIC = METRIC_PCT_HYP_VS_DELTA
+ESTIM_EFFECT_ALGORITHM_LABEL = 'None'
+ESTIM_EFFECT_MIN_TRIALS = 10
 
 SPI_SIG_ORDER = ("3D", "2D", "n.s.", "no test")
 SPI_SIG_LABELS = {"3D": "Significantly 3D", "2D": "Significantly 2D",
@@ -155,6 +169,16 @@ def ga_channel_spi_summary(repo_conn, session_id: str) -> dict:
     }
 
 
+def estim_effect_summary(session_id: str) -> dict:
+    """Best-condition estim effect (percentage points) and its max-stat p-value."""
+    result = _build_max_stat_for_session(
+        session_id, algorithm_label=ESTIM_EFFECT_ALGORITHM_LABEL, metric=ESTIM_EFFECT_METRIC,
+        min_trials=ESTIM_EFFECT_MIN_TRIALS, studentize=True)
+    if result is None:
+        return {"estim_effect": float("nan"), "estim_effect_p": float("nan")}
+    return {"estim_effect": result["observed_raw"], "estim_effect_p": result["p_value"]}
+
+
 def compute_ratio_table(session_ids=None) -> pd.DataFrame:
     """One row per session. Sessions whose GA database can't be read are reported and skipped."""
     repo_conn = Connection("allen_data_repository")
@@ -180,6 +204,12 @@ def compute_ratio_table(session_ids=None) -> pd.DataFrame:
             traceback.print_exc()
             counts.update(mean_spi=float("nan"), n_spi_channels=0,
                           spi_z=float("nan"), spi_p=float("nan"), spi_sig="no test")
+        try:
+            counts.update(estim_effect_summary(sid))
+        except Exception:
+            print(f"[3d/2d] could not load estim effect for session {sid}:")
+            traceback.print_exc()
+            counts.update(estim_effect=float("nan"), estim_effect_p=float("nan"))
         rows.append({"session_id": sid, **counts})
 
     return pd.DataFrame(rows)
@@ -236,6 +266,38 @@ def plot_spi_histogram(table: pd.DataFrame):
     return fig
 
 
+def plot_spi_vs_estim_effect(table: pd.DataFrame):
+    """Scatter of mean GA-channel SPI vs best-condition estim effect, one point per session,
+    colored by the session's SPI significance (same colors as the histogram)."""
+    data = table.dropna(subset=["mean_spi", "estim_effect"])
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.5))
+    ax.axvline(0, color="#888888", linewidth=1, linestyle="--", zorder=0)
+    ax.axhline(0, color="#888888", linewidth=1, linestyle="--", zorder=0)
+    for g in SPI_SIG_ORDER:
+        group = data[data["spi_sig"] == g]
+        if group.empty:
+            continue
+        ax.scatter(group["mean_spi"], group["estim_effect"], s=64, color=SPI_SIG_COLORS[g],
+                   edgecolor="white", linewidth=1.5, label=SPI_SIG_LABELS[g], zorder=3)
+
+    if len(data) >= 3:
+        rho, p = spearmanr(data["mean_spi"], data["estim_effect"])
+        ax.text(0.02, 0.97, f"Spearman ρ = {rho:.2f}, p = {p:.3g}", transform=ax.transAxes,
+                va="top", ha="left", fontsize=9, color="#444444")
+
+    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0, frameon=False,
+              title=f"Combined GA channels, p < {SIGNIFICANCE_ALPHA}")
+    ax.set_xlim(-1, 1)
+    ax.set_xlabel("Mean solid preference index over GA channels  (2D ← → 3D)")
+    ax.set_ylabel("EStim effect, best condition (% points)")
+    ax.set_title("Solid preference index vs EStim effect")
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    fig.tight_layout()
+    return fig
+
+
 def save_figure(fig, name: str):
     os.makedirs(SAVE_DIR, exist_ok=True)
     path = os.path.join(SAVE_DIR, name)
@@ -258,10 +320,11 @@ def main():
     total["category"] = ""
     total["mean_spi"] = table["mean_spi"].mean()
     total["n_spi_channels"] = int(table["n_spi_channels"].sum())
-    total.update(spi_z=float("nan"), spi_p=float("nan"), spi_sig="")
+    total.update(spi_z=float("nan"), spi_p=float("nan"), spi_sig="",
+                 estim_effect=table["estim_effect"].mean(), estim_effect_p=float("nan"))
     printed = pd.concat([table, pd.DataFrame([{"session_id": "ALL", **total}])], ignore_index=True)
 
-    with pd.option_context("display.max_rows", None, "display.width", 160):
+    with pd.option_context("display.max_rows", None, "display.width", 200):
         print(printed.to_string(index=False, float_format=lambda x: f"{x:.2f}"))
     print()
     print(table["category"].value_counts().to_string())
@@ -270,6 +333,7 @@ def main():
 
     save_figure(plot_category_pie(table), "estim_3d_2d_category_pie.png")
     save_figure(plot_spi_histogram(table), "estim_session_spi_histogram.png")
+    save_figure(plot_spi_vs_estim_effect(table), "estim_session_spi_vs_estim_effect.png")
     if SHOW_PLOTS:
         plt.show()
 
