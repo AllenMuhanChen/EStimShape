@@ -16,6 +16,9 @@ estim channel -> other channel pair vs their distance along the probe, the binne
 to the half point (d_half, half_level).
 
 Specs in a session that stimulate the same channels share one figure.
+
+The probe column alone (with any other columns) is the 'ρ vs estim average' column of
+the explorer's "Probe analysis" module (src/analysis/probe_analysis).
 """
 
 import os
@@ -38,26 +41,14 @@ from src.analysis.nafc.group_analysis import plot_current_spread_vs_tuning as cs
 from src.analysis.nafc.group_analysis.compute_estim_neighbor_scores import (
     channel_to_str, prepare_session_metrics)
 from src.cluster.cluster_isolation_score import fetch_active_estim_channels_by_spec
+from src.analysis.probe_analysis.correlation import zscore_average
 from src.cluster.probe_mapping import DBCChannelMapper
 
 
 def average_estim_response(response_matrix, estim_strs):
-    """{stim_id: mean z-scored response across the estim channels}. Each channel is
-    z-scored over its own stimuli first; a stim is averaged over whichever estim
-    channels have it."""
-    per_stim = {}
-    for ch in estim_strs:
-        vec = response_matrix.get(ch)
-        if not vec:
-            continue
-        vals = np.array(list(vec.values()), dtype=float)
-        mu, sd = np.nanmean(vals), np.nanstd(vals)
-        if not np.isfinite(sd) or sd == 0:
-            continue
-        for stim, v in vec.items():
-            if np.isfinite(v):
-                per_stim.setdefault(stim, []).append((v - mu) / sd)
-    return {stim: float(np.mean(vs)) for stim, vs in per_stim.items()}
+    """{stim_id: mean z-scored response across the estim channels} (shared with the
+    probe_analysis 'ρ vs estim average' column)."""
+    return zscore_average(response_matrix, estim_strs)
 
 
 def _estim_channel_sets(session_id, estim_spec_id=None):

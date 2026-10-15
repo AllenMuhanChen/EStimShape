@@ -35,30 +35,15 @@ import pandas as pd
 from src.analysis.ga.explorer.explorer_module import Param
 from src.analysis.ga.explorer.modules.pair_viewer import (PairViewerModule, _fmt,
                                                           mean_responses,
-                                                          read_hypothesized_comp_rows,
-                                                          short_type)
+                                                          read_hypothesized_comp_rows)
+from src.analysis.ga.explorer.modules.stim_type_filter import TYPE_FAMILIES as ALL_FAMILIES
+from src.analysis.ga.explorer.modules.stim_type_filter import (short_type, shown_families,
+                                                               type_family,
+                                                               type_filter_params)
 
-# Trial-type families used by the filters. "_2D" versions count as their 3D
-# type; SHUFFLE_PIXEL, SHUFFLE_PHASE, ... count as SHUFFLE, and so on.
-TYPE_FAMILIES = ["ZERO", "ONE", "TWO", "THREE", "VARIANTS", "DELTA", "SHUFFLE", "LIGHTING",
-                 "SIDETEST", "CATCH", "other"]
-# Families hidden until you tick them.
-HIDDEN_BY_DEFAULT = {"SHUFFLE", "LIGHTING"}
+# No BASELINE checkbox here: baseline stims never have hypothesized comps.
+TYPE_FAMILIES = [f for f in ALL_FAMILIES if f != "BASELINE"]
 TYPE_FILTERS = ["any"] + TYPE_FAMILIES
-
-
-def type_family(stim_type) -> str:
-    """'REGIME_ESTIM_VARIANTS' -> 'VARIANTS', 'REGIME_ONE_2D' -> 'ONE',
-    'SHUFFLE_PIXEL' -> 'SHUFFLE', anything unknown -> 'other'."""
-    t = short_type(stim_type)
-    if t.endswith("_2D"):
-        t = t[:-3]
-    if t in TYPE_FAMILIES:
-        return t
-    for family in ("SHUFFLE", "LIGHTING", "SIDETEST", "CATCH"):
-        if t.startswith(family):
-            return family
-    return "other"
 
 
 def compute_hypothesis_pairs(data: pd.DataFrame, response_col: str) -> pd.DataFrame | None:
@@ -117,11 +102,7 @@ class AllPairExplorerModule(PairViewerModule):
         return [
             # One on/off per trial type: a pair is shown only when both its
             # child's and its parent's types are ticked.
-            *[Param(f"type_{family}", f"Show {family}", "bool",
-                    family not in HIDDEN_BY_DEFAULT, live=True,
-                    tooltip=f"Show pairs whose child or parent is a {family} stim. "
-                            "_2D types count as their 3D type.")
-              for family in TYPE_FAMILIES],
+            *type_filter_params(TYPE_FAMILIES, what="pairs (child or parent)"),
             Param("child_type", "Child type", "choice", "any", choices=TYPE_FILTERS, live=True,
                   tooltip="Only pairs whose child is this type. _2D types count as "
                           "their 3D type."),
@@ -137,8 +118,7 @@ class AllPairExplorerModule(PairViewerModule):
 
     def filter_pairs(self, df):
         v = self.values
-        shown = {f for f in TYPE_FAMILIES
-                 if v.get(f"type_{f}", f not in HIDDEN_BY_DEFAULT)}
+        shown = shown_families(v, TYPE_FAMILIES)
         df = df[df["ChildType"].map(type_family).isin(shown)
                 & df["ParentType"].map(type_family).isin(shown)]
         if v.get("child_type", "any") != "any":
