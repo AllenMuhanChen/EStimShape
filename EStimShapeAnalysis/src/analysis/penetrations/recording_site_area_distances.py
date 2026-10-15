@@ -497,38 +497,29 @@ def border_col(areas: List[str]) -> str:
 
 
 def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str],
-                         a: str = 'V4v', b: str = 'V4d'):
+                         regression_line: bool = False):
     """Sanity check: sites close to where the border_areas meet (the foveal
     confluence) should have small, near-foveal RFs.
 
-    Left: distance to a vs distance to b, colored by RF radius.
-    Middle/right: RF radius and RF eccentricity vs distance to the border
+    RF radius and RF eccentricity vs distance to the border
     (column border_col(border_areas); see border_distance), with Spearman
     correlation (rank-based, no linearity assumption).
     """
     from scipy.stats import spearmanr
     name = '/'.join(border_areas)
-    d_a, d_b = df[a].to_numpy(float), df[b].to_numpy(float)
     score = df[border_col(border_areas)].to_numpy(float)
     radius = df['rf_radius'].to_numpy(float)
     ecc = np.hypot(df['rf_x'].to_numpy(float), df['rf_y'].to_numpy(float))
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5.8))
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.8))
 
-    ax = axes[0]
-    sc = ax.scatter(d_a, d_b, c=radius, cmap='viridis', s=90, edgecolor='black', linewidth=0.6)
-    lim = max(1.0, float(np.nanmax(np.r_[d_a, d_b])) * 1.08)
-    ax.set_xlim(-0.3, lim); ax.set_ylim(-0.3, lim); ax.set_aspect('equal')
-    ax.set_xlabel(f'Distance to {a} (mm)', fontsize=14)
-    ax.set_ylabel(f'Distance to {b} (mm)', fontsize=14)
-    ax.set_title(f'Distance to {a} vs {b}', fontsize=15)
-    cb = fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.04)
-    cb.set_label('RF radius (deg)', fontsize=13)
-    cb.ax.tick_params(labelsize=11)
-
-    for ax, y, ylabel in ((axes[1], radius, 'RF radius (deg)'),
-                          (axes[2], ecc, 'RF eccentricity (deg)')):
+    for ax, y, ylabel in ((axes[0], radius, 'RF radius (deg)'),
+                          (axes[1], ecc, 'RF eccentricity (deg)')):
         ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
+        if regression_line and len(score) >= 2:
+            slope, intercept = np.polyfit(score, y, 1)   # ordinary least squares
+            xs = np.array([score.min(), score.max()])
+            ax.plot(xs, slope * xs + intercept, color='#d62728', lw=2)
         if len(score) >= 3:
             rho, pval = spearmanr(score, y)
             ax.text(0.03, 0.97, f"Spearman \u03c1 = {rho:.2f}\np = {pval:.3g}\nn = {len(score)}",
@@ -601,6 +592,7 @@ def main():
     V4_BORDER_TOLERANCE_MM = 1.0         # voxels this close to every other area count as border
     # One border-check figure per entry: the place where ALL listed areas meet
     V4_BORDER_SETS = [['V4v', 'V4d'], ['V4v', 'V4d', 'TEO']]
+    V4_REGRESSION_LINE_SETS = [['V4v', 'V4d', 'TEO']]   # border plots that get a least-squares line
     V4_CHECK_EXCLUDE_AREAS = ['V3v']     # drop sessions in (or nearest to) these areas from the V4 check
     # Motion-area sites: every Penetrations row whose label contains one of these
     # keywords (case-insensitive; 'MT' only as a whole word), distance to these areas
@@ -691,7 +683,8 @@ def main():
                 print(f"  V4 check: excluded {len(dropped)} sessions in/nearest {V4_CHECK_EXCLUDE_AREAS}: {dropped}")
             for areas in V4_BORDER_SETS:
                 plot_v4_border_check(v4_df, os.path.join(
-                    out_dir, f"border_rf_check_{'_'.join(areas)}.png"), areas)
+                    out_dir, f"border_rf_check_{'_'.join(areas)}.png"), areas,
+                    regression_line=areas in V4_REGRESSION_LINE_SETS)
 
     if REPORT_MOTION_SITES:
         motion_pens = filter_by_start_date(
