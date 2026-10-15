@@ -1,7 +1,10 @@
 """
-One biphasic microstimulation pulse with an interphase delay, with the first phase
-(d1), the interphase delay (dp) and the second phase (d2) marked — a figure for
-explaining what the interphase delay is. Same drawing style as waveform_diagram.
+Single-pulse figures for explaining stimulation parameters, in the same drawing
+style as waveform_diagram:
+  - interphase delay: one biphasic pulse with the two phase widths and the
+    interphase delay marked.
+  - polarity: a cathodic-first and an anodic-first pulse side by side (no
+    interphase delay).
 
 Amplitude is schematic (no y-axis). Durations are in µs.
 """
@@ -68,15 +71,59 @@ def plot_interphase_delay_diagram(d1=200.0, d2=200.0, dp=100.0,
     return fig
 
 
+def plot_polarity_diagram(d1=200.0, d2=200.0, pad=100.0, label_fs=13, save_path=None):
+    """Cathodic-first and anodic-first biphasic pulses (no interphase delay) side by
+    side. d1, d2: phase widths (µs). pad: flat baseline before and after (µs)."""
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.5), sharey=True)
+    for ax, polarity, title in zip(axes, ("NegativeFirst", "PositiveFirst"),
+                                   ("Cathodic first", "Anodic first")):
+        params = dict(shape="Biphasic", polarity=polarity, d1=d1, d2=d2, dp=0.0,
+                      a1=1.0, a2=1.0)
+        t, y = _biphasic_waveform(params)
+        t = np.concatenate([[-pad], t, [t[-1] + pad]])
+        y = np.concatenate([[0.0], y, [0.0]])
+        ax.axhline(0, color=_GRAY, lw=0.8, ls=":", zorder=0)
+        ax.plot(t, y, color=_BLACK, linewidth=_LINE_W, solid_joinstyle="miter",
+                solid_capstyle="butt")
+        ax.set_title(title, fontsize=label_fs + 1)
+        ax.set_xlim(t[0], t[-1])
+        ax.set_ylim(-1.3, 1.3)
+        for side in ("top", "right", "left"):
+            ax.spines[side].set_visible(False)
+        ax.spines["bottom"].set_color(_GRAY)
+        ax.spines["bottom"].set_position(("data", -1.3))
+        ax.tick_params(axis="x", color=_GRAY, labelcolor=_BLACK,
+                       labelsize=label_fs - 2, length=3)
+        ax.tick_params(axis="y", left=False, labelleft=False)
+        ax.set_xlabel("Time (µs)", fontsize=label_fs)
+    fig.tight_layout()
+
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, dpi=300, bbox_inches="tight")
+        fig.savefig(os.path.splitext(save_path)[0] + ".svg", dpi=300, bbox_inches="tight")
+        print(f"Saved to {save_path}")
+
+    plt.show()
+    return fig
+
+
 def main():
     d1 = 200.0   # first phase width (µs)
     d2 = 200.0   # second phase width (µs)
     dp = 100.0   # interphase delay (µs)
-    polarity = "NegativeFirst"   # or "PositiveFirst"
-    plot_interphase_delay_diagram(
-        d1=d1, d2=d2, dp=dp, polarity=polarity,
-        save_path="/home/connorlab/Documents/plots/waveform_diagram/interphase_delay.png",
-    )
+    polarity = "NegativeFirst"   # or "PositiveFirst" (interphase delay figure)
+    make_interphase_delay = True
+    make_polarity = True         # cathodic first vs anodic first, no interphase delay
+    out_dir = "/home/connorlab/Documents/plots/waveform_diagram"
+
+    if make_interphase_delay:
+        plot_interphase_delay_diagram(
+            d1=d1, d2=d2, dp=dp, polarity=polarity,
+            save_path=os.path.join(out_dir, "interphase_delay.png"))
+    if make_polarity:
+        plot_polarity_diagram(d1=d1, d2=d2,
+                              save_path=os.path.join(out_dir, "polarity.png"))
 
 
 if __name__ == "__main__":
