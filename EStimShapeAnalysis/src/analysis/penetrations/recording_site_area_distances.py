@@ -503,11 +503,10 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str
 
     Left: distance to a vs distance to b, colored by RF radius.
     Middle/right: RF radius and RF eccentricity vs distance to the border
-    (column border_col(border_areas); see border_distance), with Pearson
-    (linear) and Spearman (rank-based: robust to outliers and the pile-up of
-    0 mm sites, only assumes a monotonic trend) correlations.
+    (column border_col(border_areas); see border_distance), with Spearman
+    correlation (rank-based, no linearity assumption).
     """
-    from scipy.stats import pearsonr, spearmanr
+    from scipy.stats import spearmanr
     name = '/'.join(border_areas)
     d_a, d_b = df[a].to_numpy(float), df[b].to_numpy(float)
     score = df[border_col(border_areas)].to_numpy(float)
@@ -531,10 +530,8 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str
                           (axes[2], ecc, 'RF eccentricity (deg)')):
         ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
         if len(score) >= 3:
-            rho, p_s = spearmanr(score, y)
-            r, p_p = pearsonr(score, y)
-            ax.text(0.03, 0.97, f"Pearson r = {r:.2f}, p = {p_p:.3g}\n"
-                                f"Spearman \u03c1 = {rho:.2f}, p = {p_s:.3g}\nn = {len(score)}",
+            rho, pval = spearmanr(score, y)
+            ax.text(0.03, 0.97, f"Spearman \u03c1 = {rho:.2f}\np = {pval:.3g}\nn = {len(score)}",
                     transform=ax.transAxes, va='top', fontsize=13)
         ax.set_xlabel(f'Distance to {name} border (mm)', fontsize=14)
         ax.set_ylabel(ylabel, fontsize=14)
