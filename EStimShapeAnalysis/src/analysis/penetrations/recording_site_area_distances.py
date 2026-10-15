@@ -27,6 +27,7 @@ Outputs (never overwritten): OUT_BASE/<RUN_TAG>_<timestamp>/
                                 circles at their location/size, colored by the
                                 area the site is in (solid) or nearest to (dashed)
     v4_border_rf_check.png      RF radius / eccentricity vs closeness to both V4v and V4d
+    motion_site_distances.*     every CYAN (motion-area) row's distance to MT, V3v, V4v
 """
 import datetime
 import importlib.util
@@ -458,7 +459,7 @@ def filter_by_start_date(pens: List[dict], start_date: Optional[str]) -> List[di
         return pens
     start = str(start_date).replace('-', '')[-6:]   # accepts "260401" or "2026-04-01"
     kept = [p for p in pens if str(p['session_id'])[:6] >= start]
-    print(f"  START_DATE {start_date}: kept {len(kept)} of {len(pens)} red sites")
+    print(f"  START_DATE {start_date}: kept {len(kept)} of {len(pens)} sites")
     return kept
 
 
@@ -489,6 +490,10 @@ def main():
     # Receptive-field map (ReceptiveFieldInfo in the data repository)
     PLOT_RF_MAP = True
     PLOT_V4_BORDER_CHECK = True          # RF size/eccentricity vs closeness to both V4v and V4d
+    # Motion-area sites: every Penetrations row of this color, distance to these areas
+    PLOT_MOTION_SITES = True
+    MOTION_SITE_COLOR = "cyan"
+    MOTION_AREAS = ['MT', 'V3v', 'V4v']  # names from AREAS
     RF_CHANNEL = 'SUPRA-000'             # which channel's RF to draw per session
     LABEL_SESSIONS = False               # session id next to each RF center
     PRINT_AREAS = ['TEO']                # print sessions in (or nearest to) these areas
@@ -517,6 +522,8 @@ def main():
             pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
             plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
             print_areas=PRINT_AREAS, start_date=START_DATE,
+            plot_motion_sites=PLOT_MOTION_SITES, motion_site_color=MOTION_SITE_COLOR,
+            motion_areas=MOTION_AREAS,
             area_label_indices=df.attrs['area_indices'],
             sources=geom['sources'],
             subject_correction=geom['subj_corr'].tolist(),
@@ -552,6 +559,17 @@ def main():
                         LABEL_SESSIONS)
         if PLOT_V4_BORDER_CHECK:
             plot_v4_border_check(rf_df, os.path.join(out_dir, 'v4_border_rf_check.png'))
+
+    if PLOT_MOTION_SITES:
+        print(f"\n{MOTION_SITE_COLOR} (motion-area) sites:")
+        motion_pens = filter_by_start_date(
+            fetch_red_penetrations(conn, table, MOTION_SITE_COLOR), START_DATE)
+        motion_df = compute_site_distances(motion_pens, geom, {a: AREAS[a] for a in MOTION_AREAS},
+                                           PER_SESSION_CORRECTIONS)
+        motion_df.to_csv(os.path.join(out_dir, 'motion_site_distances.csv'), index=False)
+        plot_distance_heatmap(motion_df, MOTION_AREAS,
+                              os.path.join(out_dir, 'motion_site_distances.png'),
+                              "Motion-area site distance to area")
 
     print(f"Wrote {len(df)} sites from {df['session_id'].nunique()} sessions -> {out_dir}")
     if SHOW_PLOTS:
