@@ -52,9 +52,11 @@ REMOVED_STIM_TYPE = "EStimShapeVariantsDeletedNAFCStim"
 def main():
     # ---- Parameters -------------------------------------------------------------------------
     SESSION_ID = "260603_0"        # session the GA stim belongs to; None = keep current context
-    GA_STIM_ID = 1780507361091158     # GA stim id to render with noise
-    DISTRACTOR_ID = 1780507018367969  # GA id of the delta (or variant) to show as the distractor.
+    # GA_STIM_ID = 1780507361091158     # GA stim id to render with noise
+    # DISTRACTOR_ID = 1780507918367969  # GA id of the delta (or variant) to show as the distractor.
+    GA_STIM_ID = 1780507913222760
                                    # None = pick by DISTRACTOR_LABELS. If NAFC_STIM_ID is None,
+    DISTRACTOR_ID = None
                                    # the latest trial that offered this GA stim is used.
     NAFC_STIM_ID = None            # None = latest NAFC trial with this GA stim as its sample;
                                    # or an NAFC StimSpec id to use that trial's noise map
