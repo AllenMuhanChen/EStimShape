@@ -70,8 +70,8 @@ def main():
     CHOICE_SPACING = 1.0           # >1 spreads the three choices apart, <1 packs them closer
     BACKGROUND_THRESHOLD = 12      # 0-255; a pixel is shape if any channel differs from the
                                    # png's background colour by more than this
-    EDGE_PX = 3                    # width of each choice's edge band whose colour is un-mixed from
-                                   # its png background (removes the light outline)
+    EDGE_MARGIN_PX = 4             # px of each choice png's own background kept around the shape,
+                                   # so its edges stay exactly as rendered
     SCREEN_COLOR = (0, 0, 0)       # monitor background; pngs are alpha-blended onto it like on the rig
     SHOW_FIXATION = True           # fixation square at screen (0, 0) on the left panel
     FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
@@ -157,7 +157,7 @@ def main():
                               background, BACKGROUND_THRESHOLD, fixation)
     choices_panel = choices_triangle_panel([shown[role] for role in CHOICE_ORDER], PANEL_PX,
                                            background, BACKGROUND_THRESHOLD, CHOICE_SPACING,
-                                           SCREEN_COLOR, EDGE_PX)
+                                           SCREEN_COLOR, EDGE_MARGIN_PX)
     sample_panel = round_corners(sample_panel, CORNER_RADIUS)
     choices_panel = round_corners(choices_panel, CORNER_RADIUS)
     sample_panel.save(os.path.join(out_dir, "sample_panel.png"))
@@ -192,7 +192,7 @@ def main():
         "background_threshold": BACKGROUND_THRESHOLD,
         "background_rgb": [int(v) for v in background],
         "panel_px": PANEL_PX,
-        "edge_px": EDGE_PX,
+        "edge_margin_px": EDGE_MARGIN_PX,
         "screen_color": list(SCREEN_COLOR),
         "fixation": None if fixation is None else
                     {'size_deg': fixation['size_deg'], 'color': list(fixation['color'])},
@@ -516,67 +516,47 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
     return crop.resize((panel_px, panel_px), Image.NEAREST)
 
 
-def unmix_edges(rgb: np.ndarray, mask: np.ndarray, background: np.ndarray, edge_px: int):
-    """
-    Antialiased edge pixels are a blend of the shape and the png's background, which shows as a
-    light (or dark) outline once the shape is pasted onto a different background. For each pixel
-    in the outer edge_px band of the mask, take the colour of the nearest interior pixel as the
-    shape colour f, solve pixel = a*f + (1-a)*background for the coverage a, and return the
-    colour f with alpha a. Interior pixels keep their colour with alpha 1.
-    """
-    rgb_f = rgb.astype(np.float64)
-    alpha = mask.astype(np.float64)
-    if edge_px <= 0:
-        return rgb, alpha
-    interior = ndimage.binary_erosion(mask, iterations=edge_px)
-    if not interior.any():
-        return rgb, alpha
-    edge = mask & ~interior
-    _, (iy, ix) = ndimage.distance_transform_edt(~interior, return_indices=True)
-    fg = rgb_f[iy, ix]
-    bg = background.astype(np.float64)
-    d = fg - bg
-    denom = np.maximum((d * d).sum(axis=2), 1e-6)
-    a = np.clip(((rgb_f - bg) * d).sum(axis=2) / denom, 0.0, 1.0)
-    out = rgb_f.copy()
-    out[edge] = fg[edge]
-    alpha[edge] = a[edge]
-    return np.clip(np.round(out), 0, 255).astype(np.uint8), alpha
+def resample(img: Image.Image, size: tuple) -> Image.Image:
+    """Area averaging when shrinking, bilinear when enlarging: neither overshoots, so no bright
+    or dark rims appear at the shape's edges (Lanczos/bicubic ring there)."""
+    shrinking = size[0] < img.width or size[1] < img.height
+    return img.resize(size, Image.BOX if shrinking else Image.BILINEAR)
 
 
-def cut_out_choice(choice: dict, threshold: float, screen_color=(0, 0, 0), edge_px: int = 0) -> tuple:
-    """(RGBA of the choice cropped to its shape, alpha = shape coverage with edges un-mixed
-    from the png background, degrees per png pixel from its spec dimensions or None)."""
+def cut_out_choice(choice: dict, threshold: float, screen_color=(0, 0, 0), margin_px: int = 0) -> tuple:
+    """(RGB crop of the choice as rendered, mask = shape grown by margin_px so a little of the
+    png's own background stays around the edge, degrees per png pixel or None)."""
     rgb = load_rgb(choice['local_png'], screen_color)
-    png_background = estimate_background(rgb)
-    mask = shape_mask(rgb, png_background, threshold)
+    mask = shape_mask(rgb, estimate_background(rgb), threshold)
     if not mask.any():
         raise RuntimeError(f"No shape found in {choice['local_png']} at threshold {threshold}")
-    rgb, alpha = unmix_edges(rgb, mask, png_background, edge_px)
+    if margin_px > 0:
+        mask = ndimage.binary_dilation(mask, iterations=margin_px)
     rows, cols = np.nonzero(mask)
     r0, r1, c0, c1 = rows.min(), rows.max() + 1, cols.min(), cols.max() + 1
-    rgba = np.dstack([rgb, np.round(alpha * 255).astype(np.uint8)])[r0:r1, c0:c1]
-    img = Image.fromarray(rgba, "RGBA")
+    img = Image.fromarray(rgb[r0:r1, c0:c1])
+    mask_img = Image.fromarray((mask[r0:r1, c0:c1] * 255).astype(np.uint8), "L")
     deg_per_px = (choice['width_deg'] / rgb.shape[1]) if choice['width_deg'] > 0 else None
-    return img, deg_per_px
+    return img, mask_img, deg_per_px
 
 
 def choices_triangle_panel(choices: list[dict], panel_px: int, background: np.ndarray,
                            threshold: float, spacing: float, screen_color=(0, 0, 0),
-                           edge_px: int = 0) -> Image.Image:
+                           margin_px: int = 0) -> Image.Image:
     """Three cut-out choices at the vertices of a triangle (top, bottom-left, bottom-right)."""
-    cutouts = [cut_out_choice(c, threshold, screen_color, edge_px) for c in choices]
-    scales = [d for _, d in cutouts if d is not None]
+    cutouts = [cut_out_choice(c, threshold, screen_color, margin_px) for c in choices]
+    scales = [d for _, _, d in cutouts if d is not None]
     # common pixels-per-degree = the finest of the choices, so nothing is downsampled first
     ref = min(scales) if len(scales) == len(cutouts) else None
-    shapes = []
-    for img, deg_per_px in cutouts:
+    shapes, masks = [], []
+    for img, mask_img, deg_per_px in cutouts:
         if ref is not None:
             f = deg_per_px / ref
-            # resize premultiplied so transparent pixels' colour can't bleed into the edge
             size = (max(1, round(img.width * f)), max(1, round(img.height * f)))
-            img = img.convert("RGBa").resize(size, Image.LANCZOS).convert("RGBA")
+            img = resample(img, size)
+            mask_img = mask_img.resize(size, Image.NEAREST)
         shapes.append(img)
+        masks.append(mask_img)
 
     # radius so neighbouring shapes (half-diagonals r_i, r_j) don't overlap: side = R*sqrt(3)
     half_diag = [np.hypot(im.width, im.height) / 2 for im in shapes]
@@ -594,10 +574,10 @@ def choices_triangle_panel(choices: list[dict], panel_px: int, background: np.nd
     ox = (side - (x_max - x_min)) / 2 - x_min
     oy = (side - (y_max - y_min)) / 2 - y_min
 
-    canvas = Image.new("RGBA", (side, side), tuple(int(v) for v in background) + (255,))
-    for (cx, cy), im in zip(centers, shapes):
-        canvas.alpha_composite(im, (int(round(cx - im.width / 2 + ox)), int(round(cy - im.height / 2 + oy))))
-    return canvas.convert("RGB").resize((panel_px, panel_px), Image.LANCZOS)
+    canvas = Image.new("RGB", (side, side), tuple(int(v) for v in background))
+    for (cx, cy), im, mk in zip(centers, shapes, masks):
+        canvas.paste(im, (int(round(cx - im.width / 2 + ox)), int(round(cy - im.height / 2 + oy))), mk)
+    return resample(canvas, (panel_px, panel_px))
 
 
 def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
