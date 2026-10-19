@@ -53,7 +53,9 @@ def main():
     # ---- Parameters -------------------------------------------------------------------------
     SESSION_ID = "260603_0"        # session the GA stim belongs to; None = keep current context
     GA_STIM_ID = 1780507361091158     # GA stim id to render with noise
-    DISTRACTOR_ID = 1780507018367969  # procedural distractor to show: the id in its png file name
+    DISTRACTOR_ID = 1780507018367969  # GA id of the delta (or variant) to show as the distractor.
+                                   # None = pick by DISTRACTOR_LABELS. If NAFC_STIM_ID is None,
+                                   # the latest trial that offered this GA stim is used.
     NAFC_STIM_ID = None            # None = latest NAFC trial with this GA stim as its sample;
                                    # or an NAFC StimSpec id to use that trial's noise map
     NOISE_CHANCE = 0.3            # noise amount: peak chance a pixel is noise (0-1), like the
@@ -68,8 +70,6 @@ def main():
     DISTRACTOR_LABELS = ("delta", "procedural")  # which distractor to show, by png label, first
                                    # found wins; falls back to any choice that isn't match/rand
 
-                                   # (e.g. <id>_delta.png). If NAFC_STIM_ID is None, the latest
-                                   # trial that offered this distractor is used. None = by label.
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
     CHOICE_SPACING = 1.0           # >1 spreads the three choices apart, <1 packs them closer
     BACKGROUND_THRESHOLD = 12      # 0-255; a pixel is shape if any channel differs from the
@@ -94,6 +94,7 @@ def main():
 
     from clat.util.connection import Connection
     nafc_conn = Connection(context.nafc_database)
+    ga_conn = Connection(context.ga_database)
 
     stimuli_dir = NAFC_STIMULI_DIR or f"{context.base_dir}/{context.nafc_database}/stimuli"
 
@@ -105,18 +106,25 @@ def main():
     print(f"NAFC trials with GA stim {GA_STIM_ID} as sample: "
           f"{[c['nafc_stim_id'] for c in candidates]}")
 
-    if NAFC_STIM_ID is None and DISTRACTOR_ID is not None:
-        with_distractor = [c for c in candidates if DISTRACTOR_ID in c['choice_obj_ids']]
-        if not with_distractor:
-            raise RuntimeError(f"No trial of GA stim {GA_STIM_ID} offered distractor {DISTRACTOR_ID}.")
-        chosen = with_distractor[0]
-    elif NAFC_STIM_ID is None:
-        chosen = candidates[0]
-    else:
-        matches = [c for c in candidates if c['nafc_stim_id'] == NAFC_STIM_ID]
-        if not matches:
+    if NAFC_STIM_ID is not None:
+        candidates = [c for c in candidates if c['nafc_stim_id'] == NAFC_STIM_ID]
+        if not candidates:
             raise RuntimeError(f"NAFC stim {NAFC_STIM_ID} is not a (non-removed) trial of GA stim {GA_STIM_ID}.")
-        chosen = matches[0]
+
+    # newest trial first; with DISTRACTOR_ID, the newest one that offered that GA stim
+    chosen = choices = None
+    offered = set()
+    for candidate in candidates:
+        candidate_choices = read_choice_specs(nafc_conn, candidate['choice_obj_ids'])
+        add_choice_ga_ids(nafc_conn, ga_conn, candidate, candidate_choices)
+        offered.update(c['ga_id'] for c in candidate_choices if c['ga_id'] is not None)
+        if DISTRACTOR_ID is None or any(c['ga_id'] == DISTRACTOR_ID for c in candidate_choices):
+            chosen, choices = candidate, candidate_choices
+            break
+    if chosen is None:
+        raise RuntimeError(
+            f"No trial of GA stim {GA_STIM_ID} offered GA stim {DISTRACTOR_ID} as a choice. "
+            f"GA ids offered as choices: {sorted(offered)}")
     print(f"Using NAFC trial {chosen['nafc_stim_id']} ({chosen['stim_type']}, "
           f"sample obj {chosen['sample_obj_id']})")
 
@@ -145,11 +153,10 @@ def main():
         name = "noisy_stimulus.png" if k == 0 else f"noisy_stimulus_frame{k}.png"
         Image.fromarray(img).save(os.path.join(out_dir, name))
 
-    choices = read_choice_specs(nafc_conn, chosen['choice_obj_ids'])
     shown = pick_choices(choices, DISTRACTOR_LABELS, DISTRACTOR_ID)
     for role, choice in shown.items():
         choice['local_png'] = locate_local_file(choice['png_path'], stimuli_dir)
-        print(f"{role:>10}: {choice['local_png']}")
+        print(f"{role:>10}: GA id {choice['ga_id']}  {choice['local_png']}")
 
     background = estimate_background(sample_rgb)
     fixation = None
@@ -194,13 +201,13 @@ def main():
         "trial_noise_chance": trial_peak,
         "noise_chance": NOISE_CHANCE,
         "n_frames": N_FRAMES,
-        "choices_shown": {role: {'label': c['label'], 'png': c['local_png'],
+        "choices_shown": {role: {'label': c['label'], 'ga_id': c['ga_id'], 'png': c['local_png'],
                                  'dimensions_deg': [c['width_deg'], c['height_deg']]}
                           for role, c in shown.items()},
         "zoom": ZOOM,
         "zoom_center": ZOOM_CENTER,
         "distractor_labels": list(DISTRACTOR_LABELS),
-        "distractor_id": DISTRACTOR_ID,
+        "distractor_ga_id": DISTRACTOR_ID,
         "choice_order": list(CHOICE_ORDER),
         "choice_spacing": CHOICE_SPACING,
         "background_threshold": BACKGROUND_THRESHOLD,
@@ -260,7 +267,7 @@ def find_nafc_samples_for_ga_stim(nafc_conn, ga_stim_id: int) -> list[dict]:
         sample_spec = parse_noisy_png_spec(sample_spec_xml)
         if not sample_spec['noise_map_path']:
             continue
-        candidates.append({'nafc_stim_id': nafc_stim_id, 'stim_type': stim_type, 'sample_obj_id': sample_obj_id,
+        candidates.append({'nafc_stim_id': nafc_stim_id, 'ga_sample_id': int(ga_stim_id), 'stim_type': stim_type, 'sample_obj_id': sample_obj_id,
                            'choice_obj_ids': [int(c) for c in choice_obj_ids], **sample_spec})
     return candidates
 
@@ -295,6 +302,51 @@ def read_system_var(nafc_conn, name: str) -> list[str]:
     return [row[1] for row in rows]
 
 
+# Choice labels that are GA lineage members (a delta, or the variant in a delta trial).
+LINEAGE_DISTRACTOR_LABELS = ("delta", "delta_distractor")
+
+
+def add_choice_ga_ids(nafc_conn, ga_conn, trial: dict, choices: list[dict]) -> None:
+    """
+    Set choice['ga_id'] (None for rand / removed / procedural morphs). The NAFC database only
+    records the sample's GA id, so this rebuilds the generator's distractor list the same way
+    PickedBaseMStickIdField does (EStimShapeVariantsDeltaNAFCStim): variant-sample trial ->
+    the variant's included deltas; delta-sample trial -> [variant, other included deltas],
+    both in IncludedDeltas' natural order. The k-th delta-labelled choice (choiceObjData order)
+    is the k-th entry. Relies on IncludedDeltas not having changed since the trial was generated.
+    """
+    sample_id = trial['ga_sample_id']
+    variant_id, is_delta = None, None
+    nafc_conn.execute("SHOW TABLES LIKE 'NafcSampleRole'")
+    if nafc_conn.fetch_one() is not None:
+        nafc_conn.execute("SELECT is_sample_delta, variant_id FROM NafcSampleRole WHERE stim_id = %s",
+                          params=(trial['nafc_stim_id'],))
+        rows = nafc_conn.fetch_all()
+        if rows:
+            is_delta, variant_id = bool(rows[0][0]), int(rows[0][1])
+    if variant_id is None:
+        ga_conn.execute("SELECT variant_id FROM IncludedDeltas WHERE delta_id = %s AND included = 1",
+                        params=(sample_id,))
+        rows = ga_conn.fetch_all()
+        is_delta = bool(rows)
+        variant_id = int(rows[0][0]) if rows else sample_id
+
+    ga_conn.execute("SELECT delta_id FROM IncludedDeltas WHERE variant_id = %s AND included = 1",
+                    params=(variant_id,))
+    included = [int(r[0]) for r in ga_conn.fetch_all()]
+    order = [variant_id] + [d for d in included if d != sample_id] if is_delta else included
+
+    k = 0
+    for c in choices:
+        c['ga_id'] = None
+        if c['label'] == 'match':
+            c['ga_id'] = sample_id
+        elif c['label'] in LINEAGE_DISTRACTOR_LABELS:
+            if k < len(order):
+                c['ga_id'] = order[k]
+            k += 1
+
+
 def read_choice_specs(nafc_conn, choice_obj_ids: list[int]) -> list[dict]:
     """Each choice's NoisyPngSpec plus its label from the png file name (<id>_<label>.png)."""
     choices = []
@@ -317,10 +369,10 @@ def png_label(path: str) -> str:
     return parts[1] if len(parts) == 2 and parts[0].isdigit() else stem
 
 
-def pick_choices(choices: list[dict], distractor_labels, distractor_id=None) -> dict:
-    """The match, one distractor (the choice with id distractor_id if given; else the first
-    label in distractor_labels found, else any choice that isn't the match or a rand) and the
-    first rand distractor."""
+def pick_choices(choices: list[dict], distractor_labels, distractor_ga_id=None) -> dict:
+    """The match, one distractor (the choice drawn from GA stim distractor_ga_id if given; else
+    the first label in distractor_labels found, else any choice that isn't the match or a rand)
+    and the first rand distractor."""
     by_label = {}
     for c in choices:
         by_label.setdefault(c['label'], c)
@@ -329,11 +381,12 @@ def pick_choices(choices: list[dict], distractor_labels, distractor_id=None) -> 
         raise RuntimeError(f"No match among this trial's choices (labels: {labels})")
     if 'rand' not in by_label:
         raise RuntimeError(f"No rand distractor among this trial's choices (labels: {labels})")
-    if distractor_id is not None:
-        distractor = next((c for c in choices if c['obj_id'] == distractor_id), None)
+    if distractor_ga_id is not None:
+        distractor = next((c for c in choices
+                           if c.get('ga_id') == distractor_ga_id and c['label'] != 'match'), None)
         if distractor is None:
-            raise RuntimeError(f"Distractor {distractor_id} is not a choice in this trial "
-                               f"(choice ids: {[c['obj_id'] for c in choices]})")
+            raise RuntimeError(f"GA stim {distractor_ga_id} is not a distractor in this trial "
+                               f"(choice GA ids: {[c.get('ga_id') for c in choices]})")
         return {'match': by_label['match'], 'distractor': distractor, 'rand': by_label['rand']}
     distractor = next((by_label[l] for l in distractor_labels if l in by_label), None)
     if distractor is None:
