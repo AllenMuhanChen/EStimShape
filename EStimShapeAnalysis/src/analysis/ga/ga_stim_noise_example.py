@@ -53,6 +53,7 @@ def main():
     # ---- Parameters -------------------------------------------------------------------------
     SESSION_ID = "260603_0"        # session the GA stim belongs to; None = keep current context
     GA_STIM_ID = 1780507361091158     # GA stim id to render with noise
+    DISTRACTOR_ID = 1780507018367969  # procedural distractor to show: the id in its png file name
     NAFC_STIM_ID = None            # None = latest NAFC trial with this GA stim as its sample;
                                    # or an NAFC StimSpec id to use that trial's noise map
     NOISE_CHANCE = 0.3            # noise amount: peak chance a pixel is noise (0-1), like the
@@ -66,7 +67,7 @@ def main():
     ZOOM_CENTER = None             # (x, y) in -1..1 of the sample png, +y up; None = centre of the shape
     DISTRACTOR_LABELS = ("delta", "procedural")  # which distractor to show, by png label, first
                                    # found wins; falls back to any choice that isn't match/rand
-    DISTRACTOR_ID = None           # procedural distractor to show: the id in its png file name
+
                                    # (e.g. <id>_delta.png). If NAFC_STIM_ID is None, the latest
                                    # trial that offered this distractor is used. None = by label.
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
