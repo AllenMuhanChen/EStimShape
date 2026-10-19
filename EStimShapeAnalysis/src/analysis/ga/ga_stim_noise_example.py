@@ -83,7 +83,7 @@ def main():
     FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = None                # None = native resolution (no resampling of the pngs' pixels);
                                    # or a pixel size to resize each square panel to
-    CORNER_RADIUS = 0.03           # rounded panel corners, as a fraction of the panel size
+    CORNER_RADIUS = 0.0            # rounded panel corners, as a fraction of the panel size (0 = square)
     SAVE_ROOT = "/home/connorlab/Documents/plots"
     SHOW_PLOTS = True
     # -----------------------------------------------------------------------------------------
