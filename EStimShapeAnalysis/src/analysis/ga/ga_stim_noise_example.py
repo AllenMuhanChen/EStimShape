@@ -602,6 +602,67 @@ def resample(img: Image.Image, size: tuple) -> Image.Image:
 def remove_flat_background(rgb: np.ndarray, mask: np.ndarray, png_background, new_background,
                            band_px: int) -> np.ndarray:
     """
+    Take a shape off a flat png background g and put it on new_background, without needing to
+    know each edge pixel's coverage a.
+
+    An edge pixel is p = a*f + (1-a)*g. Split every colour into its part along g's direction
+    (unit vector h = g/|g|) and the part perpendicular to it. The background has no
+    perpendicular part, so perp(p) = a*perp(f) exactly: the background is gone from it with
+    no estimate at all. Only the part along h is mixed, and for a lit object of one material
+    colour (diffuse * colour), the along-h part of f is a fixed multiple m of its
+    perpendicular part. m is measured on pixels deep inside the shape (more than band_px + 1
+    px from the background), so the shape on black is a*f = perp(p) + m * <perp(p), u> * h,
+    with u the shape's perpendicular colour direction. This is applied to every pixel within
+    band_px of the edge, inside and outside the threshold mask, so partly covered pixels at
+    thin tips are corrected too. Deeper pixels are kept as they are; farther-out pixels become
+    new_background. Falls back to remove_flat_background_by_coverage when the shape's colour
+    is too close to the background's to separate this way (e.g. a gray shape on gray).
+    """
+    rgb_f = rgb.astype(np.float64)
+    g = np.asarray(png_background, dtype=np.float64)
+    new_bg = np.asarray(new_background, dtype=np.float64)
+    g_norm = np.linalg.norm(g)
+    if g_norm < 1e-6:  # background already black: nothing to subtract
+        out = np.empty_like(rgb_f)
+        out[:] = new_bg
+        out[mask] = rgb_f[mask]
+        return np.clip(np.round(out), 0, 255).astype(np.uint8)
+    h = g / g_norm
+
+    depth = ndimage.distance_transform_edt(mask)
+    deep = depth > band_px + 1
+    par = rgb_f @ h                                  # component along the background colour
+    perp = rgb_f - par[..., None] * h                # component the background can't touch
+    if deep.sum() >= 10:
+        u = perp[deep].mean(axis=0)
+        u_norm = np.linalg.norm(u)
+    else:
+        u_norm = 0.0
+    if u_norm < 5.0:
+        return remove_flat_background_by_coverage(rgb, mask, png_background, new_background, band_px)
+    u = u / u_norm
+    x = perp @ u
+    ok = deep & (x > 5.0)
+    m = float(np.median(par[ok] / x[ok]))
+
+    x_pos = np.clip(x, 0.0, None)
+    on_black = perp + (m * x_pos)[..., None] * h
+    on_black[x <= 0] = 0.0
+    # coverage, only needed to lay the shape on a non-black background
+    a = np.clip(x_pos / max(float(np.median(x[ok])), 1e-6), 0.0, 1.0)
+
+    # within band_px of the edge, on either side of it
+    edge = ndimage.binary_dilation(mask, iterations=max(band_px, 1)) & (depth <= band_px)
+    out = np.empty_like(rgb_f)
+    out[:] = new_bg
+    out[mask] = rgb_f[mask]
+    out[edge] = on_black[edge] + (1 - a[edge])[..., None] * new_bg
+    return np.clip(np.round(out), 0, 255).astype(np.uint8)
+
+
+def remove_flat_background_by_coverage(rgb: np.ndarray, mask: np.ndarray, png_background, new_background,
+                           band_px: int) -> np.ndarray:
+    """
     Take a shape off a flat png background and put it on new_background.
 
     An antialiased edge pixel is p = a*f + (1-a)*g, with g the (known, flat) png background,
