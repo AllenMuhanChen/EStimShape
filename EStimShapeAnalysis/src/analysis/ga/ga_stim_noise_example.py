@@ -66,7 +66,8 @@ def main():
     NAFC_STIMULI_DIR = None        # None = <base_dir>/<nafc_database>/stimuli (searched for pngs)
     # Figure
     ZOOM = 4.0                     # left panel zoom factor (1 = whole sample png)
-    ZOOM_CENTER = None             # (x, y) in -1..1 of the sample png, +y up; None = centre of the shape
+    ZOOM_CENTER = "fixation"       # "fixation" = on the fixation point; (x, y) in -1..1 of the sample
+                                   # png, +y up; None = centre of the shape (+ fixation)
     DISTRACTOR_LABELS = ("delta", "procedural")  # which distractor to show, by png label, first
                                    # found wins; falls back to any choice that isn't match/rand
 
@@ -563,6 +564,8 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
     scene[pad:pad + h, pad:pad + w] = noisy_rgb
 
     boxes = []  # (x0, y0, x1, y1) in png coordinates
+    if center == "fixation" and fixation is None:
+        center = None  # no fixation point drawn: fall back to the shape
     if center is None:
         mask = shape_mask(sample_rgb, background, threshold)
         if mask.any():
@@ -577,7 +580,9 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
         if center is None:
             boxes.append((x0f, y0f, x1f, y1f))
 
-    if center is not None:
+    if center == "fixation":
+        cx, cy = fixation['xy']
+    elif center is not None:
         cx = (center[0] + 1) / 2 * w
         cy = (1 - center[1]) / 2 * h
     elif boxes:
@@ -588,6 +593,12 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
     x0 = int(round(cx - side / 2)) + pad
     y0 = int(round(cy - side / 2)) + pad
     crop = Image.fromarray(scene[y0:y0 + side, x0:x0 + side])
+    if center == "fixation":
+        rows, cols = np.nonzero(shape_mask(sample_rgb, background, threshold))
+        if rows.size and (cols.min() + pad < x0 or cols.max() + pad >= x0 + side
+                          or rows.min() + pad < y0 or rows.max() + pad >= y0 + side):
+            print("Warning: centred on the fixation point, part of the shape is outside the left "
+                  "panel; lower ZOOM to fit it.")
     if panel_px is None:
         return crop
     return crop.resize((panel_px, panel_px), Image.NEAREST)
