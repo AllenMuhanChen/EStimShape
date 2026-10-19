@@ -497,7 +497,7 @@ def border_col(areas: List[str]) -> str:
 
 
 def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str],
-                         regression_line: bool = False):
+                         regression_line: bool = False, color_by_area: bool = False):
     """Sanity check: sites close to where the border_areas meet (the foveal
     confluence) should have small, near-foveal RFs.
 
@@ -512,7 +512,8 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str
     radius = df['rf_radius'].to_numpy(float)
     ecc = np.hypot(df['rf_x'].to_numpy(float), df['rf_y'].to_numpy(float))
     # Dot color = which of border_areas the site is in, else the nearest one
-    site_area = assign_area(df, list(border_areas))['area'].to_numpy()
+    site_area = (assign_area(df, list(border_areas))['area'].to_numpy() if color_by_area
+                 else np.full(len(df), None))
     fallback = plt.get_cmap('tab10')
     colors = {a: AREA_COLORS.get(a, fallback(i % 10)) for i, a in enumerate(border_areas)}
 
@@ -520,11 +521,14 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str
 
     for ax, y, ylabel in ((axes[0], radius, 'RF radius (deg)'),
                           (axes[1], ecc, 'RF eccentricity (deg)')):
-        for a in border_areas:
-            m = site_area == a
-            if m.any():
-                ax.scatter(score[m], y[m], s=90, color=colors[a], edgecolor='black',
-                           linewidth=0.6, label=f"{a} (n={int(m.sum())})")
+        if color_by_area:
+            for a in border_areas:
+                m = site_area == a
+                if m.any():
+                    ax.scatter(score[m], y[m], s=90, color=colors[a], edgecolor='black',
+                               linewidth=0.6, label=f"{a} (n={int(m.sum())})")
+        else:
+            ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
         if regression_line and len(score) >= 2:
             slope, intercept = np.polyfit(score, y, 1)   # ordinary least squares
             xs = np.array([score.min(), score.max()])
@@ -541,7 +545,8 @@ def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str
     for ax in axes:
         ax.tick_params(labelsize=12)
         ax.spines[['top', 'right']].set_visible(False)
-    axes[1].legend(fontsize=12, loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False)
+    if color_by_area:
+        axes[1].legend(fontsize=12, loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150, bbox_inches='tight')
     return fig
@@ -603,6 +608,7 @@ def main():
     # One border-check figure per entry: the place where ALL listed areas meet
     V4_BORDER_SETS = [['V4v', 'V4d'], ['V4v', 'V4d', 'TEO']]
     V4_REGRESSION_LINE_SETS = [['V4v', 'V4d', 'TEO']]   # border plots that get a least-squares line
+    V4_COLOR_BY_AREA = False             # color border-plot dots by the area each site is in/nearest
     V4_CHECK_EXCLUDE_AREAS = ['V3v']     # drop sessions in (or nearest to) these areas from the V4 check
     # Motion-area sites: every Penetrations row whose label contains one of these
     # keywords (case-insensitive; 'MT' only as a whole word), distance to these areas
@@ -649,7 +655,8 @@ def main():
             final_site_label_keywords=FINAL_SITE_LABEL_KEYWORDS, areas=AREAS, show_plots=SHOW_PLOTS,
             plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK,
             v4_border_tolerance_mm=V4_BORDER_TOLERANCE_MM, v4_border_sets=V4_BORDER_SETS,
-            v4_check_exclude_areas=V4_CHECK_EXCLUDE_AREAS, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
+            v4_check_exclude_areas=V4_CHECK_EXCLUDE_AREAS, v4_color_by_area=V4_COLOR_BY_AREA,
+            rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
             print_areas=PRINT_AREAS, start_date=START_DATE,
             report_motion_sites=REPORT_MOTION_SITES, motion_label_keywords=MOTION_LABEL_KEYWORDS,
             motion_top_n=MOTION_TOP_N, motion_search_radius_mm=MOTION_SEARCH_RADIUS_MM,
@@ -694,7 +701,8 @@ def main():
             for areas in V4_BORDER_SETS:
                 plot_v4_border_check(v4_df, os.path.join(
                     out_dir, f"border_rf_check_{'_'.join(areas)}.png"), areas,
-                    regression_line=areas in V4_REGRESSION_LINE_SETS)
+                    regression_line=areas in V4_REGRESSION_LINE_SETS,
+                    color_by_area=V4_COLOR_BY_AREA)
 
     if REPORT_MOTION_SITES:
         motion_pens = filter_by_start_date(
