@@ -38,6 +38,10 @@ import numpy as np
 import xmltodict
 from PIL import Image
 
+# Removed (deleted-limb) trials record the GA variant as their base mstick, but their sample is
+# the variant with its tuned component deleted, so they are never used.
+REMOVED_STIM_TYPE = "EStimShapeVariantsDeletedNAFCStim"
+
 
 def main():
     # ---- Parameters -------------------------------------------------------------------------
@@ -69,7 +73,7 @@ def main():
     if not candidates:
         raise RuntimeError(
             f"No NAFC trial in {context.nafc_database} has GA stim {GA_STIM_ID} as its sample "
-            f"(no BaseMStickId row with a noise map). Check SESSION_ID and GA_STIM_ID.")
+            f"(no non-removed BaseMStickId trial with a noise map). Check SESSION_ID and GA_STIM_ID.")
     print(f"NAFC trials with GA stim {GA_STIM_ID} as sample: "
           f"{[c['nafc_stim_id'] for c in candidates]}")
 
@@ -78,9 +82,10 @@ def main():
     else:
         matches = [c for c in candidates if c['nafc_stim_id'] == NAFC_STIM_ID]
         if not matches:
-            raise RuntimeError(f"NAFC stim {NAFC_STIM_ID} is not a trial of GA stim {GA_STIM_ID}.")
+            raise RuntimeError(f"NAFC stim {NAFC_STIM_ID} is not a (non-removed) trial of GA stim {GA_STIM_ID}.")
         chosen = matches[0]
-    print(f"Using NAFC trial {chosen['nafc_stim_id']} (sample obj {chosen['sample_obj_id']})")
+    print(f"Using NAFC trial {chosen['nafc_stim_id']} ({chosen['stim_type']}, "
+          f"sample obj {chosen['sample_obj_id']})")
 
     sample_png = locate_local_file(chosen['png_path'], stimuli_dir)
     noise_map_png = locate_local_file(chosen['noise_map_path'], stimuli_dir)
@@ -116,6 +121,7 @@ def main():
         "nafc_database": context.nafc_database,
         "ga_stim_id": GA_STIM_ID,
         "nafc_stim_id": chosen['nafc_stim_id'],
+        "nafc_stim_type": chosen['stim_type'],
         "nafc_sample_obj_id": chosen['sample_obj_id'],
         "candidate_nafc_stim_ids": [c['nafc_stim_id'] for c in candidates],
         "sample_png": sample_png,
@@ -142,8 +148,8 @@ def main():
 def find_nafc_samples_for_ga_stim(nafc_conn, ga_stim_id: int) -> list[dict]:
     """
     Every NAFC trial whose sample is the GA stim, newest first, keeping only those whose sample
-    spec has a noise map. Each entry: nafc_stim_id, sample_obj_id, png_path, noise_map_path,
-    color (0-255 RGB).
+    spec has a noise map and skipping removed trials. Each entry: nafc_stim_id, stim_type,
+    sample_obj_id, png_path, noise_map_path, color (0-255 RGB).
     """
     nafc_conn.execute(
         "SELECT stim_id FROM BaseMStickId WHERE base_mstick_stim_spec_id = %s ORDER BY stim_id DESC",
@@ -156,7 +162,11 @@ def find_nafc_samples_for_ga_stim(nafc_conn, ga_stim_id: int) -> list[dict]:
         stim_spec_xml = nafc_conn.fetch_one()
         if not stim_spec_xml:
             continue
-        sample_obj_id = int(xmltodict.parse(stim_spec_xml)['StimSpec']['sampleObjData'])
+        stim_spec = xmltodict.parse(stim_spec_xml)['StimSpec']
+        stim_type = stim_spec.get('stimType')
+        if stim_type == REMOVED_STIM_TYPE:
+            continue
+        sample_obj_id = int(stim_spec['sampleObjData'])
 
         nafc_conn.execute("SELECT spec FROM StimObjData WHERE id = %s", params=(sample_obj_id,))
         sample_spec_xml = nafc_conn.fetch_one()
@@ -165,7 +175,7 @@ def find_nafc_samples_for_ga_stim(nafc_conn, ga_stim_id: int) -> list[dict]:
         sample_spec = parse_noisy_png_spec(sample_spec_xml)
         if not sample_spec['noise_map_path']:
             continue
-        candidates.append({'nafc_stim_id': nafc_stim_id, 'sample_obj_id': sample_obj_id, **sample_spec})
+        candidates.append({'nafc_stim_id': nafc_stim_id, 'stim_type': stim_type, 'sample_obj_id': sample_obj_id, **sample_spec})
     return candidates
 
 
