@@ -422,13 +422,16 @@ def make_pairs_figure(rows: list[dict], *, child_label="Child", parent_label="Pa
     renderer = ThumbnailRenderer(FIGURE_THUMB_PX, round(border_frac * FIGURE_THUMB_PX), zoom)
 
     label_h = 0.35 if show_values else 0.0
-    fig_w = pair_size * per_row + 2.0
+    # Right-hand space for the response colorbar, its ticks and label (inches).
+    bar_space = 1.6
+    fig_w = pair_size * per_row + 0.9 + bar_space
     fig_h = n_bands * 2 * (pair_size + label_h) + (0.6 if title else 0.2)
     fig = Figure(figsize=(fig_w, fig_h))
-    left, right = 0.9 / fig_w, 1 - 1.1 / fig_w
+    left, right = 0.9 / fig_w, 1 - bar_space / fig_w
     top = 1 - ((0.6 if title else 0.2) / fig_h)
     grid = fig.add_gridspec(n_bands * 2, per_row, left=left, right=right, top=top,
                             bottom=0.02, hspace=0.25 if show_values else 0.06, wspace=0.06)
+    image_axes = []
     for i, r in enumerate(rows):
         band, col = divmod(i, per_row)
         for k, role in enumerate(("child", "parent")):
@@ -436,6 +439,7 @@ def make_pairs_figure(rows: list[dict], *, child_label="Child", parent_label="Pa
             value = r[f"{role}_resp"]
             comps = r[f"{role}_comps"] if show_comps else None
             ax = fig.add_subplot(grid[band * 2 + k, col])
+            image_axes.append(ax)
             img = renderer.image(r[f"{role}_path"], value, vmin, vmax, comps)
             if img is not None:
                 ax.imshow(np.asarray(img))
@@ -452,10 +456,17 @@ def make_pairs_figure(rows: list[dict], *, child_label="Child", parent_label="Pa
     if title:
         fig.suptitle(title, fontsize=16)
     cmap = LinearSegmentedColormap.from_list("black_red", [(0, 0, 0), (1, 0, 0)])
-    cax = fig.add_axes([1 - 0.95 / fig_w, 0.15, 0.12 / fig_w, 0.6])
+    # Colorbar as tall as the images: from the bottom of the lowest image to
+    # the top of the highest (positions after the square-aspect shrink).
+    for ax in image_axes:
+        ax.apply_aspect()
+    boxes = [ax.get_position() for ax in image_axes]
+    y0, y1 = min(b.y0 for b in boxes), max(b.y1 for b in boxes)
+    x0 = max(b.x1 for b in boxes) + 0.2 / fig_w
+    cax = fig.add_axes([x0, y0, 0.18 / fig_w, y1 - y0])
     cb = fig.colorbar(ScalarMappable(norm=Normalize(vmin, vmax), cmap=cmap), cax=cax)
-    cb.set_label("Response", fontsize=12)
-    cb.ax.tick_params(labelsize=10)
+    cb.set_label("Response", fontsize=18)
+    cb.ax.tick_params(labelsize=15)
     return fig
 
 
