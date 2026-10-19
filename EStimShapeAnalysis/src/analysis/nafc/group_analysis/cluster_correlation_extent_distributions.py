@@ -147,7 +147,9 @@ def plot_extent_hist(ax, sessions, bin_width, split_probe_end):
     if split_probe_end:
         handles = [Patch(color=EXTENT_COLOR, label='within probe'),
                    Patch(color=PROBE_END_COLOR, label='reaches probe end')] + handles
-    ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper right')
+    # legend below the axes so it never covers bars
+    ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper center',
+              bbox_to_anchor=(0.5, -0.15), ncol=len(handles))
 
 
 def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize,
@@ -224,6 +226,17 @@ def plot_distributions(sessions, channels, *, rho_threshold, extent_bin_width_um
     return fig
 
 
+def plot_extent_only(sessions, *, extent_bin_width_um=None, split_probe_end=False,
+                     pitch=None):
+    """Standalone copy of the extent histogram (left panel of plot_distributions)."""
+    fig, ax = plt.subplots(figsize=(7.5, 6))
+    plot_extent_hist(ax, sessions, extent_bin_width_um or pitch, split_probe_end)
+    ax.tick_params(labelsize=11)
+    ax.spines[['top', 'right']].set_visible(False)
+    fig.tight_layout()
+    return fig
+
+
 def main():
     session_ids = None       # None = every session in EStimShapeTrials; or a list
     start_session_id = COMPARISON_START_SESSION_ID          # same range as the
@@ -259,6 +272,9 @@ def main():
                              rho_bin_width=rho_bin_width,
                              normalize_channel_hist=normalize_channel_hist,
                              jitter_um=jitter_um, method=method)
+    fig_extent = plot_extent_only(sessions, extent_bin_width_um=extent_bin_width_um,
+                                  split_probe_end=split_probe_end,
+                                  pitch=_pitch(channels))
 
     out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
     os.makedirs(out_dir, exist_ok=True)
@@ -278,6 +294,8 @@ def main():
     for ext in ('png', 'svg'):
         fig.savefig(os.path.join(out_dir, f"cluster_corr_extent_distributions.{ext}"),
                     dpi=200, bbox_inches='tight')
+        fig_extent.savefig(os.path.join(out_dir, f"cluster_corr_extent_hist.{ext}"),
+                           dpi=200, bbox_inches='tight')
     print(f"Saved to {out_dir}")
     if show_plots:
         plt.show()
