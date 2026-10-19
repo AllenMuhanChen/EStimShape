@@ -72,10 +72,11 @@ def main():
 
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
     CHOICE_SPACING = 1.0           # >1 spreads the three choices apart, <1 packs them closer
-    BACKGROUND_THRESHOLD = 12      # 0-255; a pixel is shape if any channel differs from the
-                                   # png's background colour by more than this
-    EDGE_BAND_PX = 2               # px either side of the shape's edge where the png's gray is
-                                   # subtracted out of antialiased pixels
+    BACKGROUND_THRESHOLD = 2       # 0-255; a pixel is shape if any channel differs from the
+                                   # png's (flat) background colour by more than this. Keep it
+                                   # small so faint edge pixels and highlights near the gray stay
+    EDGE_BAND_PX = 1               # px inside the shape's edge whose gray share is subtracted out
+                                   # (deeper pixels, highlights included, are left untouched)
     SCREEN_COLOR = (0, 0, 0)       # monitor background; pngs are alpha-blended onto it like on the rig
     SHOW_FIXATION = True           # fixation square at screen (0, 0) on the left panel
     FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
@@ -602,61 +603,47 @@ def resample(img: Image.Image, size: tuple) -> Image.Image:
 def remove_flat_background(rgb: np.ndarray, mask: np.ndarray, png_background, new_background,
                            band_px: int) -> np.ndarray:
     """
-    Take a shape off a flat png background g and put it on new_background, without needing to
-    know each edge pixel's coverage a.
+    Take a shape off a flat png background g and put it on new_background, keeping every bit
+    of the shape's own light (including specular highlights).
 
-    An edge pixel is p = a*f + (1-a)*g. Split every colour into its part along g's direction
-    (unit vector h = g/|g|) and the part perpendicular to it. The background has no
-    perpendicular part, so perp(p) = a*perp(f) exactly: the background is gone from it with
-    no estimate at all. Only the part along h is mixed, and for a lit object of one material
-    colour (diffuse * colour), the along-h part of f is a fixed multiple m of its
-    perpendicular part. m is measured on pixels deep inside the shape (more than band_px + 1
-    px from the background), so the shape on black is a*f = perp(p) + m * <perp(p), u> * h,
-    with u the shape's perpendicular colour direction. This is applied to every pixel within
-    band_px of the edge, inside and outside the threshold mask, so partly covered pixels at
-    thin tips are corrected too. Deeper pixels are kept as they are; farther-out pixels become
-    new_background. Falls back to remove_flat_background_by_coverage when the shape's colour
-    is too close to the background's to separate this way (e.g. a gray shape on gray).
+    An edge pixel is p = a*f + (1-a)*g with coverage a. Only the background share (1-a)*g is
+    removed: out = p - (1-a)*g + (1-a)*new_background, so whatever the shape contributed,
+    highlight included, stays exactly as rendered.
+
+    The coverage comes from the part of each colour perpendicular to the background colour's
+    direction h = g/|g|. The background contributes nothing there, and neither does a white
+    or gray specular highlight (it lies along the same neutral direction as a gray
+    background), so x = |perp(p)| = a * |perp(f_diffuse)|. The pure value |perp(f)| is taken
+    from the shape itself next to the pixel: the larger of the value at the nearest pixel at
+    least band_px + 1 px inside the shape and the largest value among its 3x3 neighbours. Pixels
+    deeper than band_px are left untouched; pixels outside the mask become new_background.
+    Falls back to remove_flat_background_by_coverage for a background that is black or a shape
+    coloured too much like the background.
     """
     rgb_f = rgb.astype(np.float64)
     g = np.asarray(png_background, dtype=np.float64)
     new_bg = np.asarray(new_background, dtype=np.float64)
     g_norm = np.linalg.norm(g)
-    if g_norm < 1e-6:  # background already black: nothing to subtract
-        out = np.empty_like(rgb_f)
-        out[:] = new_bg
-        out[mask] = rgb_f[mask]
-        return np.clip(np.round(out), 0, 255).astype(np.uint8)
-    h = g / g_norm
-
-    depth = ndimage.distance_transform_edt(mask)
-    deep = depth > band_px + 1
-    par = rgb_f @ h                                  # component along the background colour
-    perp = rgb_f - par[..., None] * h                # component the background can't touch
-    if deep.sum() >= 10:
-        u = perp[deep].mean(axis=0)
-        u_norm = np.linalg.norm(u)
-    else:
-        u_norm = 0.0
-    if u_norm < 5.0:
+    if g_norm < 1e-6:
         return remove_flat_background_by_coverage(rgb, mask, png_background, new_background, band_px)
-    u = u / u_norm
-    x = perp @ u
-    ok = deep & (x > 5.0)
-    m = float(np.median(par[ok] / x[ok]))
+    h = g / g_norm
+    par = rgb_f @ h
+    x = np.linalg.norm(rgb_f - par[..., None] * h, axis=2)  # untouched by background and highlight
 
-    x_pos = np.clip(x, 0.0, None)
-    on_black = perp + (m * x_pos)[..., None] * h
-    on_black[x <= 0] = 0.0
-    # coverage, only needed to lay the shape on a non-black background
-    a = np.clip(x_pos / max(float(np.median(x[ok])), 1e-6), 0.0, 1.0)
+    depth = ndimage.distance_transform_cdt(mask, metric='chessboard')
+    deep = depth > band_px
+    if deep.sum() < 10 or np.median(x[deep]) < 5.0:
+        return remove_flat_background_by_coverage(rgb, mask, png_background, new_background, band_px)
+    _, (iy, ix) = ndimage.distance_transform_edt(~deep, return_indices=True)
+    x_ref = np.maximum(x[iy, ix], ndimage.maximum_filter(np.where(mask, x, 0.0), size=3))
+    a = np.clip(x / np.maximum(x_ref, 1e-6), 0.0, 1.0)
 
-    # within band_px of the edge, on either side of it
-    edge = ndimage.binary_dilation(mask, iterations=max(band_px, 1)) & (depth <= band_px)
     out = np.empty_like(rgb_f)
     out[:] = new_bg
     out[mask] = rgb_f[mask]
-    out[edge] = on_black[edge] + (1 - a[edge])[..., None] * new_bg
+    edge = mask & (depth <= band_px)
+    swapped = rgb_f - (1 - a)[..., None] * g + (1 - a)[..., None] * new_bg
+    out[edge] = swapped[edge]
     return np.clip(np.round(out), 0, 255).astype(np.uint8)
 
 
@@ -707,6 +694,11 @@ def cut_out_choice(choice: dict, threshold: float, screen_color, band_px: int,
     """
     rgb = load_rgb(choice['local_png'], screen_color)
     png_background = estimate_background(rgb)
+    border = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]]).astype(int)
+    spread = int(np.abs(border - png_background.astype(int)).max())
+    if spread > threshold:
+        print(f"Warning: {os.path.basename(choice['local_png'])} background isn't flat (border varies "
+              f"by {spread} > BACKGROUND_THRESHOLD {threshold}); raise BACKGROUND_THRESHOLD.")
     mask = shape_mask(rgb, png_background, threshold)
     if not mask.any():
         raise RuntimeError(f"No shape found in {choice['local_png']} at threshold {threshold}")
