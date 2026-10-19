@@ -2,8 +2,8 @@
 GA cluster correlation extent for this session: the figure from
 nafc/group_analysis/plot_cluster_correlation_spread (see that module for the method).
 
-Each channel's GA response vector is correlated with the average GA cluster response
-(GA channels leave-one-out); the extent is walked up and down the probe from the GA
+Each channel's GA response vector is correlated with the GA response
+(sum of all GA channels); the extent is walked up and down the probe from the GA
 channels and stops after n channels in a row below the ρ threshold. Read-only.
 """
 
@@ -15,7 +15,7 @@ from src.analysis.nafc.group_analysis import plot_cluster_correlation_spread as 
 
 class ClusterCorrelationExtentModule(FigureModule):
     name = "GA cluster correlation extent"
-    description = ("Each channel's ρ with the GA cluster response along the probe, and "
+    description = ("Each channel's ρ with the GA response (sum of all GA channels) along the probe, and "
                    "the contiguous extent above the ρ threshold.")
 
     def params(self):

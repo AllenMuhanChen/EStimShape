@@ -3,10 +3,10 @@ One session's GA cluster correlation spread: how far along the probe channels ke
 responding like the GA cluster, measured with a fixed (hard) cutoff on ρ.
 
 Reference: the GA cluster channels (ClusterInfo, latest gen). Each channel's GA
-response vector (ga_mean_response) is correlated (Spearman by default, or Pearson) with the AVERAGE response
-of the GA channels (each z-scored across stimuli first, so one high-rate channel
-doesn't dominate). A GA channel is compared with the average of the OTHER GA channels
-(leave-one-out), so it isn't correlated with itself.
+response vector (ga_mean_response) is correlated (Spearman by default, or Pearson) with the GA
+response: the sum of all GA channels (each z-scored across stimuli first, so one
+high-rate channel doesn't dominate; the sum and the average give the same correlation).
+GA channels are correlated with the same GA response as every other channel.
 
 Cutoff: a fixed ρ threshold (default 0.5, the conventional "strong correlation" boundary). A
 channel with ρ >= ρ threshold counts as part of the cluster. ρ threshold is the same for every session,
@@ -92,22 +92,11 @@ def correlate(vec, target, method='spearman', min_common=3):
 
 
 def ga_reference_rhos(response_matrix, ga_strs, method='spearman'):
-    """{channel: (ρ, n)} vs the average GA response. GA channels are compared with the
-    average of the other GA channels (leave-one-out); with a single GA channel it has
-    no reference and gets ρ = NaN."""
+    """{channel: (ρ, n)} vs the GA response (all GA channels, z-scored), for every
+    channel including the GA channels themselves."""
     ga_strs = [g for g in ga_strs if g in response_matrix]
-    target_all = zscore_average(response_matrix, ga_strs)
-    out = {}
-    for ch, vec in response_matrix.items():
-        if ch in ga_strs:
-            others = [g for g in ga_strs if g != ch]
-            if not others:
-                out[ch] = (np.nan, 0)
-                continue
-            out[ch] = correlate(vec, zscore_average(response_matrix, others), method)
-        else:
-            out[ch] = correlate(vec, target_all, method)
-    return out
+    target = zscore_average(response_matrix, ga_strs)
+    return {ch: correlate(vec, target, method) for ch, vec in response_matrix.items()}
 
 
 # ---------------------------------------------------------------- contiguous extent
@@ -208,16 +197,15 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop, method='spearman'):
     ax.scatter(rho[ok & ~sig], y[ok & ~sig], s=60, facecolor='white',
                edgecolor='0.3', lw=1.2, zorder=4)
     ax.scatter(rho[sig], y[sig], s=60, color='black', zorder=5)
-    is_ga = np.array([ch in ext.get('ga_strs', ()) for ch in channel_strs])
-    if is_ga.any():
-        ax.scatter(rho[is_ga & ok], y[is_ga & ok], marker='*', s=260,
-                   color='lightcoral', edgecolor='black', lw=0.8, zorder=6)
     for i in ext['up_stop'] + ext['down_stop']:
         ax.scatter(rho[i], y[i], marker='x', s=140, color='tab:red', lw=2.5, zorder=7)
 
     # one double-headed arrow on the right edge spanning the whole extent
     # (upper boundary channel -> lower boundary channel), ticked at both ends
-    x_arrow, tick = 1.03, 0.025
+    # no negative correlations -> drop the empty -1..0 half of the axis
+    x_lo = -1 if np.nanmin(np.where(ok, rho, np.nan)) < 0 else 0
+    half = (1 - x_lo) / 2   # arrow offsets below are scaled to the axis width
+    x_arrow, tick = 1 + 0.03 * half, 0.025 * half
     y_up, y_dn = _row_y(rows, ext['up_edge']), _row_y(rows, ext['down_edge'])
     if y_up != y_dn:
         ax.annotate('', xy=(x_arrow, y_up), xytext=(x_arrow, y_dn),
@@ -227,12 +215,12 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop, method='spearman'):
     for y_end in (y_up, y_dn):
         ax.plot([x_arrow - tick, x_arrow + tick], [y_end, y_end], color='black',
                 lw=1.5, clip_on=False)
-    ax.text(x_arrow + 0.04, 0.5 * (y_up + y_dn), f"{ext['extent_total_um']:.0f} µm",
+    ax.text(x_arrow + 0.04 * half, 0.5 * (y_up + y_dn), f"{ext['extent_total_um']:.0f} µm",
             va='center', ha='left', fontsize=11, color='0.25', clip_on=False)
 
-    ax.set_xlim(-1, 1)
+    ax.set_xlim(x_lo, 1)
     ax.tick_params(axis='y', left=False, labelleft=False)
-    ax.set_xlabel(f'{method_name(method)} {sym} with GA cluster response', fontsize=13)
+    ax.set_xlabel(f'{method_name(method)} {sym} with GA response (sum of all GA channels)', fontsize=13)
     ax.tick_params(labelsize=11)
     ax.set_title('Correlation along the probe', fontsize=13, fontweight='bold')
     ax.legend(handles=[
@@ -242,9 +230,6 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop, method='spearman'):
                markersize=9, label=f'{sym} ≥ {sym} threshold'),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='white',
                markeredgecolor='0.3', markersize=9, label=f'{sym} < {sym} threshold'),
-        Line2D([0], [0], marker='*', color='w', markerfacecolor='lightcoral',
-               markeredgecolor='black', markersize=15,
-               label='GA channel (vs other GA channels)'),
         Line2D([0], [0], marker='x', color='tab:red', lw=0, markersize=10,
                markeredgewidth=2.5,
                label=f'walk stops ({n_misses_to_stop} misses in a row)'),
