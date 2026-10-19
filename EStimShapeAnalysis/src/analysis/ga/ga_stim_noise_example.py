@@ -66,6 +66,9 @@ def main():
     ZOOM_CENTER = None             # (x, y) in -1..1 of the sample png, +y up; None = centre of the shape
     DISTRACTOR_LABELS = ("delta", "procedural")  # which distractor to show, by png label, first
                                    # found wins; falls back to any choice that isn't match/rand
+    DISTRACTOR_ID = None           # procedural distractor to show: the id in its png file name
+                                   # (e.g. <id>_delta.png). If NAFC_STIM_ID is None, the latest
+                                   # trial that offered this distractor is used. None = by label.
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
     CHOICE_SPACING = 1.0           # >1 spreads the three choices apart, <1 packs them closer
     BACKGROUND_THRESHOLD = 12      # 0-255; a pixel is shape if any channel differs from the
@@ -101,7 +104,12 @@ def main():
     print(f"NAFC trials with GA stim {GA_STIM_ID} as sample: "
           f"{[c['nafc_stim_id'] for c in candidates]}")
 
-    if NAFC_STIM_ID is None:
+    if NAFC_STIM_ID is None and DISTRACTOR_ID is not None:
+        with_distractor = [c for c in candidates if DISTRACTOR_ID in c['choice_obj_ids']]
+        if not with_distractor:
+            raise RuntimeError(f"No trial of GA stim {GA_STIM_ID} offered distractor {DISTRACTOR_ID}.")
+        chosen = with_distractor[0]
+    elif NAFC_STIM_ID is None:
         chosen = candidates[0]
     else:
         matches = [c for c in candidates if c['nafc_stim_id'] == NAFC_STIM_ID]
@@ -137,7 +145,7 @@ def main():
         Image.fromarray(img).save(os.path.join(out_dir, name))
 
     choices = read_choice_specs(nafc_conn, chosen['choice_obj_ids'])
-    shown = pick_choices(choices, DISTRACTOR_LABELS)
+    shown = pick_choices(choices, DISTRACTOR_LABELS, DISTRACTOR_ID)
     for role, choice in shown.items():
         choice['local_png'] = locate_local_file(choice['png_path'], stimuli_dir)
         print(f"{role:>10}: {choice['local_png']}")
@@ -191,6 +199,7 @@ def main():
         "zoom": ZOOM,
         "zoom_center": ZOOM_CENTER,
         "distractor_labels": list(DISTRACTOR_LABELS),
+        "distractor_id": DISTRACTOR_ID,
         "choice_order": list(CHOICE_ORDER),
         "choice_spacing": CHOICE_SPACING,
         "background_threshold": BACKGROUND_THRESHOLD,
@@ -307,9 +316,10 @@ def png_label(path: str) -> str:
     return parts[1] if len(parts) == 2 and parts[0].isdigit() else stem
 
 
-def pick_choices(choices: list[dict], distractor_labels) -> dict:
-    """The match, one distractor (first label in distractor_labels found, else any choice that
-    isn't the match or a rand) and the first rand distractor."""
+def pick_choices(choices: list[dict], distractor_labels, distractor_id=None) -> dict:
+    """The match, one distractor (the choice with id distractor_id if given; else the first
+    label in distractor_labels found, else any choice that isn't the match or a rand) and the
+    first rand distractor."""
     by_label = {}
     for c in choices:
         by_label.setdefault(c['label'], c)
@@ -318,6 +328,12 @@ def pick_choices(choices: list[dict], distractor_labels) -> dict:
         raise RuntimeError(f"No match among this trial's choices (labels: {labels})")
     if 'rand' not in by_label:
         raise RuntimeError(f"No rand distractor among this trial's choices (labels: {labels})")
+    if distractor_id is not None:
+        distractor = next((c for c in choices if c['obj_id'] == distractor_id), None)
+        if distractor is None:
+            raise RuntimeError(f"Distractor {distractor_id} is not a choice in this trial "
+                               f"(choice ids: {[c['obj_id'] for c in choices]})")
+        return {'match': by_label['match'], 'distractor': distractor, 'rand': by_label['rand']}
     distractor = next((by_label[l] for l in distractor_labels if l in by_label), None)
     if distractor is None:
         distractor = next((c for c in choices if c['label'] not in ('match', 'rand')), None)
