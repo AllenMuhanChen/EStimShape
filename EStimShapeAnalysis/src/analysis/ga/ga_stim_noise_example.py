@@ -41,8 +41,8 @@ from PIL import Image
 
 def main():
     # ---- Parameters -------------------------------------------------------------------------
-    SESSION_ID = "260702_0"        # session the GA stim belongs to; None = keep current context
-    GA_STIM_ID = 1234567890123     # GA stim id to render with noise
+    SESSION_ID = "260603_0"        # session the GA stim belongs to; None = keep current context
+    GA_STIM_ID = 1780507913222760     # GA stim id to render with noise
     NAFC_STIM_ID = None            # None = latest NAFC trial with this GA stim as its sample;
                                    # or an NAFC StimSpec id to use that trial's noise map
     NOISE_CHANCE = None            # noise amount: peak chance a pixel is noise (0-1), like the
