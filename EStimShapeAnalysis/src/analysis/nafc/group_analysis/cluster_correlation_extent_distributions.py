@@ -116,7 +116,7 @@ def build_tables(session_ids, *, rho_threshold, n_misses_to_stop, method, vector
         channels.extend(c_rows)
         print(f"{sid}: extent = {s_row['extent_total_um']:.0f} µm"
               f"{' (probe end)' if s_row['reaches_probe_end'] else ''}, "
-              f"avg GA ρ = {s_row['avg_ga_rho']:.2f}")
+              f"avg GA {ccs.method_symbol(method)} = {s_row['avg_ga_rho']:.2f}")
     return pd.DataFrame(sessions), pd.DataFrame(channels), skipped
 
 
@@ -172,10 +172,10 @@ def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize,
                              label=f'{label} (n = {len(vals)}, median {med:.2f})'))
     ax.axvline(rho_threshold, color=THRESHOLD_COLOR, lw=2, ls='--', ymax=0.72)
     handles.append(Line2D([0], [0], color=THRESHOLD_COLOR, ls='--', lw=2,
-                          label=f'ρ threshold = {rho_threshold:.2f}'))
+                          label=f'{ccs.method_symbol(method)} threshold = {rho_threshold:.2f}'))
     ax.set_xlim(-0.5, 1)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.35)  # headroom so the legend clears the bars
-    ax.set_xlabel(f'{ccs.method_name(method)} ρ with GA cluster response', fontsize=13)
+    ax.set_xlabel(f'{ccs.method_name(method)} {ccs.method_symbol(method)} with GA cluster response', fontsize=13)
     ax.set_ylabel('Fraction of channels' if normalize else 'Number of channels',
                   fontsize=13)
     ax.set_title('GA vs non-GA channel correlation', fontsize=14, fontweight='bold')
@@ -197,12 +197,12 @@ def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng,
                     label='interquartile range')
     ax.plot(centers, med, '-o', color=EXTENT_COLOR, lw=2, ms=5, label='median')
     ax.axhline(rho_threshold, color=THRESHOLD_COLOR, lw=2, ls='--',
-               label=f'ρ threshold = {rho_threshold:.2f}')
+               label=f'{ccs.method_symbol(method)} threshold = {rho_threshold:.2f}')
     ax.axhline(0, color='0.7', lw=0.8)
     ax.set_ylim(-1, 1)
     ax.set_xlim(0, d.max() + pitch if len(d) else pitch)
     ax.set_xlabel('Distance to nearest GA channel (µm)', fontsize=13)
-    ax.set_ylabel(f'{ccs.method_name(method)} ρ with GA cluster response', fontsize=13)
+    ax.set_ylabel(f'{ccs.method_name(method)} {ccs.method_symbol(method)} with GA cluster response', fontsize=13)
     ax.set_title('Correlation vs distance', fontsize=14, fontweight='bold')
     ax.legend(fontsize=11, frameon=False, loc='lower left')
 
@@ -254,7 +254,7 @@ def main():
           f"(up {sessions['extent_up_um'].median():.0f}, "
           f"down {sessions['extent_down_um'].median():.0f}); "
           f"{int(sessions['reaches_probe_end'].sum())} reach the probe end; "
-          f"{n_single} with a single GA channel (no average GA ρ)")
+          f"{n_single} with a single GA channel (no average GA {ccs.method_symbol(method)})")
 
     fig = plot_distributions(sessions, channels, rho_threshold=rho_threshold,
                              extent_bin_width_um=extent_bin_width_um,

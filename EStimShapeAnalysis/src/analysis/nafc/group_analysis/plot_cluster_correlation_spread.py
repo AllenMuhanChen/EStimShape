@@ -172,18 +172,23 @@ def method_name(method):
     return 'Spearman' if method == 'spearman' else 'Pearson'
 
 
+def method_symbol(method):
+    """Correlation symbol for plot labels: ρ for Spearman, r for Pearson."""
+    return 'ρ' if method == 'spearman' else 'r'
+
+
 def _row_y(n_rows, idx):
     """plot_metric_column's row position (top channel at the top)."""
     return n_rows - idx
 
 
-def _plot_probe_column(ax, ext, channel_strs, ga_strs):
+def _plot_probe_column(ax, ext, channel_strs, ga_strs, method='spearman'):
     cmap, norm = default_cmap_norm()
     rho_by_ch = {ch: ext['rho'][i] for i, ch in enumerate(channel_strs)}
     ref = plot_metric_column(ax, rho_by_ch, channel_strs, set(ga_strs),
                              cmap=cmap, norm=norm, show_yticks=True)
     format_single_column_axis(ax)
-    ax.set_title('ρ vs GA\nresponse', fontsize=13, fontweight='bold')
+    ax.set_title(f'{method_symbol(method)} vs GA\nresponse', fontsize=13, fontweight='bold')
     return ref
 
 
@@ -191,6 +196,7 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop, method='spearman'):
     rows = len(channel_strs)
     y = np.array([_row_y(rows, i) for i in range(rows)])
     rho, thr = ext['rho'], ext['rho_threshold']
+    sym = method_symbol(method)
     ok = ext['has_data']
     sig = ext['above']
 
@@ -226,16 +232,16 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop, method='spearman'):
 
     ax.set_xlim(-1, 1)
     ax.tick_params(axis='y', left=False, labelleft=False)
-    ax.set_xlabel(f'{method_name(method)} ρ with GA cluster response', fontsize=13)
+    ax.set_xlabel(f'{method_name(method)} {sym} with GA cluster response', fontsize=13)
     ax.tick_params(labelsize=11)
     ax.set_title('Correlation along the probe', fontsize=13, fontweight='bold')
     ax.legend(handles=[
         Line2D([0], [0], color='tab:red', ls='--', lw=2,
-               label=f"ρ threshold = {thr:.2f}"),
+               label=f"{sym} threshold = {thr:.2f}"),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='black',
-               markersize=9, label='ρ ≥ ρ threshold'),
+               markersize=9, label=f'{sym} ≥ {sym} threshold'),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='white',
-               markeredgecolor='0.3', markersize=9, label='ρ < ρ threshold'),
+               markeredgecolor='0.3', markersize=9, label=f'{sym} < {sym} threshold'),
         Line2D([0], [0], marker='*', color='w', markerfacecolor='lightcoral',
                markeredgecolor='black', markersize=15,
                label='GA channel (vs other GA channels)'),
@@ -260,14 +266,14 @@ def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
                   hspace=0.08, figure=fig)
     ax_col = fig.add_subplot(gs[0, 0])
     ax_prof = fig.add_subplot(gs[0, 1], sharey=ax_col)
-    ref = _plot_probe_column(ax_col, ext, channel_strs, ga_strs)
+    ref = _plot_probe_column(ax_col, ext, channel_strs, ga_strs, method)
     _plot_profile(ax_prof, ext, channel_strs, n_misses_to_stop, method)
     if ref is not None:
         cbar = fig.colorbar(ref, cax=fig.add_subplot(gs[1, 0]),
                             orientation='horizontal')
-        cbar.set_label(f'{method_name(method)} ρ', fontsize=11)
+        cbar.set_label(f'{method_name(method)} {method_symbol(method)}', fontsize=11)
     fig.suptitle(f"{session_id}: GA cluster extent = {ext['extent_total_um']:.0f} µm "
-                 f"at ρ threshold = {ext['rho_threshold']:.2f}",
+                 f"at {method_symbol(method)} threshold = {ext['rho_threshold']:.2f}",
                  fontsize=15, fontweight='bold')
     return fig
 
@@ -312,7 +318,7 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
     ext = contiguous_extent(channel_strs, positions_um, rho_n, ga_with_data,
                             rho_threshold=rho_threshold,
                             n_misses_to_stop=n_misses_to_stop)
-    print_extent(session_id, ext, ga_with_data)
+    print_extent(session_id, ext, ga_with_data, method)
     fig = plot_extent_figure(session_id, ext, channel_strs, ga_with_data,
                              n_misses_to_stop=n_misses_to_stop, method=method)
 
@@ -338,10 +344,10 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
     return ext
 
 
-def print_extent(session_id, ext, ga_strs):
-    ok = ext['has_data']
-    print(f"{session_id}: GA channels {ga_strs}; ρ threshold = {ext['rho_threshold']:.2f}; "
-          f"{int(ext['above'].sum())}/{int(ok.sum())} channels with ρ ≥ ρ threshold")
+def print_extent(session_id, ext, ga_strs, method='spearman'):
+    ok, sym = ext['has_data'], method_symbol(method)
+    print(f"{session_id}: GA channels {ga_strs}; {sym} threshold = {ext['rho_threshold']:.2f}; "
+          f"{int(ext['above'].sum())}/{int(ok.sum())} channels with {sym} ≥ {sym} threshold")
     print(f"  extent up = {ext['extent_up_um']:.0f} µm"
           f"{' (probe end)' if ext['up_reached_end'] else ''}, "
           f"down = {ext['extent_down_um']:.0f} µm"

@@ -20,9 +20,9 @@ class ClusterCorrelationExtentModule(FigureModule):
 
     def params(self):
         return [
-            Param("rho_threshold", "ρ threshold", "float", 0.5, minimum=0.0,
+            Param("rho_threshold", "Correlation threshold", "float", 0.5, minimum=0.0,
                   maximum=1.0, step=0.05,
-                  tooltip="Channels with ρ >= this count as part of the cluster."),
+                  tooltip="Channels with ρ (or Pearson r) >= this count as part of the cluster."),
             Param("n_misses_to_stop", "Misses to stop", "int", 2, minimum=1, maximum=10,
                   tooltip="Channels in a row below the threshold that end the walk."),
             Param("method", "Correlation", "choice", "spearman",
