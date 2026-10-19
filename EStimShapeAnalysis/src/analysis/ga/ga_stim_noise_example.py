@@ -647,7 +647,9 @@ def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
 def plot_example_figure(sample_panel: Image.Image, choices_panel: Image.Image):
     fig, axes = plt.subplots(1, 2, figsize=(10, 5), gridspec_kw={'wspace': 0.04})
     for ax, img in zip(axes, (sample_panel, choices_panel)):
-        ax.imshow(img, interpolation="none")
+        # antialiased: the window shows the native-resolution panel shrunk, and "none" or
+        # "nearest" would alias (checkerboard / moire), worst on the noise
+        ax.imshow(img, interpolation="antialiased")
         ax.set_axis_off()
     return fig
 
