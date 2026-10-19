@@ -600,50 +600,63 @@ def resample(img: Image.Image, size: tuple) -> Image.Image:
     return img.resize(size, Image.BOX if shrinking else Image.BILINEAR)
 
 
+def shape_colour(rgb_f: np.ndarray, mask: np.ndarray, png_background: np.ndarray, band_px: int):
+    """
+    Unit direction C of the shape's diffuse colour, or None if the shape is too gray to tell.
+
+    Interior pixels are s*C + w*white (shading s, specular w), so their part perpendicular to
+    the gray direction always points along C's hue; how much white C itself contains is the
+    smallest white share any interior pixel shows (a pixel with no specular on it).
+    """
+    h = png_background / np.linalg.norm(png_background)
+    depth = ndimage.distance_transform_cdt(mask, metric='chessboard')
+    px = rgb_f[depth > band_px]
+    if len(px) < 10:
+        return None
+    par = px @ h
+    perp = px - par[:, None] * h
+    x = np.linalg.norm(perp, axis=1)
+    keep = x > max(0.25 * x.max(), 5.0)
+    if keep.sum() < 10:
+        return None
+    hue = np.linalg.svd(perp[keep], full_matrices=False)[2][0]
+    if (perp[keep] @ hue).mean() < 0:
+        hue = -hue
+    white = np.min(par[keep] / (perp[keep] @ hue))
+    c = hue + white * h
+    return c / np.linalg.norm(c)
+
+
 def remove_flat_background(rgb: np.ndarray, mask: np.ndarray, png_background, new_background,
                            band_px: int) -> np.ndarray:
     """
-    Take a shape off a flat png background g and put it on new_background, keeping every bit
-    of the shape's own light (including specular highlights).
+    Take a shape off a flat png background g and put it on new_background (blend to black).
 
-    An edge pixel is p = a*f + (1-a)*g with coverage a. Only the background share (1-a)*g is
-    removed: out = p - (1-a)*g + (1-a)*new_background, so whatever the shape contributed,
-    highlight included, stays exactly as rendered.
-
-    The coverage comes from the part of each colour perpendicular to the background colour's
-    direction h = g/|g|. The background contributes nothing there, and neither does a white
-    or gray specular highlight (it lies along the same neutral direction as a gray
-    background), so x = |perp(p)| = a * |perp(f_diffuse)|. The pure value |perp(f)| is taken
-    from the shape itself next to the pixel: the larger of the value at the nearest pixel at
-    least band_px + 1 px inside the shape and the largest value among its 3x3 neighbours. Pixels
-    deeper than band_px are left untouched; pixels outside the mask become new_background.
-    Falls back to remove_flat_background_by_coverage for a background that is black or a shape
-    coloured too much like the background.
+    An edge pixel is p = u*C + v*g: the shape's colour C (from shape_colour) times its shading,
+    plus a share v of the background. u and v are solved exactly by least squares for each
+    pixel within band_px of the edge, and only the background share is swapped:
+    out = p - v*g + v*new_background. A pixel with no gray in it is left exactly as rendered.
+    Pixels deeper than band_px are untouched; pixels outside the mask become new_background.
+    Falls back to remove_flat_background_by_coverage for a black background or a gray shape.
     """
     rgb_f = rgb.astype(np.float64)
     g = np.asarray(png_background, dtype=np.float64)
     new_bg = np.asarray(new_background, dtype=np.float64)
-    g_norm = np.linalg.norm(g)
-    if g_norm < 1e-6:
+    if np.linalg.norm(g) < 1e-6:
         return remove_flat_background_by_coverage(rgb, mask, png_background, new_background, band_px)
-    h = g / g_norm
-    par = rgb_f @ h
-    x = np.linalg.norm(rgb_f - par[..., None] * h, axis=2)  # untouched by background and highlight
-
-    depth = ndimage.distance_transform_cdt(mask, metric='chessboard')
-    deep = depth > band_px
-    if deep.sum() < 10 or np.median(x[deep]) < 5.0:
+    c = shape_colour(rgb_f, mask, g, band_px)
+    if c is None or abs(c @ g) / np.linalg.norm(g) > 0.98:  # shape colour too close to gray
         return remove_flat_background_by_coverage(rgb, mask, png_background, new_background, band_px)
-    _, (iy, ix) = ndimage.distance_transform_edt(~deep, return_indices=True)
-    x_ref = np.maximum(x[iy, ix], ndimage.maximum_filter(np.where(mask, x, 0.0), size=3))
-    a = np.clip(x / np.maximum(x_ref, 1e-6), 0.0, 1.0)
 
     out = np.empty_like(rgb_f)
     out[:] = new_bg
     out[mask] = rgb_f[mask]
+    depth = ndimage.distance_transform_cdt(mask, metric='chessboard')
     edge = mask & (depth <= band_px)
-    swapped = rgb_f - (1 - a)[..., None] * g + (1 - a)[..., None] * new_bg
-    out[edge] = swapped[edge]
+    p = rgb_f[edge]
+    uv = np.linalg.lstsq(np.stack([c, g], axis=1), p.T, rcond=None)[0]
+    v = np.clip(uv[1], 0.0, 1.0)[:, None]
+    out[edge] = p - v * g + v * new_bg
     return np.clip(np.round(out), 0, 255).astype(np.uint8)
 
 
