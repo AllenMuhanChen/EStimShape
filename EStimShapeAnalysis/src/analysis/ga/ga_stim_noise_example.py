@@ -651,7 +651,9 @@ def remove_flat_background(rgb: np.ndarray, mask: np.ndarray, png_background, ne
     out = np.empty_like(rgb_f)
     out[:] = new_bg
     out[mask] = rgb_f[mask]
-    depth = ndimage.distance_transform_cdt(mask, metric='chessboard')
+    # edge = pixels sharing a side with the background; a pixel touching it only at a corner is
+    # (nearly) fully covered, and solving it would mistake its specular white for gray
+    depth = ndimage.distance_transform_cdt(mask, metric='taxicab')
     edge = mask & (depth <= band_px)
     p = rgb_f[edge]
     uv = np.linalg.lstsq(np.stack([c, g], axis=1), p.T, rcond=None)[0]
