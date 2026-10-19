@@ -70,6 +70,12 @@ def main():
     CHOICE_SPACING = 1.0           # >1 spreads the three choices apart, <1 packs them closer
     BACKGROUND_THRESHOLD = 12      # 0-255; a pixel is shape if any channel differs from the
                                    # png's background colour by more than this
+    EDGE_PX = 3                    # width of each choice's edge band whose colour is un-mixed from
+                                   # its png background (removes the light outline)
+    SCREEN_COLOR = (0, 0, 0)       # monitor background; pngs are alpha-blended onto it like on the rig
+    SHOW_FIXATION = True           # fixation square at screen (0, 0) on the left panel
+    FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
+    FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = 800                 # resolution of each square panel
     CORNER_RADIUS = 0.03           # rounded panel corners, as a fraction of the panel size
     SAVE_ROOT = "/home/connorlab/Documents/plots"
@@ -109,7 +115,7 @@ def main():
     print(f"Sample png:    {sample_png}")
     print(f"Noise map png: {noise_map_png}")
 
-    sample_rgb = load_rgb(sample_png)
+    sample_rgb = load_rgb(sample_png, SCREEN_COLOR)
     noise_probability = load_noise_probability(noise_map_png, sample_rgb.shape[:2])
     trial_peak = float(noise_probability.max())
     print(f"Trial noise chance (noise map peak): {trial_peak:.3f}")
@@ -136,10 +142,22 @@ def main():
         print(f"{role:>10}: {choice['local_png']}")
 
     background = estimate_background(sample_rgb)
+    fixation = None
+    if SHOW_FIXATION:
+        size_deg = FIXATION_SIZE_DEG
+        if size_deg is None:
+            size_deg = float(read_system_var(nafc_conn, "xper_fixation_point_size")[0])
+        color = FIXATION_COLOR
+        if color is None:
+            color = tuple(int(round(float(v) * 255))
+                          for v in read_system_var(nafc_conn, "xper_fixation_point_color")[:3])
+        fixation = fixation_in_sample_pixels(chosen, sample_rgb.shape[:2], size_deg, color)
+        print(f"Fixation: {size_deg} deg, colour {color}, at sample px {fixation['xy']}")
     sample_panel = zoom_panel(noisy_frames[0], sample_rgb, ZOOM, ZOOM_CENTER, PANEL_PX,
-                              background, BACKGROUND_THRESHOLD)
+                              background, BACKGROUND_THRESHOLD, fixation)
     choices_panel = choices_triangle_panel([shown[role] for role in CHOICE_ORDER], PANEL_PX,
-                                           background, BACKGROUND_THRESHOLD, CHOICE_SPACING)
+                                           background, BACKGROUND_THRESHOLD, CHOICE_SPACING,
+                                           SCREEN_COLOR, EDGE_PX)
     sample_panel = round_corners(sample_panel, CORNER_RADIUS)
     choices_panel = round_corners(choices_panel, CORNER_RADIUS)
     sample_panel.save(os.path.join(out_dir, "sample_panel.png"))
@@ -174,6 +192,10 @@ def main():
         "background_threshold": BACKGROUND_THRESHOLD,
         "background_rgb": [int(v) for v in background],
         "panel_px": PANEL_PX,
+        "edge_px": EDGE_PX,
+        "screen_color": list(SCREEN_COLOR),
+        "fixation": None if fixation is None else
+                    {'size_deg': fixation['size_deg'], 'color': list(fixation['color'])},
         "corner_radius": CORNER_RADIUS,
         "random_seed": RANDOM_SEED,
         "noise_model": "twinkle (xper NoisyTranslatableResizableImages)",
@@ -237,12 +259,26 @@ def parse_noisy_png_spec(xml: str) -> dict:
     rgb = tuple(int(color.get(c, 255)) for c in ('red', 'green', 'blue'))
     dims = spec.get('dimensions') or {}
     return {
+        'x_center_deg': float(spec.get('xCenter') or 0),
+        'y_center_deg': float(spec.get('yCenter') or 0),
         'png_path': spec.get('pngPath') or '',
         'noise_map_path': spec.get('noiseMapPath') or '',
         'color': rgb,
         'width_deg': float(dims.get('width') or 0),
         'height_deg': float(dims.get('height') or 0),
     }
+
+
+def read_system_var(nafc_conn, name: str) -> list[str]:
+    """Latest value of an xper SystemVar, all array entries in order."""
+    nafc_conn.execute(
+        "SELECT arr_ind, val FROM SystemVar WHERE name = %s AND tstamp = "
+        "(SELECT MAX(tstamp) FROM SystemVar WHERE name = %s) ORDER BY arr_ind",
+        params=(name, name))
+    rows = nafc_conn.fetch_all()
+    if not rows:
+        raise RuntimeError(f"SystemVar {name} not found; set it at the top of main() instead.")
+    return [row[1] for row in rows]
 
 
 def read_choice_specs(nafc_conn, choice_obj_ids: list[int]) -> list[dict]:
@@ -304,8 +340,14 @@ def locate_local_file(spec_path: str, stimuli_dir: str) -> str:
 # Noise rendering (replicates xper NoisyTranslatableResizableImages)
 # ---------------------------------------------------------------------------
 
-def load_rgb(path: str) -> np.ndarray:
-    return np.array(Image.open(path).convert("RGB"), dtype=np.uint8)
+def load_rgb(path: str, screen_color=(0, 0, 0)) -> np.ndarray:
+    """The png as it appears on the monitor: alpha-blended onto the screen colour
+    (GL_SRC_ALPHA / GL_ONE_MINUS_SRC_ALPHA), so semi-transparent edge pixels don't show their
+    raw RGB."""
+    rgba = np.asarray(Image.open(path).convert("RGBA"), dtype=np.float64)
+    alpha = rgba[:, :, 3:4] / 255.0
+    out = rgba[:, :, :3] * alpha + np.asarray(screen_color, dtype=np.float64) * (1.0 - alpha)
+    return np.clip(np.round(out), 0, 255).astype(np.uint8)
 
 
 def load_noise_probability(path: str, shape_hw: tuple) -> np.ndarray:
@@ -414,48 +456,116 @@ def shape_mask(rgb: np.ndarray, background: np.ndarray, threshold: float) -> np.
     return ndimage.binary_fill_holes(diff > threshold)
 
 
+def fixation_in_sample_pixels(sample_spec: dict, shape_hw: tuple, size_deg: float, color) -> dict:
+    """Where screen (0, 0) falls in the sample png. The sample png is drawn centred at
+    (xCenter, yCenter) deg and stretched to its spec dimensions, +y up."""
+    h, w = shape_hw
+    px_per_deg_x = w / sample_spec['width_deg']
+    px_per_deg_y = h / sample_spec['height_deg']
+    x = w / 2 - sample_spec['x_center_deg'] * px_per_deg_x
+    y = h / 2 + sample_spec['y_center_deg'] * px_per_deg_y
+    return {'xy': (x, y), 'size_px': size_deg * px_per_deg_x, 'size_deg': size_deg,
+            'color': tuple(int(c) for c in color)}
+
+
 def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, center, panel_px: int,
-               background: np.ndarray, threshold: float) -> Image.Image:
-    """Square crop of side min(h, w) / zoom around center (default: centre of the shape's
-    bounding box in the clean sample), scaled to panel_px with nearest neighbour so noise
-    pixels stay crisp."""
+               background: np.ndarray, threshold: float, fixation: dict | None = None) -> Image.Image:
+    """Square crop of side min(h, w) / zoom around center (default: centre of the bounding box
+    of the shape in the clean sample, plus the fixation square if shown), scaled to panel_px with
+    nearest neighbour so noise pixels stay crisp. Anything outside the png is screen background."""
     h, w = noisy_rgb.shape[:2]
     side = max(1, int(round(min(h, w) / max(zoom, 1e-6))))
+
+    # Scene = the png padded with background on every side, so the crop and the fixation point
+    # can fall outside the png.
+    pad = side + max(h, w)
+    if fixation is not None:
+        fx, fy = fixation['xy']
+        pad = int(max(pad, abs(fx) + fixation['size_px'], abs(fy) + fixation['size_px'],
+                      abs(fx - w) + fixation['size_px'], abs(fy - h) + fixation['size_px']))
+    scene = np.empty((h + 2 * pad, w + 2 * pad, 3), dtype=np.uint8)
+    scene[:] = background
+    scene[pad:pad + h, pad:pad + w] = noisy_rgb
+
+    boxes = []  # (x0, y0, x1, y1) in png coordinates
     if center is None:
         mask = shape_mask(sample_rgb, background, threshold)
         if mask.any():
             rows, cols = np.nonzero(mask)
-            cy, cx = (rows.min() + rows.max()) / 2, (cols.min() + cols.max()) / 2
-        else:
-            cy, cx = h / 2, w / 2
-    else:
+            boxes.append((cols.min(), rows.min(), cols.max(), rows.max()))
+    if fixation is not None:
+        fx, fy = fixation['xy']
+        half = max(fixation['size_px'] / 2, 0.5)
+        x0f, x1f = int(round(fx - half)), int(round(fx + half))
+        y0f, y1f = int(round(fy - half)), int(round(fy + half))
+        scene[pad + y0f:pad + max(y1f, y0f + 1), pad + x0f:pad + max(x1f, x0f + 1)] = fixation['color']
+        if center is None:
+            boxes.append((x0f, y0f, x1f, y1f))
+
+    if center is not None:
         cx = (center[0] + 1) / 2 * w
         cy = (1 - center[1]) / 2 * h
-    x0 = int(round(np.clip(cx - side / 2, 0, w - side)))
-    y0 = int(round(np.clip(cy - side / 2, 0, h - side)))
-    crop = Image.fromarray(noisy_rgb[y0:y0 + side, x0:x0 + side])
+    elif boxes:
+        cx = (min(b[0] for b in boxes) + max(b[2] for b in boxes)) / 2
+        cy = (min(b[1] for b in boxes) + max(b[3] for b in boxes)) / 2
+    else:
+        cx, cy = w / 2, h / 2
+    x0 = int(round(cx - side / 2)) + pad
+    y0 = int(round(cy - side / 2)) + pad
+    crop = Image.fromarray(scene[y0:y0 + side, x0:x0 + side])
     return crop.resize((panel_px, panel_px), Image.NEAREST)
 
 
-def cut_out_choice(choice: dict, threshold: float) -> tuple:
-    """(RGBA of the choice cropped to its shape with alpha = shape mask, degrees per png pixel
-    from its spec dimensions, or None if the spec has none)."""
-    rgb = load_rgb(choice['local_png'])
-    mask = shape_mask(rgb, estimate_background(rgb), threshold)
+def unmix_edges(rgb: np.ndarray, mask: np.ndarray, background: np.ndarray, edge_px: int):
+    """
+    Antialiased edge pixels are a blend of the shape and the png's background, which shows as a
+    light (or dark) outline once the shape is pasted onto a different background. For each pixel
+    in the outer edge_px band of the mask, take the colour of the nearest interior pixel as the
+    shape colour f, solve pixel = a*f + (1-a)*background for the coverage a, and return the
+    colour f with alpha a. Interior pixels keep their colour with alpha 1.
+    """
+    rgb_f = rgb.astype(np.float64)
+    alpha = mask.astype(np.float64)
+    if edge_px <= 0:
+        return rgb, alpha
+    interior = ndimage.binary_erosion(mask, iterations=edge_px)
+    if not interior.any():
+        return rgb, alpha
+    edge = mask & ~interior
+    _, (iy, ix) = ndimage.distance_transform_edt(~interior, return_indices=True)
+    fg = rgb_f[iy, ix]
+    bg = background.astype(np.float64)
+    d = fg - bg
+    denom = np.maximum((d * d).sum(axis=2), 1e-6)
+    a = np.clip(((rgb_f - bg) * d).sum(axis=2) / denom, 0.0, 1.0)
+    out = rgb_f.copy()
+    out[edge] = fg[edge]
+    alpha[edge] = a[edge]
+    return np.clip(np.round(out), 0, 255).astype(np.uint8), alpha
+
+
+def cut_out_choice(choice: dict, threshold: float, screen_color=(0, 0, 0), edge_px: int = 0) -> tuple:
+    """(RGBA of the choice cropped to its shape, alpha = shape coverage with edges un-mixed
+    from the png background, degrees per png pixel from its spec dimensions or None)."""
+    rgb = load_rgb(choice['local_png'], screen_color)
+    png_background = estimate_background(rgb)
+    mask = shape_mask(rgb, png_background, threshold)
     if not mask.any():
         raise RuntimeError(f"No shape found in {choice['local_png']} at threshold {threshold}")
+    rgb, alpha = unmix_edges(rgb, mask, png_background, edge_px)
     rows, cols = np.nonzero(mask)
     r0, r1, c0, c1 = rows.min(), rows.max() + 1, cols.min(), cols.max() + 1
-    rgba = np.dstack([rgb, (mask * 255).astype(np.uint8)])[r0:r1, c0:c1]
+    rgba = np.dstack([rgb, np.round(alpha * 255).astype(np.uint8)])[r0:r1, c0:c1]
     img = Image.fromarray(rgba, "RGBA")
     deg_per_px = (choice['width_deg'] / rgb.shape[1]) if choice['width_deg'] > 0 else None
     return img, deg_per_px
 
 
 def choices_triangle_panel(choices: list[dict], panel_px: int, background: np.ndarray,
-                           threshold: float, spacing: float) -> Image.Image:
+                           threshold: float, spacing: float, screen_color=(0, 0, 0),
+                           edge_px: int = 0) -> Image.Image:
     """Three cut-out choices at the vertices of a triangle (top, bottom-left, bottom-right)."""
-    cutouts = [cut_out_choice(c, threshold) for c in choices]
+    cutouts = [cut_out_choice(c, threshold, screen_color, edge_px) for c in choices]
     scales = [d for _, d in cutouts if d is not None]
     # common pixels-per-degree = the finest of the choices, so nothing is downsampled first
     ref = min(scales) if len(scales) == len(cutouts) else None
@@ -463,7 +573,9 @@ def choices_triangle_panel(choices: list[dict], panel_px: int, background: np.nd
     for img, deg_per_px in cutouts:
         if ref is not None:
             f = deg_per_px / ref
-            img = img.resize((max(1, round(img.width * f)), max(1, round(img.height * f))), Image.LANCZOS)
+            # resize premultiplied so transparent pixels' colour can't bleed into the edge
+            size = (max(1, round(img.width * f)), max(1, round(img.height * f)))
+            img = img.convert("RGBa").resize(size, Image.LANCZOS).convert("RGBA")
         shapes.append(img)
 
     # radius so neighbouring shapes (half-diagonals r_i, r_j) don't overlap: side = R*sqrt(3)
