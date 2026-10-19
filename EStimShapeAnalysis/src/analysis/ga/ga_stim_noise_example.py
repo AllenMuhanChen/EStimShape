@@ -52,17 +52,17 @@ REMOVED_STIM_TYPE = "EStimShapeVariantsDeletedNAFCStim"
 def main():
     # ---- Parameters -------------------------------------------------------------------------
     SESSION_ID = "260603_0"        # session the GA stim belongs to; None = keep current context
-    GA_STIM_ID = 1780507913222760     # GA stim id to render with noise
+    GA_STIM_ID = 1780507361091158     # GA stim id to render with noise
     NAFC_STIM_ID = None            # None = latest NAFC trial with this GA stim as its sample;
                                    # or an NAFC StimSpec id to use that trial's noise map
-    NOISE_CHANCE = None            # noise amount: peak chance a pixel is noise (0-1), like the
+    NOISE_CHANCE = 0.3            # noise amount: peak chance a pixel is noise (0-1), like the
                                    # NAFC noiseChance parameter. None = as the trial used.
     N_FRAMES = 1                   # number of noise frames (twinkle); frame 0 is what the
                                    # monkey sees on the first frame
     RANDOM_SEED = None             # int for a reproducible noise pattern, None = new each run
     NAFC_STIMULI_DIR = None        # None = <base_dir>/<nafc_database>/stimuli (searched for pngs)
     # Figure
-    ZOOM = 2.0                     # left panel zoom factor (1 = whole sample png)
+    ZOOM = 4.0                     # left panel zoom factor (1 = whole sample png)
     ZOOM_CENTER = None             # (x, y) in -1..1 of the sample png, +y up; None = centre of the shape
     DISTRACTOR_LABELS = ("delta", "procedural")  # which distractor to show, by png label, first
                                    # found wins; falls back to any choice that isn't match/rand
