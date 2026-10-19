@@ -102,7 +102,8 @@ SELECTED_BG = "#fff3c4"
 # Parameters whose change means the pair table must be recomputed (the rest
 # only re-render or only affect the figure).
 RECOMPUTE_KEYS = {"data_type", "channel", "baseline"}
-FIGURE_KEYS = {"fig_title", "fig_pairs_per_row", "fig_show_values", "fig_pair_size"}
+FIGURE_KEYS = {"fig_title", "fig_pairs_per_row", "fig_show_values", "fig_row_labels",
+               "fig_pair_size"}
 
 # Thumbnail resolution (px) used for the exported figure.
 FIGURE_THUMB_PX = 300
@@ -399,7 +400,8 @@ class PairGridView(QScrollArea):
 # ---------------------------------------------------------------------------
 
 def make_pairs_figure(rows: list[dict], *, child_label="Child", parent_label="Parent",
-                      title="", pairs_per_row=0, show_values=True, pair_size=2.0,
+                      title="", pairs_per_row=0, show_values=True, row_labels=True,
+                      pair_size=2.0,
                       show_comps=True, border_frac=THUMB_BORDER / 140, zoom=NO_ZOOM):
     """Matplotlib figure: one column per pair, child above its parent.
 
@@ -424,10 +426,11 @@ def make_pairs_figure(rows: list[dict], *, child_label="Child", parent_label="Pa
     label_h = 0.35 if show_values else 0.0
     # Right-hand space for the response colorbar, its ticks and label (inches).
     bar_space = 1.6
-    fig_w = pair_size * per_row + 0.9 + bar_space
+    left_space = 0.9 if row_labels else 0.2
+    fig_w = pair_size * per_row + left_space + bar_space
     fig_h = n_bands * 2 * (pair_size + label_h) + (0.6 if title else 0.2)
     fig = Figure(figsize=(fig_w, fig_h))
-    left, right = 0.9 / fig_w, 1 - bar_space / fig_w
+    left, right = left_space / fig_w, 1 - bar_space / fig_w
     top = 1 - ((0.6 if title else 0.2) / fig_h)
     grid = fig.add_gridspec(n_bands * 2, per_row, left=left, right=right, top=top,
                             bottom=0.02, hspace=0.25 if show_values else 0.06, wspace=0.06)
@@ -451,7 +454,7 @@ def make_pairs_figure(rows: list[dict], *, child_label="Child", parent_label="Pa
                 spine.set_visible(False)
             if show_values:
                 ax.set_xlabel(_fmt(value), fontsize=11, labelpad=2)
-            if col == 0:
+            if col == 0 and row_labels:
                 ax.set_ylabel(label, fontsize=13, fontweight="bold")
     if title:
         fig.suptitle(title, fontsize=16)
@@ -615,6 +618,8 @@ class PairViewerModule(ExplorerModule):
             Param("fig_pairs_per_row", "Figure: pairs per row", "int", 0, minimum=0,
                   maximum=50, live=True, tooltip="0 = all pairs in one row."),
             Param("fig_show_values", "Figure: show responses", "bool", True, live=True),
+            Param("fig_row_labels", "Figure: row labels", "bool", True, live=True,
+                  tooltip=f"'{self.child_label}' / '{self.parent_label}' left of each row."),
             Param("fig_pair_size", "Figure: image size (in)", "float", 2.0, minimum=0.5,
                   maximum=6.0, step=0.25, live=True),
         ]
@@ -727,7 +732,9 @@ class PairViewerModule(ExplorerModule):
         fig = make_pairs_figure(rows, child_label=self.child_label,
                                 parent_label=self.parent_label, title=v["fig_title"],
                                 pairs_per_row=v["fig_pairs_per_row"],
-                                show_values=v["fig_show_values"], pair_size=v["fig_pair_size"],
+                                show_values=v["fig_show_values"],
+                                row_labels=v.get("fig_row_labels", True),
+                                pair_size=v["fig_pair_size"],
                                 show_comps=v["show_comps"],
                                 border_frac=self.thumbs.border / self.thumbs.thumb_size,
                                 zoom=self.thumbs.zoom)
