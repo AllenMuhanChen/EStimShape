@@ -45,6 +45,8 @@ def main():
     GA_STIM_ID = 1234567890123     # GA stim id to render with noise
     NAFC_STIM_ID = None            # None = latest NAFC trial with this GA stim as its sample;
                                    # or an NAFC StimSpec id to use that trial's noise map
+    NOISE_CHANCE = None            # noise amount: peak chance a pixel is noise (0-1), like the
+                                   # NAFC noiseChance parameter. None = as the trial used.
     N_FRAMES = 1                   # number of noise frames (twinkle); frame 0 is what the
                                    # monkey sees on the first frame
     RANDOM_SEED = None             # int for a reproducible noise pattern, None = new each run
@@ -87,6 +89,10 @@ def main():
 
     sample_rgb = load_rgb(sample_png)
     noise_probability = load_noise_probability(noise_map_png, sample_rgb.shape[:2])
+    trial_peak = float(noise_probability.max())
+    print(f"Trial noise chance (noise map peak): {trial_peak:.3f}")
+    if NOISE_CHANCE is not None:
+        noise_probability = rescale_noise_chance(noise_probability, NOISE_CHANCE)
 
     rng = np.random.default_rng(RANDOM_SEED)
     noise_frames = generate_twinkle_noise_frames(noise_probability, chosen['color'], N_FRAMES, rng)
@@ -115,6 +121,8 @@ def main():
         "sample_png": sample_png,
         "noise_map_png": noise_map_png,
         "noise_color_rgb": list(chosen['color']),
+        "trial_noise_chance": trial_peak,
+        "noise_chance": NOISE_CHANCE,
         "n_frames": N_FRAMES,
         "random_seed": RANDOM_SEED,
         "noise_model": "twinkle (xper NoisyTranslatableResizableImages)",
@@ -203,6 +211,17 @@ def load_noise_probability(path: str, shape_hw: tuple) -> np.ndarray:
         print(f"Warning: noise map size {img.size} != sample size {(shape_hw[1], shape_hw[0])}; resizing")
         img = img.resize((shape_hw[1], shape_hw[0]), Image.NEAREST)
     return np.asarray(img, dtype=np.float64)[:, :, 0] / 255.0
+
+
+def rescale_noise_chance(noise_probability: np.ndarray, noise_chance: float) -> np.ndarray:
+    """
+    GaussianNoiseMapper draws the map with its peak = noiseChance (background 0), so a different
+    noise amount is the same map scaled to a new peak.
+    """
+    peak = noise_probability.max()
+    if peak == 0:
+        raise ValueError("Noise map is empty (all red values are 0), so it can't be rescaled.")
+    return np.clip(noise_probability * (noise_chance / peak), 0.0, 1.0)
 
 
 def java_rgb_to_hsb(rgb: tuple) -> tuple:
