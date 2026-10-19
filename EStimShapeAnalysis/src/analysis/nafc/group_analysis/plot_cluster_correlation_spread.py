@@ -194,9 +194,13 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop, method='spearman'):
     ax.axvline(0, color='0.7', lw=0.8, zorder=1)
     ax.axvline(thr, color='tab:red', lw=2, ls='--', zorder=2)
     ax.plot(np.where(ok, rho, np.nan), y, color='0.5', lw=1, zorder=3)
-    ax.scatter(rho[ok & ~sig], y[ok & ~sig], s=60, facecolor='white',
-               edgecolor='0.3', lw=1.2, zorder=4)
-    ax.scatter(rho[sig], y[sig], s=60, color='black', zorder=5)
+    is_ga = np.array([ch in ext.get('ga_strs', ()) for ch in channel_strs])
+    # GA channels drawn as stars, filled like the other points (black = above threshold)
+    for mask, marker, size in ((~is_ga, 'o', 60), (is_ga, '*', 260)):
+        ax.scatter(rho[mask & ok & ~sig], y[mask & ok & ~sig], marker=marker, s=size,
+                   facecolor='white', edgecolor='0.3', lw=1.2, zorder=4)
+        ax.scatter(rho[mask & sig], y[mask & sig], marker=marker, s=size,
+                   color='black', zorder=5)
     for i in ext['up_stop'] + ext['down_stop']:
         ax.scatter(rho[i], y[i], marker='x', s=140, color='tab:red', lw=2.5, zorder=7)
 
@@ -230,6 +234,8 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop, method='spearman'):
                markersize=9, label=f'{sym} ≥ {sym} threshold'),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='white',
                markeredgecolor='0.3', markersize=9, label=f'{sym} < {sym} threshold'),
+        Line2D([0], [0], marker='*', color='w', markerfacecolor='black',
+               markersize=15, label='GA channel'),
         Line2D([0], [0], marker='x', color='tab:red', lw=0, markersize=10,
                markeredgewidth=2.5,
                label=f'walk stops ({n_misses_to_stop} misses in a row)'),
