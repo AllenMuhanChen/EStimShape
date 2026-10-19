@@ -25,7 +25,7 @@ Contiguous extent, done separately up and down the probe:
   channels (centre to centre), so it includes the span of the GA channels themselves.
 
 Left: the probe, top -> bottom, each channel coloured by ρ; GA channels are stars,
-channels >= ρ threshold have a thick outline. Right: ρ by probe position (same rows), with the
+Right: ρ by probe position (same rows), with the
 ρ threshold line, the walk's stopping channels (x) and the extent shaded.
 """
 
@@ -178,12 +178,6 @@ def _plot_probe_column(ax, ext, channel_strs, ga_strs):
     ref = plot_metric_column(ax, rho_by_ch, channel_strs, set(ga_strs),
                              cmap=cmap, norm=norm, show_yticks=True)
     format_single_column_axis(ax)
-    rows = len(channel_strs)
-    for i in np.where(ext['above'])[0]:
-        ax.scatter(0, _row_y(rows, i), marker='o', s=320, facecolors='none',
-                   edgecolors='black', linewidths=2.0, zorder=20)
-    ax.axhspan(_row_y(rows, ext['down_edge']) - 0.5, _row_y(rows, ext['up_edge']) + 0.5,
-               color='gold', alpha=0.25, zorder=0, lw=0)
     ax.set_title('ρ vs GA\nresponse', fontsize=13, fontweight='bold')
     return ref
 
@@ -196,7 +190,7 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
     sig = ext['above']
 
     ax.axhspan(_row_y(rows, ext['down_edge']) - 0.5, _row_y(rows, ext['up_edge']) + 0.5,
-               color='gold', alpha=0.25, lw=0, zorder=0)
+               color='0.88', lw=0, zorder=0)
     ax.axvline(0, color='0.7', lw=0.8, zorder=1)
     ax.axvline(thr, color='tab:red', lw=2, ls='--', zorder=2)
     ax.plot(np.where(ok, rho, np.nan), y, color='0.5', lw=1, zorder=3)
@@ -216,14 +210,14 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
     y_up, y_dn = _row_y(rows, ext['up_edge']), _row_y(rows, ext['down_edge'])
     if y_up != y_dn:
         ax.annotate('', xy=(x_arrow, y_up), xytext=(x_arrow, y_dn),
-                    arrowprops=dict(arrowstyle='<|-|>', color='darkgoldenrod', lw=2,
+                    arrowprops=dict(arrowstyle='<|-|>', color='0.25', lw=2,
                                     shrinkA=0, shrinkB=0, mutation_scale=15),
                     annotation_clip=False)
     for y_end in (y_up, y_dn):
         ax.plot([x_arrow - tick, x_arrow + tick], [y_end, y_end], color='black',
                 lw=1.5, clip_on=False)
     ax.text(x_arrow + 0.04, 0.5 * (y_up + y_dn), f"{ext['extent_total_um']:.0f} µm",
-            va='center', ha='left', fontsize=11, color='darkgoldenrod', clip_on=False)
+            va='center', ha='left', fontsize=11, color='0.25', clip_on=False)
 
     ax.set_xlim(-1, 1)
     ax.tick_params(axis='y', left=False, labelleft=False)
@@ -243,7 +237,7 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
         Line2D([0], [0], marker='x', color='tab:red', lw=0, markersize=10,
                markeredgewidth=2.5,
                label=f'walk stops ({n_misses_to_stop} misses in a row)'),
-        Patch(facecolor='gold', alpha=0.25, label='contiguous extent'),
+        Patch(facecolor='0.88', label='contiguous extent'),
     ], loc='upper center', bbox_to_anchor=(0.5, -0.09), ncol=2, fontsize=11,
        frameon=False)
     ax.spines[['top', 'right']].set_visible(False)
