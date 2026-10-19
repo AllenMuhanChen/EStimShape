@@ -241,9 +241,9 @@ def main():
     session_ids = None       # None = every session in EStimShapeTrials; or a list
     start_session_id = COMPARISON_START_SESSION_ID          # same range as the
     exclude_session_ids = COMPARISON_EXCLUDE_SESSION_IDS    # estim comparison plots
-    rho_threshold = 0.5      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
+    rho_threshold = 0.6      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
     n_misses_to_stop = 2     # channels in a row below ρ threshold that end the walk
-    method = 'spearman'      # 'spearman' or 'pearson'
+    method = 'pearson'      # 'spearman' or 'pearson'
     vector_type = 'ga_mean_response'
     extent_bin_width_um = 130   # extent histogram bin width (µm); None = probe pitch
     split_probe_end = False  # colour sessions that reach the probe end separately

@@ -349,9 +349,9 @@ def print_extent(session_id, ext, ga_strs, method='spearman'):
 
 def main():
     session_id = "260526_0"
-    rho_threshold = 0.5      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
+    rho_threshold = 0.6      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
     n_misses_to_stop = 2     # channels in a row below ρ threshold that end the walk
-    method = 'spearman'      # 'spearman' or 'pearson'
+    method = 'pearson'      # 'spearman' or 'pearson'
     output_root = f"/home/connorlab/Documents/plots/{session_id}/cluster_corr_spread"
 
     plot_cluster_correlation_spread(session_id, rho_threshold=rho_threshold,
