@@ -3,7 +3,7 @@ One session's GA cluster correlation spread: how far along the probe channels ke
 responding like the GA cluster, measured with a fixed (hard) cutoff on ρ.
 
 Reference: the GA cluster channels (ClusterInfo, latest gen). Each channel's GA
-response vector (ga_mean_response) is correlated (Spearman) with the AVERAGE response
+response vector (ga_mean_response) is correlated (Spearman by default, or Pearson) with the AVERAGE response
 of the GA channels (each z-scored across stimuli first, so one high-rate channel
 doesn't dominate). A GA channel is compared with the average of the OTHER GA channels
 (leave-one-out), so it isn't correlated with itself.
@@ -167,6 +167,11 @@ def contiguous_extent(channel_strs, positions_um, rho_n, ga_strs, *, rho_thresho
 
 # ---------------------------------------------------------------- plotting
 
+def method_name(method):
+    """Axis-label name of the correlation method."""
+    return 'Spearman' if method == 'spearman' else 'Pearson'
+
+
 def _row_y(n_rows, idx):
     """plot_metric_column's row position (top channel at the top)."""
     return n_rows - idx
@@ -182,7 +187,7 @@ def _plot_probe_column(ax, ext, channel_strs, ga_strs):
     return ref
 
 
-def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
+def _plot_profile(ax, ext, channel_strs, n_misses_to_stop, method='spearman'):
     rows = len(channel_strs)
     y = np.array([_row_y(rows, i) for i in range(rows)])
     rho, thr = ext['rho'], ext['rho_threshold']
@@ -221,7 +226,7 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
 
     ax.set_xlim(-1, 1)
     ax.tick_params(axis='y', left=False, labelleft=False)
-    ax.set_xlabel('Spearman ρ with GA cluster response', fontsize=13)
+    ax.set_xlabel(f'{method_name(method)} ρ with GA cluster response', fontsize=13)
     ax.tick_params(labelsize=11)
     ax.set_title('Correlation along the probe', fontsize=13, fontweight='bold')
     ax.legend(handles=[
@@ -244,7 +249,7 @@ def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
 
 
 def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
-                       n_misses_to_stop, fig=None):
+                       n_misses_to_stop, method='spearman', fig=None):
     """fig: a matplotlib Figure to draw into (e.g. matplotlib.figure.Figure for the
     GA explorer); None makes a pyplot figure."""
     ext = dict(ext, ga_strs=set(ga_strs))
@@ -256,11 +261,11 @@ def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
     ax_col = fig.add_subplot(gs[0, 0])
     ax_prof = fig.add_subplot(gs[0, 1], sharey=ax_col)
     ref = _plot_probe_column(ax_col, ext, channel_strs, ga_strs)
-    _plot_profile(ax_prof, ext, channel_strs, n_misses_to_stop)
+    _plot_profile(ax_prof, ext, channel_strs, n_misses_to_stop, method)
     if ref is not None:
         cbar = fig.colorbar(ref, cax=fig.add_subplot(gs[1, 0]),
                             orientation='horizontal')
-        cbar.set_label('Spearman ρ', fontsize=11)
+        cbar.set_label(f'{method_name(method)} ρ', fontsize=11)
     fig.suptitle(f"{session_id}: GA cluster extent = {ext['extent_total_um']:.0f} µm "
                  f"at ρ threshold = {ext['rho_threshold']:.2f}",
                  fontsize=15, fontweight='bold')
@@ -309,7 +314,7 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
                             n_misses_to_stop=n_misses_to_stop)
     print_extent(session_id, ext, ga_with_data)
     fig = plot_extent_figure(session_id, ext, channel_strs, ga_with_data,
-                             n_misses_to_stop=n_misses_to_stop)
+                             n_misses_to_stop=n_misses_to_stop, method=method)
 
     if output_root:
         out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))

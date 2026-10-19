@@ -2,7 +2,7 @@
 GA cluster correlation extent across experiments (the per-session figure is
 plot_cluster_correlation_spread, which defines the metric).
 
-For every session: each channel's Spearman ρ with the average GA cluster response
+For every session: each channel's Spearman (or Pearson) ρ with the average GA cluster response
 (GA channels leave-one-out), then the contiguous extent at a fixed ρ threshold walked up and
 down the probe (stops after N_MISSES_TO_STOP channels in a row below ρ threshold).
 
@@ -151,7 +151,8 @@ def plot_extent_hist(ax, sessions, bin_width, split_probe_end):
     ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper right')
 
 
-def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize):
+def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize,
+                          method='spearman'):
     """Overlaid histograms of ρ, one value per channel: GA channels (vs the other GA
     channels) and non-GA channels (vs the GA response). normalize -> each group's bars
     sum to 1 (fraction of that group's channels)."""
@@ -174,14 +175,15 @@ def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize):
                           label=f'ρ threshold = {rho_threshold:.2f}'))
     ax.set_xlim(-0.5, 1)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.35)  # headroom so the legend clears the bars
-    ax.set_xlabel('Spearman ρ with GA cluster response', fontsize=13)
+    ax.set_xlabel(f'{ccs.method_name(method)} ρ with GA cluster response', fontsize=13)
     ax.set_ylabel('Fraction of channels' if normalize else 'Number of channels',
                   fontsize=13)
     ax.set_title('GA vs non-GA channel correlation', fontsize=14, fontweight='bold')
     ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper left')
 
 
-def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng):
+def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng,
+                          method='spearman'):
     other = channels[~channels['is_ga']]
     d = other['distance_to_ga_um'].to_numpy(dtype=float)
     r = other['rho'].to_numpy(dtype=float)
@@ -200,22 +202,23 @@ def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng):
     ax.set_ylim(-1, 1)
     ax.set_xlim(0, d.max() + pitch if len(d) else pitch)
     ax.set_xlabel('Distance to nearest GA channel (µm)', fontsize=13)
-    ax.set_ylabel('Spearman ρ with GA cluster response', fontsize=13)
+    ax.set_ylabel(f'{ccs.method_name(method)} ρ with GA cluster response', fontsize=13)
     ax.set_title('Correlation vs distance', fontsize=14, fontweight='bold')
     ax.legend(fontsize=11, frameon=False, loc='lower left')
 
 
 def plot_distributions(sessions, channels, *, rho_threshold, extent_bin_width_um=None,
                        split_probe_end=False, rho_bin_width=0.05,
-                       normalize_channel_hist=True, jitter_um=8.0, seed=0):
+                       normalize_channel_hist=True, jitter_um=8.0, seed=0,
+                       method='spearman'):
     pitch = _pitch(channels)
     fig, axes = plt.subplots(1, 3, figsize=(21, 6.5),
                              gridspec_kw={'width_ratios': [1, 1, 1.3], 'wspace': 0.28})
     plot_extent_hist(axes[0], sessions, extent_bin_width_um or pitch, split_probe_end)
     plot_channel_rho_hist(axes[1], channels, rho_threshold, rho_bin_width,
-                          normalize_channel_hist)
+                          normalize_channel_hist, method)
     plot_distance_scatter(axes[2], channels, rho_threshold, pitch, jitter_um,
-                          np.random.default_rng(seed))
+                          np.random.default_rng(seed), method)
     for ax in axes:
         ax.tick_params(labelsize=11)
         ax.spines[['top', 'right']].set_visible(False)
@@ -258,7 +261,7 @@ def main():
                              split_probe_end=split_probe_end,
                              rho_bin_width=rho_bin_width,
                              normalize_channel_hist=normalize_channel_hist,
-                             jitter_um=jitter_um)
+                             jitter_um=jitter_um, method=method)
 
     out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
     os.makedirs(out_dir, exist_ok=True)

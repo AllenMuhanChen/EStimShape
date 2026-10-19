@@ -48,4 +48,4 @@ class ClusterCorrelationExtentModule(FigureModule):
                     f"(up {ext['extent_up_um']:.0f}, down {ext['extent_down_um']:.0f})")
         return ccs.plot_extent_figure(session.session_id, ext, channel_strs, ga_strs,
                                       n_misses_to_stop=values["n_misses_to_stop"],
-                                      fig=Figure(figsize=(13, 11)))
+                                      method=method, fig=Figure(figsize=(13, 11)))
