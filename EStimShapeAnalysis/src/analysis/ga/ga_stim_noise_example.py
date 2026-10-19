@@ -70,8 +70,8 @@ def main():
     CHOICE_SPACING = 1.0           # >1 spreads the three choices apart, <1 packs them closer
     BACKGROUND_THRESHOLD = 12      # 0-255; a pixel is shape if any channel differs from the
                                    # png's background colour by more than this
-    EDGE_MARGIN_PX = 4             # px of each choice png's own background kept around the shape,
-                                   # so its edges stay exactly as rendered
+    EDGE_ERODE_PX = 1              # px trimmed off each choice's edge (drops pixels blended with the
+                                   # png's gray background); raise if a gray tint remains
     SCREEN_COLOR = (0, 0, 0)       # monitor background; pngs are alpha-blended onto it like on the rig
     SHOW_FIXATION = True           # fixation square at screen (0, 0) on the left panel
     FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
@@ -157,7 +157,7 @@ def main():
                               background, BACKGROUND_THRESHOLD, fixation)
     choices_panel = choices_triangle_panel([shown[role] for role in CHOICE_ORDER], PANEL_PX,
                                            background, BACKGROUND_THRESHOLD, CHOICE_SPACING,
-                                           SCREEN_COLOR, EDGE_MARGIN_PX)
+                                           SCREEN_COLOR, EDGE_ERODE_PX)
     sample_panel = round_corners(sample_panel, CORNER_RADIUS)
     choices_panel = round_corners(choices_panel, CORNER_RADIUS)
     sample_panel.save(os.path.join(out_dir, "sample_panel.png"))
@@ -192,7 +192,7 @@ def main():
         "background_threshold": BACKGROUND_THRESHOLD,
         "background_rgb": [int(v) for v in background],
         "panel_px": PANEL_PX,
-        "edge_margin_px": EDGE_MARGIN_PX,
+        "edge_erode_px": EDGE_ERODE_PX,
         "screen_color": list(SCREEN_COLOR),
         "fixation": None if fixation is None else
                     {'size_deg': fixation['size_deg'], 'color': list(fixation['color'])},
@@ -523,28 +523,38 @@ def resample(img: Image.Image, size: tuple) -> Image.Image:
     return img.resize(size, Image.BOX if shrinking else Image.BILINEAR)
 
 
-def cut_out_choice(choice: dict, threshold: float, screen_color=(0, 0, 0), margin_px: int = 0) -> tuple:
-    """(RGB crop of the choice as rendered, mask = shape grown by margin_px so a little of the
-    png's own background stays around the edge, degrees per png pixel or None)."""
+def cut_out_choice(choice: dict, threshold: float, screen_color, erode_px: int,
+                   fill_color) -> tuple:
+    """
+    (RGB crop of the choice, paste mask, degrees per png pixel or None).
+
+    The choice pngs have a gray background, so every pixel outside the shape (plus erode_px of
+    the shape's edge, which is blended with that gray) is replaced by fill_color (the panel
+    background) BEFORE any resizing, so no gray can bleed into the edge.
+    """
     rgb = load_rgb(choice['local_png'], screen_color)
     mask = shape_mask(rgb, estimate_background(rgb), threshold)
+    if erode_px > 0:
+        mask = ndimage.binary_erosion(mask, iterations=erode_px)
     if not mask.any():
         raise RuntimeError(f"No shape found in {choice['local_png']} at threshold {threshold}")
-    if margin_px > 0:
-        mask = ndimage.binary_dilation(mask, iterations=margin_px)
-    rows, cols = np.nonzero(mask)
+    rgb = rgb.copy()
+    rgb[~mask] = fill_color
+    # paste a slightly grown mask: the extra ring is fill_color, so resampled edges blend into it
+    paste_mask = ndimage.binary_dilation(mask, iterations=3)
+    rows, cols = np.nonzero(paste_mask)
     r0, r1, c0, c1 = rows.min(), rows.max() + 1, cols.min(), cols.max() + 1
     img = Image.fromarray(rgb[r0:r1, c0:c1])
-    mask_img = Image.fromarray((mask[r0:r1, c0:c1] * 255).astype(np.uint8), "L")
+    mask_img = Image.fromarray((paste_mask[r0:r1, c0:c1] * 255).astype(np.uint8), "L")
     deg_per_px = (choice['width_deg'] / rgb.shape[1]) if choice['width_deg'] > 0 else None
     return img, mask_img, deg_per_px
 
 
 def choices_triangle_panel(choices: list[dict], panel_px: int, background: np.ndarray,
                            threshold: float, spacing: float, screen_color=(0, 0, 0),
-                           margin_px: int = 0) -> Image.Image:
+                           erode_px: int = 1) -> Image.Image:
     """Three cut-out choices at the vertices of a triangle (top, bottom-left, bottom-right)."""
-    cutouts = [cut_out_choice(c, threshold, screen_color, margin_px) for c in choices]
+    cutouts = [cut_out_choice(c, threshold, screen_color, erode_px, background) for c in choices]
     scales = [d for _, _, d in cutouts if d is not None]
     # common pixels-per-degree = the finest of the choices, so nothing is downsampled first
     ref = min(scales) if len(scales) == len(cutouts) else None
