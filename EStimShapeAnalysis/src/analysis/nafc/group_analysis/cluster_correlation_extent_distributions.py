@@ -2,8 +2,8 @@
 GA cluster correlation extent across experiments (the per-session figure is
 plot_cluster_correlation_spread, which defines the metric).
 
-For every session: each channel's Spearman ρ with the average GA cluster response
-(GA channels leave-one-out), then the contiguous extent at a fixed ρ threshold walked up and
+For every session: each channel's Spearman (or Pearson) ρ with the GA response
+(sum of all GA channels), then the contiguous extent at a fixed ρ threshold walked up and
 down the probe (stops after N_MISSES_TO_STOP channels in a row below ρ threshold).
 
 Figure, one value per session unless noted:
@@ -11,8 +11,7 @@ Figure, one value per session unless noted:
      reaches the end of the probe are stacked in a separate colour (their extent is a
      lower bound).
   B. one value per channel, pooled over sessions: overlaid histograms of ρ for GA
-     channels (each vs the other GA channels of its session; sessions with a single GA
-     channel have none) and non-GA channels (vs the GA response). With
+     channels and non-GA channels, all vs the same GA response. With
      normalize_channel_hist each group sums to 1, since there are far more non-GA
      channels than GA channels.
   C. every non-GA channel with data, pooled over sessions: distance along the probe to
@@ -116,7 +115,7 @@ def build_tables(session_ids, *, rho_threshold, n_misses_to_stop, method, vector
         channels.extend(c_rows)
         print(f"{sid}: extent = {s_row['extent_total_um']:.0f} µm"
               f"{' (probe end)' if s_row['reaches_probe_end'] else ''}, "
-              f"avg GA ρ = {s_row['avg_ga_rho']:.2f}")
+              f"avg GA {ccs.method_symbol(method)} = {s_row['avg_ga_rho']:.2f}")
     return pd.DataFrame(sessions), pd.DataFrame(channels), skipped
 
 
@@ -148,12 +147,15 @@ def plot_extent_hist(ax, sessions, bin_width, split_probe_end):
     if split_probe_end:
         handles = [Patch(color=EXTENT_COLOR, label='within probe'),
                    Patch(color=PROBE_END_COLOR, label='reaches probe end')] + handles
-    ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper right')
+    # legend below the axes so it never covers bars
+    ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper center',
+              bbox_to_anchor=(0.5, -0.15), ncol=len(handles))
 
 
-def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize):
-    """Overlaid histograms of ρ, one value per channel: GA channels (vs the other GA
-    channels) and non-GA channels (vs the GA response). normalize -> each group's bars
+def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize,
+                          method='spearman'):
+    """Overlaid histograms of ρ, one value per channel: GA channels and non-GA
+    channels, all vs the GA response. normalize -> each group's bars
     sum to 1 (fraction of that group's channels)."""
     bins = np.arange(-1, 1 + bin_width, bin_width)
     handles = []
@@ -171,17 +173,18 @@ def plot_channel_rho_hist(ax, channels, rho_threshold, bin_width, normalize):
                              label=f'{label} (n = {len(vals)}, median {med:.2f})'))
     ax.axvline(rho_threshold, color=THRESHOLD_COLOR, lw=2, ls='--', ymax=0.72)
     handles.append(Line2D([0], [0], color=THRESHOLD_COLOR, ls='--', lw=2,
-                          label=f'ρ threshold = {rho_threshold:.2f}'))
+                          label=f'{ccs.method_symbol(method)} threshold = {rho_threshold:.2f}'))
     ax.set_xlim(-0.5, 1)
     ax.set_ylim(0, ax.get_ylim()[1] * 1.35)  # headroom so the legend clears the bars
-    ax.set_xlabel('Spearman ρ with GA cluster response', fontsize=13)
+    ax.set_xlabel(f'{ccs.method_name(method)} {ccs.method_symbol(method)} with GA response (sum of all GA channels)', fontsize=13)
     ax.set_ylabel('Fraction of channels' if normalize else 'Number of channels',
                   fontsize=13)
     ax.set_title('GA vs non-GA channel correlation', fontsize=14, fontweight='bold')
     ax.legend(handles=handles, fontsize=11, frameon=False, loc='upper left')
 
 
-def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng):
+def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng,
+                          method='spearman'):
     other = channels[~channels['is_ga']]
     d = other['distance_to_ga_um'].to_numpy(dtype=float)
     r = other['rho'].to_numpy(dtype=float)
@@ -195,30 +198,42 @@ def plot_distance_scatter(ax, channels, rho_threshold, pitch, jitter_um, rng):
                     label='interquartile range')
     ax.plot(centers, med, '-o', color=EXTENT_COLOR, lw=2, ms=5, label='median')
     ax.axhline(rho_threshold, color=THRESHOLD_COLOR, lw=2, ls='--',
-               label=f'ρ threshold = {rho_threshold:.2f}')
+               label=f'{ccs.method_symbol(method)} threshold = {rho_threshold:.2f}')
     ax.axhline(0, color='0.7', lw=0.8)
     ax.set_ylim(-1, 1)
     ax.set_xlim(0, d.max() + pitch if len(d) else pitch)
     ax.set_xlabel('Distance to nearest GA channel (µm)', fontsize=13)
-    ax.set_ylabel('Spearman ρ with GA cluster response', fontsize=13)
+    ax.set_ylabel(f'{ccs.method_name(method)} {ccs.method_symbol(method)} with GA response (sum of all GA channels)', fontsize=13)
     ax.set_title('Correlation vs distance', fontsize=14, fontweight='bold')
     ax.legend(fontsize=11, frameon=False, loc='lower left')
 
 
 def plot_distributions(sessions, channels, *, rho_threshold, extent_bin_width_um=None,
                        split_probe_end=False, rho_bin_width=0.05,
-                       normalize_channel_hist=True, jitter_um=8.0, seed=0):
+                       normalize_channel_hist=True, jitter_um=8.0, seed=0,
+                       method='spearman'):
     pitch = _pitch(channels)
     fig, axes = plt.subplots(1, 3, figsize=(21, 6.5),
                              gridspec_kw={'width_ratios': [1, 1, 1.3], 'wspace': 0.28})
     plot_extent_hist(axes[0], sessions, extent_bin_width_um or pitch, split_probe_end)
     plot_channel_rho_hist(axes[1], channels, rho_threshold, rho_bin_width,
-                          normalize_channel_hist)
+                          normalize_channel_hist, method)
     plot_distance_scatter(axes[2], channels, rho_threshold, pitch, jitter_um,
-                          np.random.default_rng(seed))
+                          np.random.default_rng(seed), method)
     for ax in axes:
         ax.tick_params(labelsize=11)
         ax.spines[['top', 'right']].set_visible(False)
+    return fig
+
+
+def plot_extent_only(sessions, *, extent_bin_width_um=None, split_probe_end=False,
+                     pitch=None):
+    """Standalone copy of the extent histogram (left panel of plot_distributions)."""
+    fig, ax = plt.subplots(figsize=(7.5, 6))
+    plot_extent_hist(ax, sessions, extent_bin_width_um or pitch, split_probe_end)
+    ax.tick_params(labelsize=11)
+    ax.spines[['top', 'right']].set_visible(False)
+    fig.tight_layout()
     return fig
 
 
@@ -226,9 +241,9 @@ def main():
     session_ids = None       # None = every session in EStimShapeTrials; or a list
     start_session_id = COMPARISON_START_SESSION_ID          # same range as the
     exclude_session_ids = COMPARISON_EXCLUDE_SESSION_IDS    # estim comparison plots
-    rho_threshold = 0.5      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
+    rho_threshold = 0.6      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
     n_misses_to_stop = 2     # channels in a row below ρ threshold that end the walk
-    method = 'spearman'      # 'spearman' or 'pearson'
+    method = 'pearson'      # 'spearman' or 'pearson'
     vector_type = 'ga_mean_response'
     extent_bin_width_um = 130   # extent histogram bin width (µm); None = probe pitch
     split_probe_end = False  # colour sessions that reach the probe end separately
@@ -245,20 +260,21 @@ def main():
     if sessions.empty:
         raise RuntimeError(f"No sessions with GA cluster data out of {len(sids)}")
 
-    n_single = int((sessions['n_ga_channels'] < 2).sum())
     print(f"\n{len(sessions)} sessions used, {len(skipped)} skipped; "
           f"median extent = {sessions['extent_total_um'].median():.0f} µm "
           f"(up {sessions['extent_up_um'].median():.0f}, "
           f"down {sessions['extent_down_um'].median():.0f}); "
-          f"{int(sessions['reaches_probe_end'].sum())} reach the probe end; "
-          f"{n_single} with a single GA channel (no average GA ρ)")
+          f"{int(sessions['reaches_probe_end'].sum())} reach the probe end")
 
     fig = plot_distributions(sessions, channels, rho_threshold=rho_threshold,
                              extent_bin_width_um=extent_bin_width_um,
                              split_probe_end=split_probe_end,
                              rho_bin_width=rho_bin_width,
                              normalize_channel_hist=normalize_channel_hist,
-                             jitter_um=jitter_um)
+                             jitter_um=jitter_um, method=method)
+    fig_extent = plot_extent_only(sessions, extent_bin_width_um=extent_bin_width_um,
+                                  split_probe_end=split_probe_end,
+                                  pitch=_pitch(channels))
 
     out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
     os.makedirs(out_dir, exist_ok=True)
@@ -278,6 +294,8 @@ def main():
     for ext in ('png', 'svg'):
         fig.savefig(os.path.join(out_dir, f"cluster_corr_extent_distributions.{ext}"),
                     dpi=200, bbox_inches='tight')
+        fig_extent.savefig(os.path.join(out_dir, f"cluster_corr_extent_hist.{ext}"),
+                           dpi=200, bbox_inches='tight')
     print(f"Saved to {out_dir}")
     if show_plots:
         plt.show()
