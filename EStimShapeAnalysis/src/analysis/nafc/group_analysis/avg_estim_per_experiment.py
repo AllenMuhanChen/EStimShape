@@ -1078,7 +1078,7 @@ def main():
     stats_method = 'ttest'
 
     studentize = False
-    min_trials = 10
+    min_trials = 5
 
     # Save the rule split's two halves as named condition sets (in the data
     # repository) for the condition explorer / other scripts to filter by:
