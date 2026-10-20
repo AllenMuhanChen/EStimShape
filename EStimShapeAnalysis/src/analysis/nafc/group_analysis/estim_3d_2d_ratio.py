@@ -32,6 +32,12 @@ the session's best condition, chosen after studentizing each condition by its ow
 reported as the raw effect in percentage points, with the max-stat p-value. The metric,
 cutoff label and min-trials filter are the ESTIM_EFFECT_* settings below, matching that
 script's main(). Sessions without permutation data have no estim effect and are left off.
+
+A second scatter puts the same estim effect against receptive field size: mean_rf_radius is
+the ReceptiveFieldInfo radius (deg) averaged over the session's GA channels, using the
+cluster fallback in spi_vs_ici_preferred_freq.merge_receptive_field_radius. If none of the
+GA channels has an RF, it falls back to the mean over every RF mapped in that session
+(rf_source says which). Sessions with no RF at all are left off.
 All figures are shown and saved to SAVE_DIR.
 """
 
@@ -49,6 +55,7 @@ from clat.util.connection import Connection
 from src.analysis.channel_data_loaders import ClusterChannelLoader, SolidPreferenceLoader
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYP_VS_DELTA
 from src.analysis.nafc.group_analysis.max_estim_per_experiment import _build_max_stat_for_session
+from src.analysis.spi_vs_ici.spi_vs_ici_preferred_freq import merge_receptive_field_radius
 from src.pga.stim_types import THREE_D_TEXTURES
 from src.startup.startup_system import ExperimentManager
 
@@ -169,6 +176,27 @@ def ga_channel_spi_summary(repo_conn, session_id: str) -> dict:
     }
 
 
+def rf_size_summary(repo_conn, session_id: str) -> dict:
+    """Mean RF radius over the session's GA channels (with cluster fallback); if none of them
+    has an RF, the mean over every RF mapped in the session. NaN when the session has none."""
+    ga_channels = sorted(ClusterChannelLoader(session_id, repo_conn).load())
+    if ga_channels:
+        ga = merge_receptive_field_radius(
+            pd.DataFrame({"session_id": session_id, "unit_name": ga_channels}))
+        radii = pd.to_numeric(ga["rf_radius"], errors="coerce")
+        radii = radii[radii > 0]
+        if not radii.empty:
+            return {"mean_rf_radius": float(radii.mean()), "n_rf_channels": len(radii),
+                    "rf_source": "GA channels"}
+
+    repo_conn.execute("SELECT radius FROM ReceptiveFieldInfo WHERE session_id = %s", (session_id,))
+    radii = [float(r[0]) for r in repo_conn.fetch_all() if r[0] is not None and float(r[0]) > 0]
+    if radii:
+        return {"mean_rf_radius": float(np.mean(radii)), "n_rf_channels": len(radii),
+                "rf_source": "all mapped"}
+    return {"mean_rf_radius": float("nan"), "n_rf_channels": 0, "rf_source": "none"}
+
+
 def estim_effect_summary(session_id: str) -> dict:
     """Best-condition estim effect (percentage points) and its max-stat p-value."""
     result = _build_max_stat_for_session(
@@ -217,6 +245,12 @@ def compute_ratio_table(exclude_session_ids=None, start_session_id=None) -> pd.D
             print(f"[3d/2d] could not load estim effect for session {sid}:")
             traceback.print_exc()
             counts.update(estim_effect=float("nan"), estim_effect_p=float("nan"))
+        try:
+            counts.update(rf_size_summary(repo_conn, sid))
+        except Exception:
+            print(f"[3d/2d] could not load RF size for session {sid}:")
+            traceback.print_exc()
+            counts.update(mean_rf_radius=float("nan"), n_rf_channels=0, rf_source="none")
         rows.append({"session_id": sid, **counts})
 
     return pd.DataFrame(rows)
@@ -307,6 +341,32 @@ def plot_spi_vs_estim_effect(table: pd.DataFrame, show_stats: bool = False):
     return fig
 
 
+def plot_rf_size_vs_estim_effect(table: pd.DataFrame, show_stats: bool = False):
+    """Scatter of mean RF radius vs best-condition estim effect, one point per session."""
+    data = table.dropna(subset=["mean_rf_radius", "estim_effect"])
+
+    fig, ax = plt.subplots(figsize=(6.5, 4.5))
+    ax.axhline(0, color="#888888", linewidth=1, linestyle="--", zorder=0)
+    ax.scatter(data["mean_rf_radius"], data["estim_effect"], s=64, color=SPI_SIG_COLORS["3D"],
+               edgecolor="white", linewidth=1.5, zorder=3)
+
+    if len(data) >= 3:
+        rho, p = spearmanr(data["mean_rf_radius"], data["estim_effect"])
+        print(f"RF size vs estim effect: Spearman rho = {rho:.2f}, p = {p:.3g} (n = {len(data)})")
+        if show_stats:
+            ax.text(0.02, 0.97, f"Spearman \u03c1 = {rho:.2f}, p = {p:.3g}", transform=ax.transAxes,
+                    va="top", ha="left", fontsize=9, color="#444444")
+
+    ax.set_xlim(left=0)
+    ax.set_xlabel("Mean receptive field radius (deg)")
+    ax.set_ylabel("EStim effect, best condition (% points)")
+    ax.set_title("Receptive field size vs EStim effect")
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    fig.tight_layout()
+    return fig
+
+
 def save_figure(fig, name: str):
     os.makedirs(SAVE_DIR, exist_ok=True)
     path = os.path.join(SAVE_DIR, name)
@@ -333,7 +393,9 @@ def main():
     total["mean_spi"] = table["mean_spi"].mean()
     total["n_spi_channels"] = int(table["n_spi_channels"].sum())
     total.update(spi_z=float("nan"), spi_p=float("nan"), spi_sig="",
-                 estim_effect=table["estim_effect"].mean(), estim_effect_p=float("nan"))
+                 estim_effect=table["estim_effect"].mean(), estim_effect_p=float("nan"),
+                 mean_rf_radius=table["mean_rf_radius"].mean(),
+                 n_rf_channels=int(table["n_rf_channels"].sum()), rf_source="")
     printed = pd.concat([table, pd.DataFrame([{"session_id": "ALL", **total}])], ignore_index=True)
 
     with pd.option_context("display.max_rows", None, "display.width", 200):
@@ -346,6 +408,8 @@ def main():
     save_figure(plot_category_pie(table), "estim_3d_2d_category_pie.png")
     save_figure(plot_spi_histogram(table), "estim_session_spi_histogram.png")
     save_figure(plot_spi_vs_estim_effect(table, show_stats=SHOW_STATS_ON_PLOT), "estim_session_spi_vs_estim_effect.png")
+    save_figure(plot_rf_size_vs_estim_effect(table, show_stats=SHOW_STATS_ON_PLOT),
+                "estim_session_rf_size_vs_estim_effect.png")
     if SHOW_PLOTS:
         plt.show()
 
