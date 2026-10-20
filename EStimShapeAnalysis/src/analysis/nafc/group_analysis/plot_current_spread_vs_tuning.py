@@ -803,9 +803,12 @@ def half_distance_profile(dists, rhos, *, pitch=1.0,
 def compute_session_half_distance(session_id, *, exclude_other_estim=True,
                                   far_fraction=DEFAULT_FAR_FRACTION,
                                   near_bins=DEFAULT_NEAR_BINS,
-                                  bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING):
-    """{estim_spec_id: correlation half-distance (µm) or None} for one session."""
-    metrics, channels_with_data, coords = prepare_session_metrics(session_id)
+                                  bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
+                                  corr_method='spearman'):
+    """{estim_spec_id: correlation half-distance (µm) or None} for one session.
+    corr_method: 'spearman' | 'pearson' for the channel correlations."""
+    metrics, channels_with_data, coords = prepare_session_metrics(
+        session_id, corr_method=corr_method)
     if metrics is None:
         return {}
     corr_metric = next((m for m in metrics if m.name == CORR_METRIC_NAME), None)
@@ -862,7 +865,8 @@ def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
                                         far_fraction=DEFAULT_FAR_FRACTION,
                                         near_bins=DEFAULT_NEAR_BINS,
                                         bin_agg=DEFAULT_BIN_AGG,
-                                        smoothing=DEFAULT_SMOOTHING):
+                                        smoothing=DEFAULT_SMOOTHING,
+                                        corr_method='spearman'):
     """Per-(session, estim_spec, trial_type) table with current_per_second, estim
     effect, and the correlation half-distance. Returns the DataFrame (empty if
     nothing matched)."""
@@ -890,7 +894,7 @@ def build_current_spread_halfdist_table(trial_types, *, start_session_id=None,
         hd_by_session[sid] = compute_session_half_distance(
             sid, exclude_other_estim=exclude_other_estim,
             far_fraction=far_fraction, near_bins=near_bins,
-            bin_agg=bin_agg, smoothing=smoothing)
+            bin_agg=bin_agg, smoothing=smoothing, corr_method=corr_method)
 
     df[HALFDIST_COL] = [
         hd_by_session.get(s, {}).get(int(spec))
@@ -3455,7 +3459,7 @@ def prepare_effect_points(trial_types=None, *, start_session_id=None,
                           min_on_trials=COMPARISON_MIN_ON_TRIALS,
                           far_fraction=DEFAULT_FAR_FRACTION, near_bins=DEFAULT_NEAR_BINS,
                           bin_agg=DEFAULT_BIN_AGG, smoothing=DEFAULT_SMOOTHING,
-                          aggregate_by='spec'):
+                          aggregate_by='spec', corr_method='spearman'):
     """The (cached) half-distance table as plotting points with every X-axis column
     (current_per_second, corr half-distance, their ratio) and the effect z-score
     attached. Returns (trial_types, df, points); points is empty if nothing matched."""
@@ -3467,7 +3471,7 @@ def prepare_effect_points(trial_types=None, *, start_session_id=None,
         base_required_conditions=base_required_conditions,
         exclude_other_estim=exclude_other_estim, min_on_trials=min_on_trials,
         far_fraction=far_fraction, near_bins=near_bins,
-        bin_agg=bin_agg, smoothing=smoothing)
+        bin_agg=bin_agg, smoothing=smoothing, corr_method=corr_method)
     if len(df) == 0:
         return trial_types, df, pd.DataFrame()
     points = build_points(df, [HALFDIST_COL], aggregate_by)

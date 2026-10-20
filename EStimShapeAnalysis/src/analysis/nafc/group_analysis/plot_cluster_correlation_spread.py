@@ -3,10 +3,10 @@ One session's GA cluster correlation spread: how far along the probe channels ke
 responding like the GA cluster, measured with a fixed (hard) cutoff on ρ.
 
 Reference: the GA cluster channels (ClusterInfo, latest gen). Each channel's GA
-response vector (ga_mean_response) is correlated (Spearman) with the AVERAGE response
-of the GA channels (each z-scored across stimuli first, so one high-rate channel
-doesn't dominate). A GA channel is compared with the average of the OTHER GA channels
-(leave-one-out), so it isn't correlated with itself.
+response vector (ga_mean_response) is correlated (Spearman by default, or Pearson) with the GA
+response: the sum of all GA channels (each z-scored across stimuli first, so one
+high-rate channel doesn't dominate; the sum and the average give the same correlation).
+GA channels are correlated with the same GA response as every other channel.
 
 Cutoff: a fixed ρ threshold (default 0.5, the conventional "strong correlation" boundary). A
 channel with ρ >= ρ threshold counts as part of the cluster. ρ threshold is the same for every session,
@@ -25,7 +25,7 @@ Contiguous extent, done separately up and down the probe:
   channels (centre to centre), so it includes the span of the GA channels themselves.
 
 Left: the probe, top -> bottom, each channel coloured by ρ; GA channels are stars,
-channels >= ρ threshold have a thick outline. Right: ρ by probe position (same rows), with the
+Right: ρ by probe position (same rows), with the
 ρ threshold line, the walk's stopping channels (x) and the extent shaded.
 """
 
@@ -92,22 +92,11 @@ def correlate(vec, target, method='spearman', min_common=3):
 
 
 def ga_reference_rhos(response_matrix, ga_strs, method='spearman'):
-    """{channel: (ρ, n)} vs the average GA response. GA channels are compared with the
-    average of the other GA channels (leave-one-out); with a single GA channel it has
-    no reference and gets ρ = NaN."""
+    """{channel: (ρ, n)} vs the GA response (all GA channels, z-scored), for every
+    channel including the GA channels themselves."""
     ga_strs = [g for g in ga_strs if g in response_matrix]
-    target_all = zscore_average(response_matrix, ga_strs)
-    out = {}
-    for ch, vec in response_matrix.items():
-        if ch in ga_strs:
-            others = [g for g in ga_strs if g != ch]
-            if not others:
-                out[ch] = (np.nan, 0)
-                continue
-            out[ch] = correlate(vec, zscore_average(response_matrix, others), method)
-        else:
-            out[ch] = correlate(vec, target_all, method)
-    return out
+    target = zscore_average(response_matrix, ga_strs)
+    return {ch: correlate(vec, target, method) for ch, vec in response_matrix.items()}
 
 
 # ---------------------------------------------------------------- contiguous extent
@@ -167,90 +156,97 @@ def contiguous_extent(channel_strs, positions_um, rho_n, ga_strs, *, rho_thresho
 
 # ---------------------------------------------------------------- plotting
 
+def method_name(method):
+    """Axis-label name of the correlation method."""
+    return 'Spearman' if method == 'spearman' else 'Pearson'
+
+
+def method_symbol(method):
+    """Correlation symbol for plot labels: ρ for Spearman, r for Pearson."""
+    return 'ρ' if method == 'spearman' else 'r'
+
+
 def _row_y(n_rows, idx):
     """plot_metric_column's row position (top channel at the top)."""
     return n_rows - idx
 
 
-def _plot_probe_column(ax, ext, channel_strs, ga_strs):
+def _plot_probe_column(ax, ext, channel_strs, ga_strs, method='spearman'):
     cmap, norm = default_cmap_norm()
     rho_by_ch = {ch: ext['rho'][i] for i, ch in enumerate(channel_strs)}
     ref = plot_metric_column(ax, rho_by_ch, channel_strs, set(ga_strs),
                              cmap=cmap, norm=norm, show_yticks=True)
     format_single_column_axis(ax)
-    rows = len(channel_strs)
-    for i in np.where(ext['above'])[0]:
-        ax.scatter(0, _row_y(rows, i), marker='o', s=320, facecolors='none',
-                   edgecolors='black', linewidths=2.0, zorder=20)
-    ax.axhspan(_row_y(rows, ext['down_edge']) - 0.5, _row_y(rows, ext['up_edge']) + 0.5,
-               color='gold', alpha=0.25, zorder=0, lw=0)
-    ax.set_title('ρ vs GA\nresponse', fontsize=13, fontweight='bold')
+    ax.set_title(f'{method_symbol(method)} vs GA\nresponse', fontsize=13, fontweight='bold')
     return ref
 
 
-def _plot_profile(ax, ext, channel_strs, n_misses_to_stop):
+def _plot_profile(ax, ext, channel_strs, n_misses_to_stop, method='spearman'):
     rows = len(channel_strs)
     y = np.array([_row_y(rows, i) for i in range(rows)])
     rho, thr = ext['rho'], ext['rho_threshold']
+    sym = method_symbol(method)
     ok = ext['has_data']
     sig = ext['above']
 
     ax.axhspan(_row_y(rows, ext['down_edge']) - 0.5, _row_y(rows, ext['up_edge']) + 0.5,
-               color='gold', alpha=0.25, lw=0, zorder=0)
+               color='0.88', lw=0, zorder=0)
     ax.axvline(0, color='0.7', lw=0.8, zorder=1)
     ax.axvline(thr, color='tab:red', lw=2, ls='--', zorder=2)
     ax.plot(np.where(ok, rho, np.nan), y, color='0.5', lw=1, zorder=3)
-    ax.scatter(rho[ok & ~sig], y[ok & ~sig], s=60, facecolor='white',
-               edgecolor='0.3', lw=1.2, zorder=4)
-    ax.scatter(rho[sig], y[sig], s=60, color='black', zorder=5)
     is_ga = np.array([ch in ext.get('ga_strs', ()) for ch in channel_strs])
-    if is_ga.any():
-        ax.scatter(rho[is_ga & ok], y[is_ga & ok], marker='*', s=260,
-                   color='lightcoral', edgecolor='black', lw=0.8, zorder=6)
+    # GA channels drawn as stars, filled like the other points (black = above threshold)
+    for mask, marker, size in ((~is_ga, 'o', 60), (is_ga, '*', 260)):
+        ax.scatter(rho[mask & ok & ~sig], y[mask & ok & ~sig], marker=marker, s=size,
+                   facecolor='white', edgecolor='0.3', lw=1.2, zorder=4)
+        ax.scatter(rho[mask & sig], y[mask & sig], marker=marker, s=size,
+                   color='black', zorder=5)
     for i in ext['up_stop'] + ext['down_stop']:
         ax.scatter(rho[i], y[i], marker='x', s=140, color='tab:red', lw=2.5, zorder=7)
 
     # one double-headed arrow on the right edge spanning the whole extent
     # (upper boundary channel -> lower boundary channel), ticked at both ends
-    x_arrow, tick = 1.03, 0.025
+    # no negative correlations -> drop the empty -1..0 half of the axis
+    x_lo = -1 if np.nanmin(np.where(ok, rho, np.nan)) < 0 else 0
+    half = (1 - x_lo) / 2   # arrow offsets below are scaled to the axis width
+    x_arrow, tick = 1 + 0.03 * half, 0.025 * half
     y_up, y_dn = _row_y(rows, ext['up_edge']), _row_y(rows, ext['down_edge'])
     if y_up != y_dn:
         ax.annotate('', xy=(x_arrow, y_up), xytext=(x_arrow, y_dn),
-                    arrowprops=dict(arrowstyle='<|-|>', color='darkgoldenrod', lw=2,
+                    arrowprops=dict(arrowstyle='<|-|>', color='0.25', lw=2,
                                     shrinkA=0, shrinkB=0, mutation_scale=15),
                     annotation_clip=False)
     for y_end in (y_up, y_dn):
         ax.plot([x_arrow - tick, x_arrow + tick], [y_end, y_end], color='black',
                 lw=1.5, clip_on=False)
-    ax.text(x_arrow + 0.04, 0.5 * (y_up + y_dn), f"{ext['extent_total_um']:.0f} µm",
-            va='center', ha='left', fontsize=11, color='darkgoldenrod', clip_on=False)
+    ax.text(x_arrow + 0.04 * half, 0.5 * (y_up + y_dn), f"{ext['extent_total_um']:.0f} µm",
+            va='center', ha='left', fontsize=11, color='0.25', clip_on=False)
 
-    ax.set_xlim(-1, 1)
+    ax.set_xlim(x_lo, 1)
     ax.tick_params(axis='y', left=False, labelleft=False)
-    ax.set_xlabel('Spearman ρ with GA cluster response', fontsize=13)
+    ax.set_xlabel(f'{method_name(method)} {sym} with GA response (sum of all GA channels)', fontsize=13)
     ax.tick_params(labelsize=11)
     ax.set_title('Correlation along the probe', fontsize=13, fontweight='bold')
     ax.legend(handles=[
         Line2D([0], [0], color='tab:red', ls='--', lw=2,
-               label=f"ρ threshold = {thr:.2f}"),
+               label=f"{sym} threshold = {thr:.2f}"),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='black',
-               markersize=9, label='ρ ≥ ρ threshold'),
+               markersize=9, label=f'{sym} ≥ {sym} threshold'),
         Line2D([0], [0], marker='o', color='w', markerfacecolor='white',
-               markeredgecolor='0.3', markersize=9, label='ρ < ρ threshold'),
-        Line2D([0], [0], marker='*', color='w', markerfacecolor='lightcoral',
-               markeredgecolor='black', markersize=15,
-               label='GA channel (vs other GA channels)'),
+               markeredgecolor='0.3', markersize=9, label=f'{sym} < {sym} threshold'),
+        Line2D([0], [0], marker='*', color='w', markerfacecolor='black',
+               markersize=15, label='GA channel'),
         Line2D([0], [0], marker='x', color='tab:red', lw=0, markersize=10,
                markeredgewidth=2.5,
                label=f'walk stops ({n_misses_to_stop} misses in a row)'),
-        Patch(facecolor='gold', alpha=0.25, label='contiguous extent'),
+        Patch(facecolor='0.88', label='contiguous extent'),
     ], loc='upper center', bbox_to_anchor=(0.5, -0.09), ncol=2, fontsize=11,
        frameon=False)
     ax.spines[['top', 'right']].set_visible(False)
 
 
 def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
-                       n_misses_to_stop, fig=None):
+                       n_misses_to_stop, method='spearman', fig=None):
     """fig: a matplotlib Figure to draw into (e.g. matplotlib.figure.Figure for the
     GA explorer); None makes a pyplot figure."""
     ext = dict(ext, ga_strs=set(ga_strs))
@@ -261,14 +257,14 @@ def plot_extent_figure(session_id, ext, channel_strs, ga_strs, *,
                   hspace=0.08, figure=fig)
     ax_col = fig.add_subplot(gs[0, 0])
     ax_prof = fig.add_subplot(gs[0, 1], sharey=ax_col)
-    ref = _plot_probe_column(ax_col, ext, channel_strs, ga_strs)
-    _plot_profile(ax_prof, ext, channel_strs, n_misses_to_stop)
+    ref = _plot_probe_column(ax_col, ext, channel_strs, ga_strs, method)
+    _plot_profile(ax_prof, ext, channel_strs, n_misses_to_stop, method)
     if ref is not None:
         cbar = fig.colorbar(ref, cax=fig.add_subplot(gs[1, 0]),
                             orientation='horizontal')
-        cbar.set_label('Spearman ρ', fontsize=11)
+        cbar.set_label(f'{method_name(method)} {method_symbol(method)}', fontsize=11)
     fig.suptitle(f"{session_id}: GA cluster extent = {ext['extent_total_um']:.0f} µm "
-                 f"at ρ threshold = {ext['rho_threshold']:.2f}",
+                 f"at {method_symbol(method)} threshold = {ext['rho_threshold']:.2f}",
                  fontsize=15, fontweight='bold')
     return fig
 
@@ -313,9 +309,9 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
     ext = contiguous_extent(channel_strs, positions_um, rho_n, ga_with_data,
                             rho_threshold=rho_threshold,
                             n_misses_to_stop=n_misses_to_stop)
-    print_extent(session_id, ext, ga_with_data)
+    print_extent(session_id, ext, ga_with_data, method)
     fig = plot_extent_figure(session_id, ext, channel_strs, ga_with_data,
-                             n_misses_to_stop=n_misses_to_stop)
+                             n_misses_to_stop=n_misses_to_stop, method=method)
 
     if output_root:
         out_dir = os.path.join(output_root, datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -339,10 +335,10 @@ def plot_cluster_correlation_spread(session_id, *, rho_threshold=0.5,
     return ext
 
 
-def print_extent(session_id, ext, ga_strs):
-    ok = ext['has_data']
-    print(f"{session_id}: GA channels {ga_strs}; ρ threshold = {ext['rho_threshold']:.2f}; "
-          f"{int(ext['above'].sum())}/{int(ok.sum())} channels with ρ ≥ ρ threshold")
+def print_extent(session_id, ext, ga_strs, method='spearman'):
+    ok, sym = ext['has_data'], method_symbol(method)
+    print(f"{session_id}: GA channels {ga_strs}; {sym} threshold = {ext['rho_threshold']:.2f}; "
+          f"{int(ext['above'].sum())}/{int(ok.sum())} channels with {sym} ≥ {sym} threshold")
     print(f"  extent up = {ext['extent_up_um']:.0f} µm"
           f"{' (probe end)' if ext['up_reached_end'] else ''}, "
           f"down = {ext['extent_down_um']:.0f} µm"
@@ -353,9 +349,9 @@ def print_extent(session_id, ext, ga_strs):
 
 def main():
     session_id = "260526_0"
-    rho_threshold = 0.5      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
+    rho_threshold = 0.6      # ρ threshold : channels with ρ >= ρ threshold count as part of the cluster
     n_misses_to_stop = 2     # channels in a row below ρ threshold that end the walk
-    method = 'spearman'      # 'spearman' or 'pearson'
+    method = 'pearson'      # 'spearman' or 'pearson'
     output_root = f"/home/connorlab/Documents/plots/{session_id}/cluster_corr_spread"
 
     plot_cluster_correlation_spread(session_id, rho_threshold=rho_threshold,
