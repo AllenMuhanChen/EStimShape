@@ -82,6 +82,8 @@ class SolidPreferenceModule(FigureModule):
             Param("fit_line", "Regression line", "bool", False,
                   tooltip="Least-squares fit of 3D on 2D, with slope, r² and p in a "
                           "box right of the plot."),
+            Param("box_fontsize", "Box text size", "int", 24, minimum=8, maximum=60,
+                  tooltip="Font size (pt) of the SPI and linear-fit boxes."),
         ]
 
     def make_figure(self, session, values):
@@ -119,8 +121,21 @@ class SolidPreferenceModule(FigureModule):
 
         fit = (linregress(x, y) if values["fit_line"] and len(x) >= 3 and np.ptp(x) > 0
                else None)
-        fig = Figure(figsize=(10.5, 7))
-        grid = fig.add_gridspec(1, 2, width_ratios=[7, 3])
+        verdict = "significant" if significant else "not significant"
+        boxes = [(f"SPI = {spi:+.3f}\n{_fmt_p(p, n_perm)}\n{verdict}",
+                  "#c0392b" if significant else "black")]
+        if fit is not None:
+            boxes.append((f"Linear fit\nslope = {fit.slope:.2f}\n"
+                          f"$r^2$ = {fit.rvalue ** 2:.2f}\n{_fmt_p(fit.pvalue)}", "black"))
+        # Box column and figure grow with the box text (sizes in points).
+        box_fs = values["box_fontsize"]
+        line_h, box_pad, gap = 1.5 * 1.15 * box_fs, 1.2 * box_fs, 0.8 * box_fs
+        heights = [t.count("\n") * line_h + 1.15 * box_fs + box_pad for t, _c in boxes]
+        longest = max(len(line.replace("$", "")) for t, _c in boxes for line in t.split("\n"))
+        box_w = (0.6 * longest * box_fs + box_pad) / 72 + 0.3
+        fig_h = max(7.0, (sum(heights) + gap * (len(boxes) - 1)) / 72 + 1.5)
+        fig = Figure(figsize=(7.5 + box_w, fig_h))
+        grid = fig.add_gridspec(1, 2, width_ratios=[7.5, box_w])
         ax = fig.add_subplot(grid[0, 0])
         ax_info = fig.add_subplot(grid[0, 1])   # boxes beside (not inside) the plot
         vals = np.concatenate([x, y]) if len(x) else np.array([0.0, 1.0])
@@ -137,18 +152,18 @@ class SolidPreferenceModule(FigureModule):
         ax.set_ylim(lo, hi)
         ax.set_aspect("equal", adjustable="box")
 
-        verdict = "significant" if significant else "not significant"
-        box = dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor="#cccccc")
         ax_info.axis("off")
-        ax_info.text(0.0, 0.85, f"SPI = {spi:+.3f}\n{_fmt_p(p, n_perm)}\n{verdict}",
-                     transform=ax_info.transAxes, ha="left", va="top", fontsize=18,
-                     linespacing=1.5, color="#c0392b" if significant else "black",
-                     bbox=box)
-        if fit is not None:
-            ax_info.text(0.0, 0.45, f"Linear fit\nslope = {fit.slope:.2f}\n"
-                                    f"$r^2$ = {fit.rvalue ** 2:.2f}\n{_fmt_p(fit.pvalue)}",
-                         transform=ax_info.transAxes, ha="left", va="top", fontsize=18,
-                         linespacing=1.5, bbox=box)
+        # Stack the boxes from the top, each below the previous one (offsets in points,
+        # so they never overlap whatever the text size).
+        top = -box_pad / 2
+        notes = []
+        for (text, color), h in zip(boxes, heights):
+            notes.append(ax_info.annotate(text, xy=(0.0, 1.0), xycoords="axes fraction",
+                             xytext=(box_pad / 2, top), textcoords="offset points",
+                             ha="left", va="top", fontsize=box_fs, linespacing=1.5,
+                             color=color, bbox=dict(boxstyle="round,pad=0.5",
+                                                    facecolor="white", edgecolor="#cccccc")))
+            top -= h + gap
         unit = "GA response" if channel == "GA" else "response (sp/s)"
         ax.set_xlabel(f"2D mean {unit}", fontsize=15)
         ax.set_ylabel(f"3D mean {unit}", fontsize=15)
@@ -158,7 +173,30 @@ class SolidPreferenceModule(FigureModule):
         for side in ("top", "right"):
             ax.spines[side].set_visible(False)
         fig.tight_layout()
+        self._fit_boxes(fig, notes, box_fs)
         self.status(f"SPI {spi:+.3f}, {_fmt_p(p, n_perm)} ({n_perm} permutations), "
                     f"{len(r3)} 3D / {len(r2)} 2D trials, {len(x)} shapes, "
                     f"channel {prepared.channel_label}")
         return fig
+
+    def create_view(self, parent):
+        # Whole figure scaled to the window, layout kept, so big box text stays
+        # in proportion with the plot.
+        from src.analysis.ga.explorer.figure_view import FigureView
+        self._view = FigureView(parent, keep_size=True, fit_height=True, fit_width=True)
+        return self._view
+
+    @staticmethod
+    def _fit_boxes(fig, notes, fontsize):
+        """Widen / heighten the figure until every box (text + its padding) is
+        inside it."""
+        for _ in range(3):
+            pad = 0.7 * fontsize * fig.dpi / 72   # box padding + edge, in pixels
+            exts = [n.get_window_extent() for n in notes]
+            over_x = max(e.x1 for e in exts) + pad - fig.bbox.width
+            over_y = pad - min(e.y0 for e in exts)
+            if over_x <= 0 and over_y <= 0:
+                return
+            w, h = fig.get_size_inches()
+            fig.set_size_inches(w + max(over_x, 0) / fig.dpi, h + max(over_y, 0) / fig.dpi)
+            fig.tight_layout()
