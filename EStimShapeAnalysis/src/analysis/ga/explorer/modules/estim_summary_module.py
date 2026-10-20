@@ -60,7 +60,8 @@ FALLBACK_COLORS = ["#27ae60", "#8e44ad", "#e67e22", "#555555"]
 TRIAL_TYPES = ["Hypothesized Shape", "Delta Shape", "Removed Trial", "Coherence"]
 OTHER_TRIAL_TYPE = "Other"
 STATS_BOX_WIDTH = 1.9  # inches, linear-fit stats box right of the fitness plot
-COLOR_BY = ["trial type", "ID"]
+COLOR_BY = ["trial type", "ID", "none"]
+SINGLE_COLOR = "#555555"  # color_by "none"
 TABLE_FONTSIZE = 11
 
 
@@ -242,7 +243,7 @@ class EStimSummaryModule(FigureModule):
             Param("color_by", "Color dots by", "choice", "trial type", choices=COLOR_BY,
                   tooltip="ID: number the dots 1..n (left to right by fitness), each its "
                           "own color, with a table below the plots of what each "
-                          "condition is."),
+                          "condition is. none: all dots one color."),
         ]
 
     def make_figure(self, session, values):
@@ -388,6 +389,8 @@ class EStimSummaryModule(FigureModule):
             order = d["table"]["order"]
             ax.scatter(x[order], y[order], c=d["table"]["colors"], s=70,
                        edgecolor="white", linewidth=1, zorder=3)
+        elif values.get("color_by") == "none":
+            ax.scatter(x, y, color=SINGLE_COLOR, s=60, alpha=0.8, zorder=3)
         else:
             # One color per trial type, in ESTIM_DISTANCE_CENTERS order.
             fallback = iter(FALLBACK_COLORS * 4)
