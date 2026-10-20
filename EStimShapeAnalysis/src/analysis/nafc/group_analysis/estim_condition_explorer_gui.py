@@ -11,6 +11,10 @@ Left panel:
   - Sessions: tick which sessions to include (defaults to the shared COMPARISON_*
     session range / exclusions).
   - Min trials: keep conditions with at least this many estim-ON AND estim-OFF trials.
+  - Condition set: keep only the conditions of a named set saved by another script
+    (EStimConditionSets, see estim_condition_sets), e.g. avg_estim_per_experiment's
+    estim_rule_top_half or max_estim_per_experiment's max_estim_default. ↻ re-reads
+    the list of sets.
   - Filters: "Add filter…" any column. Categorical columns get a tick-list of
     values; numeric ones a min / max range (inclusive) with "keep missing".
   - Layout: X-axis by / Colour by / Panels by — any column (or session_id), or
@@ -21,7 +25,10 @@ Left panel:
     keeps that tick's value; \\n breaks a line). "fill" puts the current ticks in
     the box to edit. Cleared when the X-axis column changes.
   - Plot: effect bars (mean of per-session mean effects ± SEM across sessions),
-    ON vs OFF dots, or an effect histogram (effect on the x-axis; one row per
+    ON vs OFF dots, effect violins (the distribution of effects at each bar's
+    place: per condition or per-session mean, see 'Distribution of'; a box
+    inside each — median dot, IQR bar, 1.5 × IQR whiskers — on by default;
+    stars, n, points and brackets as for bars), or an effect histogram (effect on the x-axis; one row per
     X-axis value, a column per panel, colours overlaid; counts per condition or
     per-session mean, set bin width, y as count or % of each histogram's own n
     so groups of different sizes compare; dashed line at 0; pairs are listed in the
@@ -68,6 +75,7 @@ from PyQt5.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBo
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
+from src.analysis.nafc.group_analysis import estim_condition_sets as ecs
 from src.analysis.nafc.group_analysis import estim_condition_table as ect
 
 CLIPBOARD_DPI = 200
@@ -83,8 +91,8 @@ HIDDEN_COLUMNS = {'conditions', ect.EFFECT_COL, ect.ON_COL, ect.OFF_COL}
 TEST_CHOICES = (('two-sided', 'two-sided'), ('one-sided: ON > OFF', 'greater'),
                 ('one-sided: ON < OFF', 'less'), ('off', None))
 PLOT_CHOICES = (('effect bars (ON − OFF)', 'bars'), ('ON vs OFF dots', 'dots'),
-                ('effect histogram', 'hist'))
-# what one histogram count is: (label, unit)
+                ('effect violins', 'violin'), ('effect histogram', 'hist'))
+# what one histogram count / violin value is: (label, unit)
 HIST_UNIT_CHOICES = (('per condition', 'condition'), ('per-session mean', 'session'))
 DEFAULT_HIST_BIN_WIDTH = 5.0
 # histogram height: (label, mode) — 'percent' = % of that histogram's own n, so
@@ -101,8 +109,13 @@ PAIR_ALPHA = 0.05
 # (label, function) for the pairwise test
 PAIR_TEST_CHOICES = (('permutation (within / between sessions)',
                       ect.pairwise_label_permutation),
-                     ('Welch t-test on session means', ect.pairwise_welch))
+                     ('Welch t-test on session means', ect.pairwise_welch),
+                     ("Student's t-test on session means", ect.pairwise_student))
+# stats-box wording for the t-tests
+T_TEST_NAMES = {ect.pairwise_welch: "Welch t-test (unequal variances)",
+                ect.pairwise_student: "Student's t-test (equal variances)"}
 NONE_LABEL = '(none)'
+ALL_CONDITIONS_LABEL = '(all conditions)'
 BAR_COLOR = '#4C72B0'
 ON_COLOR, OFF_COLOR = '#D32F2F', '#333333'
 
@@ -489,10 +502,15 @@ class _PanelWheelGuard(QObject):
 class EstimConditionExplorer(QMainWindow):
     def __init__(self, loader=ect.load_condition_table, null_loader=ect.load_permutation_nulls,
                  algorithm_labels=None, metric=ect.METRIC_PCT_HYP_VS_DELTA,
-                 algorithm_label='none'):
+                 algorithm_label='none', set_lister=ecs.list_condition_sets,
+                 set_loader=ecs.load_condition_set):
         super().__init__()
         self.loader = loader
         self.null_loader = null_loader
+        self.set_lister = set_lister
+        self.set_loader = set_loader
+        self._set_masks = {}  # (set name, data key) -> boolean mask over self.df
+        self._set_notes = {}  # (set name, data key) -> how many rows matched
         self._tables = {}
         self._nulls = {}
         self.df = None
@@ -529,6 +547,18 @@ class EstimConditionExplorer(QMainWindow):
         self.trials_box.setKeyboardTracking(False)
         self.trials_box.valueChanged.connect(self.schedule_redraw)
 
+        # -- condition set --
+        self.set_box = _compact(QComboBox())
+        self.set_box.currentIndexChanged.connect(self._set_changed)
+        set_refresh = QPushButton("↻")
+        set_refresh.setToolTip("Re-read the list of condition sets from the database")
+        set_refresh.setFixedWidth(36)
+        set_refresh.clicked.connect(lambda: self._refresh_condition_sets())
+        self.set_row = QHBoxLayout()
+        self.set_row.addWidget(self.set_box, 1)
+        self.set_row.addWidget(set_refresh)
+        self._refresh_condition_sets(redraw=False)
+
         # -- filters --
         self.filter_rows = []
         self.filter_area = QVBoxLayout()
@@ -557,12 +587,22 @@ class EstimConditionExplorer(QMainWindow):
         self.x_role.combo.currentIndexChanged.connect(
             lambda *_: self.xlabels_edit.setText(""))
         self._x_ticks, self._x_names = [], {}
+        # axis titles: blank = the automatic title
+        self.title_edits = {}
+        for axis in ('x', 'y'):
+            edit = QLineEdit()
+            edit.setPlaceholderText("automatic")
+            edit.setToolTip(f"Your own {axis}-axis title; leave blank for the automatic "
+                            "one. \\n breaks a line.")
+            edit.editingFinished.connect(self.schedule_redraw)
+            self.title_edits[axis] = edit
         self.plot_box = _compact(QComboBox())
         self.plot_box.addItems([c[0] for c in PLOT_CHOICES])
         self.hist_unit_box = _compact(QComboBox())
         self.hist_unit_box.addItems([c[0] for c in HIST_UNIT_CHOICES])
-        self.hist_unit_box.setToolTip("Effect histogram: count each condition, or "
-                                      "each session's mean over its conditions")
+        self.hist_unit_box.setToolTip("Effect histogram / violins: one value per "
+                                      "condition, or each session's mean over its "
+                                      "conditions")
         self.hist_bin_box = QDoubleSpinBox()
         self.hist_bin_box.setRange(0.1, 100)
         self.hist_bin_box.setDecimals(1)
@@ -588,6 +628,19 @@ class EstimConditionExplorer(QMainWindow):
         self.points_box.setToolTip("Overlay individual data points: each session's mean "
                                    "(what the bar and its SEM summarise) or each "
                                    "condition")
+        self.violin_box_box = QCheckBox("box inside violins (median, IQR)")
+        self.violin_box_box.setChecked(True)
+        self.violin_box_box.setToolTip(
+            "White dot: median. Thick bar: interquartile range (25th–75th "
+            "percentile). Thin line: whiskers to the furthest values within "
+            "1.5 × IQR of the box.")
+        self.violin_box_box.stateChanged.connect(self.schedule_redraw)
+        self.spread_box = QCheckBox("spread overlapping points")
+        self.spread_box.setToolTip("Off: every point sits on its bar's centre line. "
+                                   "On: points that would overlap step sideways "
+                                   "just enough to be seen (a swarm); position "
+                                   "across still means nothing.")
+        self.spread_box.stateChanged.connect(self.schedule_redraw)
         self.compare_box = _compact(QComboBox())
         self.compare_box.addItems([c[0] for c in COMPARE_CHOICES])
         self.compare_box.setToolTip(
@@ -598,7 +651,8 @@ class EstimConditionExplorer(QMainWindow):
         self.pair_test_box.addItems([c[0] for c in PAIR_TEST_CHOICES])
         self.pair_test_box.setToolTip(
             "Welch t-test: unequal-variance t-test on the per-session means (one "
-            "value per session per bar). Permutation: shuffles bar labels among a "
+            "value per session per bar). Student's t-test: the standard pooled-"
+            "variance t-test on the same values. Permutation: shuffles bar labels among a "
             "session's conditions where it has both, and whole sessions between the "
             "bars otherwise (no normality assumption; coarse p with few sessions).")
         self.n_box = QCheckBox("show n (conditions / sessions)")
@@ -652,21 +706,26 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow(self.session_list)
         form.addRow(sess_buttons)
         form.addRow("Min trials (ON && OFF)", self.trials_box)
+        form.addRow("Condition set", self.set_row)
         form.addRow(QLabel("<b>Filters</b>"))
         form.addRow(self.filter_area)
         form.addRow(self.add_filter_box)
         form.addRow(QLabel("<b>Layout</b>"))
         form.addRow("X-axis by", self.x_role)
         form.addRow("x labels", self.xlabels_row)
+        form.addRow("x title", self.title_edits['x'])
+        form.addRow("y title", self.title_edits['y'])
         form.addRow("Colour by", self.color_role)
         form.addRow("Panels by", self.panel_role)
         form.addRow(QLabel("<b>Plot</b>"))
         form.addRow("Plot", self.plot_box)
-        form.addRow("Histogram of", self.hist_unit_box)
+        form.addRow("Distribution of", self.hist_unit_box)
         form.addRow("Histogram bin", self.hist_bin_box)
         form.addRow("Histogram y", self.hist_y_box)
         form.addRow("Test", self.test_box)
         form.addRow("Points", self.points_box)
+        form.addRow("", self.spread_box)
+        form.addRow("", self.violin_box_box)
         form.addRow("Compare pairs", self.compare_box)
         form.addRow("Pairwise test", self.pair_test_box)
         form.addRow("", self.n_box)
@@ -695,10 +754,18 @@ class EstimConditionExplorer(QMainWindow):
         self.plot_area = QVBoxLayout()
         self.figure = Figure(figsize=(10, 7))
         self.canvas = FigureCanvas(self.figure)
+        # the toolbar's Save crops at the figure edge by default, cutting off a y
+        # title longer than the plot is tall; save everything drawn instead
+        matplotlib.rcParams['savefig.bbox'] = 'tight'
+        matplotlib.rcParams['savefig.pad_inches'] = 0.15
         self.toolbar = NavigationToolbar(self.canvas, self)
         self.plot_area.addWidget(self.toolbar)
         self.plot_area.addWidget(self.canvas, 1)
         self.canvas.mpl_connect('button_press_event', self._on_click)
+        # the layout (room for titles, stats box, legend) depends on the canvas size,
+        # so redo it when the window is resized or maximised
+        self.canvas.mpl_connect('resize_event',
+                                lambda event: self._redraw_timer.start(150))
         plot_widget = QWidget()
         plot_widget.setLayout(self.plot_area)
 
@@ -863,7 +930,64 @@ class EstimConditionExplorer(QMainWindow):
         keep &= ((df[ect.N_ON_COL] >= n) & (df[ect.N_OFF_COL] >= n)).to_numpy(dtype=bool)
         for row in self.filter_rows:
             keep &= row.mask(df)
+        name = self.condition_set()
+        if name:
+            keep &= self._set_mask(name)
         return df[keep]
+
+    # -- condition sets ----------------------------------------------------------------
+    def condition_set(self):
+        text = self.set_box.currentText()
+        return None if text in ('', ALL_CONDITIONS_LABEL) else text
+
+    def _refresh_condition_sets(self, redraw=True):
+        """(Re-)read the stored condition sets into the dropdown, keeping the
+        current choice if it still exists."""
+        current = self.condition_set()
+        try:
+            sets = self.set_lister()
+        except Exception as exc:
+            traceback.print_exc()
+            sets = None
+            self.set_box.setToolTip(f"Could not read condition sets: {exc}")
+        self._set_masks.clear()
+        self._set_notes.clear()
+        self.set_box.blockSignals(True)
+        self.set_box.clear()
+        self.set_box.addItem(ALL_CONDITIONS_LABEL)
+        if sets is not None:
+            for r in sets.itertuples():
+                self.set_box.addItem(r.set_name)
+                self.set_box.setItemData(
+                    self.set_box.count() - 1,
+                    f"{r.description or ''}\n{r.n_conditions} conditions, {r.n_sessions} "
+                    f"sessions; from {r.source or '?'}, {r.created_at}", Qt.ToolTipRole)
+        if current:
+            _set_combo_text(self.set_box, current)
+        self.set_box.blockSignals(False)
+        if redraw:
+            self.schedule_redraw()
+
+    def _set_changed(self, *_):
+        self.set_box.setToolTip(self.set_box.itemData(self.set_box.currentIndex(),
+                                                      Qt.ToolTipRole) or "")
+        self.schedule_redraw()
+
+    def _set_mask(self, name):
+        key = (name, self._data_key())
+        if key not in self._set_masks:
+            members = self.set_loader(name)
+            mask = np.array(ecs.in_condition_set(
+                self.df['session_id'], self.df['conditions'], members), dtype=bool)
+            n_members = sum(len(v) for v in members.values())
+            self._set_notes[key] = f"set {name}: {mask.sum()} conditions match its {n_members}"
+            if n_members and not mask.any():
+                why = ecs.describe_mismatch(self.df['session_id'], self.df['conditions'],
+                                            members)
+                print(f"Condition set {name!r} matches nothing: {why}")
+                self._set_notes[key] += f" (nothing matches: {why})"
+            self._set_masks[key] = mask
+        return self._set_masks[key]
 
     # -- drawing -------------------------------------------------------------------
     def schedule_redraw(self, *_):
@@ -889,7 +1013,9 @@ class EstimConditionExplorer(QMainWindow):
         self.pairwise = None
         if len(df) == 0:
             self.canvas.draw_idle()
-            self.status.setText("No conditions pass the filters.")
+            note = (self._set_notes.get((self.condition_set(), self._data_key()), "")
+                    if self.condition_set() else "")
+            self.status.setText("No conditions pass the filters." + (f"\n{note}" if note else ""))
             return
         df = df.copy()
         orders = {}
@@ -921,14 +1047,16 @@ class EstimConditionExplorer(QMainWindow):
         legend = None
         if mode == 'hist':
             self._draw_hist(df, summary, panels, colors)
-            if self._legend_handles:
+        else:
+            self._draw_bars(df, summary, panels, orders, colors, mode, pairs)
+        # histograms / violins fill their axes, so the colour legend goes in a
+        # row above the grid instead of over the data
+        if mode in ('hist', 'violin') and self._legend_handles:
                 legend = self.figure.legend(
                     handles=self._legend_handles, loc='upper center',
                     ncol=len(self._legend_handles), fontsize=st['legend'],
                     title=self.color_role.column() or None,
                     title_fontsize=st['legend'], frameon=False)
-        else:
-            self._draw_bars(df, summary, panels, orders, colors, mode, pairs)
         right = 1.0
         if self.stats_box.isChecked():
             text = self._stats_text(summary, pairs, panels, alternative)
@@ -954,9 +1082,17 @@ class EstimConditionExplorer(QMainWindow):
             renderer = self.canvas.get_renderer()
             top = 1 - legend.get_window_extent(renderer).height / self.figure.bbox.height
         self.figure.tight_layout(rect=(0, 0, right, top))
+        # a re-layout moves the axes (and the title centred on them): re-check
+        for _ in range(3):
+            if not self._wrap_long_ylabels():
+                break
+            self.figure.tight_layout(rect=(0, 0, right, top))
         self.canvas.draw_idle()
 
         filt = [d for d in (r.describe() for r in self.filter_rows) if d]
+        if self.condition_set():
+            filt.insert(0, self._set_notes.get((self.condition_set(), self._data_key()),
+                                               f"set {self.condition_set()}"))
         self.status.setText(
             f"{len(df)} of {len(self.df)} conditions, {df['session_id'].nunique()} sessions "
             f"pass the filters.\nFilters: {'; '.join(filt) if filt else 'none'}"
@@ -992,27 +1128,70 @@ class EstimConditionExplorer(QMainWindow):
             for ax, panel in zip(axes.flat, panels):
                 self._draw_brackets(ax, pairs[pairs['__panel'] == panel], positions[panel])
         self._legend_handles = self._legend(colors, mode)
-        if self._legend_handles:
+        if self._legend_handles and mode != 'violin':
             axes.flat[0].legend(handles=self._legend_handles, fontsize=st['legend'],
                                 loc='best', title=self.color_role.column() or None,
                                 title_fontsize=st['legend'])
+        y_title = self._title('y', 'EStim effect: ON − OFF (%)' if mode in ('bars', 'violin')
+                              else '% chose hypothesized')
         for ax in axes[:, 0]:
-            ax.set_ylabel('EStim effect: ON − OFF (%)' if mode == 'bars'
-                          else '% chose hypothesized', fontsize=st['axis_label'])
+            ax.set_ylabel(y_title, fontsize=st['axis_label'])
         for ax in axes[-1, :]:
-            ax.set_xlabel(self.x_role.column() or '', fontsize=st['axis_label'])
+            ax.set_xlabel(self._title('x', self.x_role.column() or ''),
+                          fontsize=st['axis_label'])
+
+    def _wrap_long_ylabels(self):
+        """Break a y title that runs past the top or bottom of the figure onto
+        more lines (at spaces, font size kept), so the plot leaves room for it.
+        Returns whether any title changed."""
+        renderer = self.canvas.get_renderer()
+        fig_h = self.figure.bbox.height
+        margin = 0.01 * fig_h
+
+        def overflows(label):
+            ext = label.get_window_extent(renderer)
+            return ext.y0 < margin or ext.y1 > fig_h - margin
+        changed = False
+        for ax in self.figure.axes:
+            label = ax.yaxis.label
+            text = label.get_text()
+            if not ax.get_visible() or not text or not overflows(label):
+                continue
+            words = text.replace('\n', ' ').split(' ')
+            n_lines = text.count('\n') + 1
+            while overflows(label) and n_lines < min(4, len(words)):
+                n_lines += 1
+                label.set_text(self._split_lines(words, n_lines))
+                changed = True
+        return changed
+
+    @staticmethod
+    def _split_lines(words, n_lines):
+        """words joined into n_lines lines of about equal length."""
+        target = len(' '.join(words)) / n_lines
+        lines, line = [], []
+        for w in words:
+            if line and len(' '.join(line + [w])) > target and len(lines) < n_lines - 1:
+                lines.append(' '.join(line))
+                line = []
+            line.append(w)
+        lines.append(' '.join(line))
+        return '\n'.join(lines)
+
+    def _title(self, axis, default):
+        """The axis title typed in the side panel, else the automatic one."""
+        text = self.title_edits[axis].text().strip()
+        return text.replace('\\n', '\n') if text else default
 
     def _draw_hist(self, df, summary, panels, colors):
         """Effect histograms: effect on the x-axis, one row per X-axis value and a
         column per panel, colours overlaid. Shared bins (aligned to 0) and axes."""
         st = self.plot_style()
-        unit = HIST_UNIT_CHOICES[self.hist_unit_box.currentIndex()][1]
+        unit = self._dist_unit()
         percent = HIST_Y_CHOICES[self.hist_y_box.currentIndex()][1] == 'percent'
         groups = {}
         for key, sub in df.groupby(['__panel', '__x', '__color'], observed=True):
-            vals = (sub.groupby('session_id')[ect.EFFECT_COL].mean() if unit == 'session'
-                    else sub[ect.EFFECT_COL])
-            vals = pd.to_numeric(vals, errors='coerce').dropna().to_numpy(dtype=float)
+            vals = self._dist_values(sub)
             if len(vals):
                 groups[key] = vals
         everything = np.concatenate(list(groups.values())) if groups else np.zeros(1)
@@ -1067,24 +1246,43 @@ class EstimConditionExplorer(QMainWindow):
         count = 'sessions' if unit == 'session' else 'conditions'
         if percent:
             count = f"% of {count}"
+        count = self._title('y', count)
         for x, ax in zip(rows, axes[:, 0]):
             # with panel titles on top, the rows are named on the left instead
             ax.set_ylabel(f"{self._x_name(x)}\n{count}" if self.panel_role.column()
                           else count, fontsize=st['axis_label'])
         # one x label, under the middle column
-        axes[-1, len(panels) // 2].set_xlabel('EStim effect: ON − OFF (%)',
+        axes[-1, len(panels) // 2].set_xlabel(self._title('x', 'EStim effect: ON − OFF (%)'),
                                                fontsize=st['axis_label'])
 
+    def _dist_unit(self):
+        return HIST_UNIT_CHOICES[self.hist_unit_box.currentIndex()][1]
+
+    def _dist_values(self, sub):
+        """Effects of one group for a histogram / violin: one per condition, or
+        one per session (its mean), as floats without NaNs."""
+        vals = (sub.groupby('session_id')[ect.EFFECT_COL].mean()
+                if self._dist_unit() == 'session' else sub[ect.EFFECT_COL])
+        return pd.to_numeric(vals, errors='coerce').dropna().to_numpy(dtype=float)
+
     def _plot_mode_changed(self, *_):
-        hist = PLOT_CHOICES[self.plot_box.currentIndex()][1] == 'hist'
-        # the histogram rows only show in histogram mode
-        for w in (self.hist_unit_box, self.hist_bin_box, self.hist_y_box):
-            w.setVisible(hist)
-            self._form.labelForField(w).setVisible(hist)
+        mode = PLOT_CHOICES[self.plot_box.currentIndex()][1]
+        hist = mode == 'hist'
+        # distribution settings only show for the plots that use them
+        shown = {self.hist_unit_box: mode in ('hist', 'violin'),
+                 self.hist_bin_box: hist, self.hist_y_box: hist}
+        shown[self.violin_box_box] = mode == 'violin'
+        for w, on in shown.items():
+            w.setVisible(on)
+            label = self._form.labelForField(w)
+            if label is not None:
+                label.setVisible(on)
         # histograms have no x tick labels (x labels name the rows) and no points
-        for w in (self.rotation_box, self.points_box):
+        for w in (self.rotation_box, self.points_box, self.spread_box):
             w.setVisible(not hist)
-            self._form.labelForField(w).setVisible(not hist)
+            label = self._form.labelForField(w)
+            if label is not None:
+                label.setVisible(not hist)
 
     @staticmethod
     def _colors(color_order):
@@ -1116,13 +1314,48 @@ class EstimConditionExplorer(QMainWindow):
                                    ect.OFF_COL: 'off'})
 
     @staticmethod
-    def _jitter(n, half_width, seed):
-        return np.random.default_rng(seed).uniform(-half_width, half_width, n)
+    def _offsets(values, half_width, tol, spread):
+        """Horizontal point offsets from the bar centre. Not spread: all 0, every
+        point on the centre line. Spread: a deterministic swarm — a point moves
+        sideways only as far as needed to clear points within tol of it in y."""
+        values = np.asarray(values, dtype=float)
+        offsets = np.zeros(len(values))
+        if not spread or len(values) < 2 or not tol > 0:
+            return offsets
+        step = half_width / 4
+        slots = [0] + [k * sign for k in range(1, 5) for sign in (1, -1)]
+        placed = []  # (value, slot)
+        for i in np.argsort(values, kind='stable'):
+            near = {slot for v, slot in placed if abs(v - values[i]) < tol}
+            slot = next((sl for sl in slots if sl not in near), slots[-1])
+            placed.append((values[i], slot))
+            offsets[i] = slot * step
+        return offsets
+
+    @staticmethod
+    def _violin_inner_box(ax, pos, vals):
+        """Box-plot marks inside a violin: thick bar = interquartile range
+        (25th–75th percentile), thin line = whiskers to the furthest values
+        within 1.5 × IQR of the box, white dot = median."""
+        q1, med, q3 = np.percentile(vals, [25, 50, 75])
+        iqr = q3 - q1
+        lo = vals[vals >= q1 - 1.5 * iqr].min()
+        hi = vals[vals <= q3 + 1.5 * iqr].max()
+        ax.plot([pos, pos], [lo, hi], color='black', lw=1, zorder=4)
+        ax.plot([pos, pos], [q1, q3], color='black', lw=5, solid_capstyle='butt',
+                zorder=4)
+        ax.scatter([pos], [med], s=22, color='white', edgecolor='black', lw=0.6,
+                   zorder=5)
 
     def _draw_panel(self, ax, summary, panel_df, orders, colors, mode):
         st = self.plot_style()
         x_order = [x for x in orders['__x'] if (summary['__x'] == x).any()]
         show_n = self.n_box.isChecked()
+        spread = self.spread_box.isChecked()
+        # points closer than this in y count as overlapping (2% of the data range)
+        cols = [ect.EFFECT_COL] if mode != 'dots' else [ect.ON_COL, ect.OFF_COL]
+        span = pd.to_numeric(panel_df[cols].stack(), errors='coerce')
+        tol = 0.02 * (span.max() - span.min()) if span.notna().any() else 0
         positions = {}  # (x, colour) -> (bar centre, top of everything drawn for it)
         # one bar width for the panel (set by the most crowded x), so a lone bar
         # isn't drawn wider than its neighbours
@@ -1138,7 +1371,34 @@ class EstimConditionExplorer(QMainWindow):
                 color = colors.get(c, BAR_COLOR)
                 pts = self._points(panel_df[(panel_df['__x'] == x)
                                             & (panel_df['__color'] == c)])
-                if mode == 'bars':
+                if mode == 'violin':
+                    vals = self._dist_values(panel_df[(panel_df['__x'] == x)
+                                                      & (panel_df['__color'] == c)])
+                    if len(np.unique(vals)) >= 2:
+                        parts = ax.violinplot([vals], positions=[pos], widths=width * 0.9,
+                                              showextrema=False)
+                        for body in parts['bodies']:
+                            body.set_facecolor(color)
+                            body.set_edgecolor('black')
+                            body.set_linewidth(0.5)
+                            body.set_alpha(0.85)
+                    elif len(vals):
+                        # a single value (or all equal) has no density to draw
+                        ax.plot([pos - width * 0.3, pos + width * 0.3], [vals[0]] * 2,
+                                color=color, lw=2.5)
+                    if len(vals) and self.violin_box_box.isChecked():
+                        self._violin_inner_box(ax, pos, vals)
+                    top = vals.max() if len(vals) else r['effect']
+                    bottom = vals.min() if len(vals) else r['effect']
+                    if pts is not None:
+                        jit = self._offsets(pts['effect'], width * 0.3, tol, spread)
+                        ax.scatter(pos + jit, pts['effect'], s=10, color=POINT_COLOR,
+                                   alpha=0.6, lw=0, zorder=3)
+                        top = max(top, pts['effect'].max())
+                        bottom = min(bottom, pts['effect'].min())
+                    # stars above the whole violin, whichever way the effect goes
+                    star_y, va = top, 'bottom'
+                elif mode == 'bars':
                     ax.bar(pos, r['effect'], width * 0.9, color=color, alpha=0.85,
                            edgecolor='black', linewidth=0.5)
                     ax.errorbar(pos, r['effect'], yerr=r['effect_sem'], color='black',
@@ -1146,7 +1406,7 @@ class EstimConditionExplorer(QMainWindow):
                     top = r['effect'] + (r['effect_sem'] if np.isfinite(r['effect_sem']) else 0)
                     bottom = r['effect'] - (r['effect_sem'] if np.isfinite(r['effect_sem']) else 0)
                     if pts is not None:
-                        jit = self._jitter(len(pts), width * 0.25, (xi, ci))
+                        jit = self._offsets(pts['effect'], width * 0.4, tol, spread)
                         ax.scatter(pos + jit, pts['effect'], s=10, color=POINT_COLOR,
                                    alpha=0.6, lw=0, zorder=3)
                         top = max(top, pts['effect'].max())
@@ -1164,7 +1424,7 @@ class EstimConditionExplorer(QMainWindow):
                                  r['off'] + np.nan_to_num(r['off_sem']))
                     if pts is not None:
                         # each unit's OFF -> ON pair, joined by a faint line
-                        jit = self._jitter(len(pts), width * 0.06, (xi, ci))
+                        jit = self._offsets(pts['on'], width * 0.15, tol, spread)
                         for (_, p), j in zip(pts.iterrows(), jit):
                             ax.plot([off_x + j, on_x + j], [p['off'], p['on']],
                                     color=color, lw=0.6, alpha=0.4, zorder=1)
@@ -1179,14 +1439,14 @@ class EstimConditionExplorer(QMainWindow):
                     ax.annotate(marker, (pos, star_y), xytext=(0, 2 if va == 'bottom' else -2),
                                 textcoords='offset points', ha='center', va=va,
                                 fontsize=st['stars'])
-                upper = max(star_y, 0) if mode == 'bars' else star_y
+                upper = max(star_y, 0) if mode in ('bars', 'violin') else star_y
                 positions[(x, c)] = (pos, upper)
                 if show_n:
                     ax.annotate(f"{r['n_conditions']}/{r['n_sessions']}", (pos, 0),
                                 xycoords=('data', 'axes fraction'), xytext=(0, 2),
                                 textcoords='offset points', ha='center', va='bottom',
                                 fontsize=st['n_label'], color='#555555')
-        if mode == 'bars':
+        if mode in ('bars', 'violin'):
             ax.axhline(0, color='black', lw=0.8, ls='--')
         ax.set_xticks(range(len(x_order)))
         rotation = (30 if len(x_order) > 4 else 0) if st['xtick_rotation'] == 'auto' \
@@ -1256,9 +1516,10 @@ class EstimConditionExplorer(QMainWindow):
         if pairs is not None:
             # Holm over a single test is the raw p, so only say so when it matters
             holm = ", Holm-corrected" if pairs['p'].notna().sum() > 1 else ""
-            if PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][1] is ect.pairwise_welch:
-                lines += ["", "Pairwise: Welch t-test on per-session",
-                          f"mean effects{holm}"]
+            pair_test = PAIR_TEST_CHOICES[self.pair_test_box.currentIndex()][1]
+            if pair_test in T_TEST_NAMES:
+                lines += ["", f"Pairwise: {T_TEST_NAMES[pair_test]}",
+                          f"on per-session mean effects{holm}"]
             else:
                 lines += ["", "Pairwise: permutation, bar labels shuffled",
                           "within sessions (whole sessions when a",
@@ -1414,6 +1675,7 @@ class EstimConditionExplorer(QMainWindow):
         layout = {'x': role(self.x_role), 'colour': role(self.color_role),
                   'panels': role(self.panel_role)}
         layout['x']['labels'] = self.xlabels_edit.text()
+        layout['titles'] = {axis: e.text() for axis, e in self.title_edits.items()}
         return {
             'version': SPEC_VERSION,
             'metric': self.metric_box.currentText(),
@@ -1422,6 +1684,7 @@ class EstimConditionExplorer(QMainWindow):
                          for i in range(self.session_list.count())
                          if self.session_list.item(i).checkState() == Qt.Checked],
             'min_trials': self.trials_box.value(),
+            'condition_set': self.condition_set(),
             'filters': [r.state() for r in self.filter_rows],
             'layout': layout,
             'plot': {'plot': self.plot_box.currentText(),
@@ -1431,6 +1694,8 @@ class EstimConditionExplorer(QMainWindow):
                      'pairwise_test': self.pair_test_box.currentText(),
                      'show_n': self.n_box.isChecked(),
                      'show_stats': self.stats_box.isChecked(),
+                     'spread_points': self.spread_box.isChecked(),
+                     'violin_box': self.violin_box_box.isChecked(),
                      'hist_unit': self.hist_unit_box.currentText(),
                      'hist_bin_width': self.hist_bin_box.value(),
                      'hist_y': self.hist_y_box.currentText()},
@@ -1455,9 +1720,17 @@ class EstimConditionExplorer(QMainWindow):
         plot = spec.get('plot', {})
         widgets = [self.trials_box, self.plot_box, self.test_box, self.points_box,
                    self.compare_box, self.pair_test_box, self.n_box, self.stats_box,
-                   self.hist_unit_box, self.hist_bin_box, self.hist_y_box]
+                   self.hist_unit_box, self.hist_bin_box, self.hist_y_box, self.spread_box,
+                   self.violin_box_box]
         for w in widgets:
             w.blockSignals(True)
+        if 'condition_set' in spec:
+            self.set_box.blockSignals(True)
+            if not _set_combo_text(self.set_box, spec['condition_set'] or ALL_CONDITIONS_LABEL):
+                skipped.append(f"condition set {spec['condition_set']!r} (not in the "
+                               "database)")
+                self.set_box.setCurrentIndex(0)
+            self.set_box.blockSignals(False)
         if 'min_trials' in spec:
             self.trials_box.setValue(int(spec['min_trials']))
         for box, key in ((self.plot_box, 'plot'), (self.test_box, 'test'),
@@ -1471,11 +1744,18 @@ class EstimConditionExplorer(QMainWindow):
             self.n_box.setChecked(bool(plot['show_n']))
         if 'show_stats' in plot:
             self.stats_box.setChecked(bool(plot['show_stats']))
+        if 'spread_points' in plot:
+            self.spread_box.setChecked(bool(plot['spread_points']))
+        if 'violin_box' in plot:
+            self.violin_box_box.setChecked(bool(plot['violin_box']))
         if 'hist_bin_width' in plot:
             self.hist_bin_box.setValue(float(plot['hist_bin_width']))
         self._plot_mode_changed()
         for w in widgets:
             w.blockSignals(False)
+        for axis, text in spec.get('layout', {}).get('titles', {}).items():
+            if axis in self.title_edits:
+                self.title_edits[axis].setText(text or "")
         if 'style' in spec:
             self.set_plot_style(spec['style'], redraw=False)
         known = set(self.df['session_id'])
