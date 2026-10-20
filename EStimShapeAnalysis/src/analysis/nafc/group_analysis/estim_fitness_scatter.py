@@ -6,10 +6,12 @@ Conditions, effects and filters are exactly those of avg_estim_per_experiment
 and OFF trials, effect = % ON − % OFF against its own OFF baseline (or the
 two-proportion z with studentize), optional trial-type filter, current : half-distance
 ratio exclusions, and merge_behavioral (one value per session × trial type × spec).
+The ratio exclusions use the ratios computed with corr_method below.
 
 Parameter fitness, per condition:
-    ratio   = current_per_second / corr half-distance of its estim spec
-              (avg_estim_per_experiment.get_spec_ratios)
+    ratio   = current_per_second / corr half-distance of its estim spec, the
+              half-distance from Spearman or Pearson channel correlations (corr_method;
+              Spearman is what avg_estim_per_experiment.get_spec_ratios uses)
     fitness = 1 / (1 + |ratio − center|),  center from ESTIM_DISTANCE_CENTERS
               (Hypothesized Shape 4, Delta Shape 0)
 so 1 = at the center and it falls toward 0 with distance. Conditions whose trial type
@@ -39,40 +41,80 @@ sys.path.insert(0, str(Path(__file__).parents[3]))
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
     METRIC_PCT_HYP_VS_DELTA)
 from src.analysis.nafc.group_analysis.avg_estim_per_experiment import (
-    ESTIM_DISTANCE_CENTERS, _condition_arrays, _condition_ratio, _effect_axis_label,
+    ESTIM_DISTANCE_CENTERS, _condition_arrays, _effect_axis_label, _normalize_ratio_ranges,
     collect_session_rows)
 
 FITNESS_LABEL = "EStim parameter fitness"
 TRIAL_TYPE_COLORS = {"Hypothesized Shape": "#c0392b", "Delta Shape": "#2c7fb8"}
 SINGLE_COLOR = "#2c7fb8"   # color_by='none'
 COLOR_BY = ("trial type", "none")
+CORR_METHODS = ("spearman", "pearson")
+
+_RATIO_CACHE = {}
 
 
-def condition_fitness(session_id, cond_dict, centers=ESTIM_DISTANCE_CENTERS):
+def spec_ratios(session_id, corr_method="spearman"):
+    """{estim_spec_id: current_per_second / corr half-distance, or None}, with the
+    half-distance from corr_method channel correlations. Cached per session and method.
+    A session whose half-distance fails is printed and gets no ratios."""
+    key = (session_id, corr_method)
+    if key not in _RATIO_CACHE:
+        from src.analysis.nafc.group_analysis.estim_condition_table import _fetch_spread
+        spread = _fetch_spread([session_id], corr_method=corr_method)
+        _RATIO_CACHE[key] = {int(r.estim_spec_id): (None if r.ratio is None or pd.isna(r.ratio)
+                                                    else float(r.ratio))
+                             for r in spread.itertuples(index=False)}
+    return _RATIO_CACHE[key]
+
+
+def condition_ratio(session_id, cond_dict, corr_method="spearman"):
+    """The condition's spec ratio, or None (no spec, or missing current / half-distance)."""
+    spec = cond_dict.get('estim_spec_id')
+    if spec is None or (isinstance(spec, float) and np.isnan(spec)):
+        return None
+    return spec_ratios(session_id, corr_method).get(int(spec))
+
+
+def ratio_exclusion_filter(ranges, corr_method="spearman"):
+    """condition_filter for collect_session_rows dropping conditions whose ratio lies in
+    any range (inclusive), as avg_estim's exclude_ratio_ranges but with corr_method
+    ratios. Conditions without a ratio are kept. None when there is nothing to exclude."""
+    ranges = _normalize_ratio_ranges(ranges)
+    if not ranges:
+        return None
+
+    def keep(session_id, cond_dict):
+        ratio = condition_ratio(session_id, cond_dict, corr_method)
+        return ratio is None or not any(lo <= ratio <= hi for lo, hi in ranges)
+    return keep
+
+
+def condition_fitness(session_id, cond_dict, corr_method="spearman",
+                      centers=ESTIM_DISTANCE_CENTERS):
     """1 / (1 + |ratio − center|), or None (no center for the trial type, or no ratio)."""
     center = centers.get(cond_dict.get('trial_type'))
     if center is None:
         return None
-    ratio = _condition_ratio(session_id, cond_dict)
+    ratio = condition_ratio(session_id, cond_dict, corr_method)
     if ratio is None:
         return None
     return 1.0 / (1.0 + abs(ratio - center))
 
 
-def build_points(rows, studentize=False, merge_behavioral=False):
+def build_points(rows, studentize=False, merge_behavioral=False, corr_method="spearman"):
     """One row per condition (or per spec with merge_behavioral) with a fitness:
     session_id, trial_type, estim_spec_id, ratio, fitness, effect. Also returns how many
     units had no fitness."""
     arrays = _condition_arrays(rows, studentize=studentize, merge_behavioral=merge_behavioral)
     points, n_missing = [], 0
     for (sid, cond), effect in zip(arrays['keys'], arrays['effects']):
-        fitness = condition_fitness(sid, cond)
+        fitness = condition_fitness(sid, cond, corr_method)
         if fitness is None:
             n_missing += 1
             continue
         points.append({'session_id': sid, 'trial_type': cond.get('trial_type'),
                        'estim_spec_id': cond.get('estim_spec_id'),
-                       'ratio': _condition_ratio(sid, cond), 'fitness': fitness,
+                       'ratio': condition_ratio(sid, cond, corr_method), 'fitness': fitness,
                        'effect': float(effect),
                        'conditions': json.dumps(cond, default=str)})
     return pd.DataFrame(points), n_missing
@@ -137,6 +179,7 @@ def main():
     min_trials = 5
 
     # --- This plot ---
+    corr_method = "spearman"  # half-distance from "spearman" or "pearson" channel correlations
     color_by = "trial type"   # "trial type" or "none" (all dots one color)
     fit_line = True           # least-squares line + stats box beside the plot
     show_plots = True
@@ -144,13 +187,18 @@ def main():
 
     if color_by not in COLOR_BY:
         raise ValueError(f"color_by must be one of {COLOR_BY}, got {color_by!r}")
+    if corr_method not in CORR_METHODS:
+        raise ValueError(f"corr_method must be one of {CORR_METHODS}, got {corr_method!r}")
+    # Ratio exclusions done here so they use the same corr_method ratios as the fitness.
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
                                 metric, min_trials=min_trials, trial_types=trial_types,
-                                exclude_ratio_ranges=exclude_ratio_ranges)
+                                condition_filter=ratio_exclusion_filter(exclude_ratio_ranges,
+                                                                        corr_method))
     if not rows:
         raise RuntimeError("No sessions with qualifying conditions.")
     points, n_missing = build_points(rows, studentize=studentize,
-                                     merge_behavioral=merge_behavioral)
+                                     merge_behavioral=merge_behavioral,
+                                     corr_method=corr_method)
     if points.empty:
         raise RuntimeError(f"None of the {n_missing} conditions has a parameter fitness "
                            "(needs a trial type in ESTIM_DISTANCE_CENTERS and a ratio).")
@@ -174,7 +222,7 @@ def main():
                    'start_session_id': start_session_id, 'algorithm_label': algorithm_label,
                    'trial_types': trial_types, 'exclude_ratio_ranges': exclude_ratio_ranges,
                    'merge_behavioral': merge_behavioral, 'studentize': studentize,
-                   'min_trials': min_trials, 'color_by': color_by, 'fit_line': fit_line,
+                   'min_trials': min_trials, 'corr_method': corr_method, 'color_by': color_by, 'fit_line': fit_line,
                    'centers': ESTIM_DISTANCE_CENTERS, 'n_points': len(points),
                    'n_without_fitness': n_missing,
                    'sessions': sorted(points['session_id'].unique().tolist())},
