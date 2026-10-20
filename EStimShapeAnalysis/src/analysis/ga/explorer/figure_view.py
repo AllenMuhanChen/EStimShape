@@ -10,9 +10,10 @@ from __future__ import annotations
 import os
 
 from PyQt5.QtCore import QEvent, Qt
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import (QCheckBox, QHBoxLayout, QLabel, QPushButton,
-                             QScrollArea, QSpinBox, QVBoxLayout, QWidget)
+from PyQt5.QtGui import QCursor, QImage, QPixmap
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel, QMenu,
+                             QPushButton, QScrollArea, QSpinBox, QToolTip, QVBoxLayout,
+                             QWidget)
 
 MPL_SAVE_DPI = 300
 MPL_CLIPBOARD_DPI = 200
@@ -83,7 +84,10 @@ class FigureView(QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
         size_in = fig.get_size_inches().copy()
         canvas = FigureCanvas(fig)
-        lay.addWidget(NavigationToolbar(canvas, box))
+        toolbar = NavigationToolbar(canvas, box)
+        lay.addWidget(toolbar)
+        canvas.mpl_connect("button_press_event",
+                           lambda ev: self._on_mpl_press(ev, fig, toolbar))
         if self._keep_size:
             # Pin the canvas to the figure's own size; the scroll area absorbs
             # any difference with the window.
@@ -226,6 +230,63 @@ class FigureView(QWidget):
         buf = io.BytesIO()
         self._fig.savefig(buf, format="png", dpi=MPL_CLIPBOARD_DPI, bbox_inches="tight",
                           facecolor="white")
+        return QImage.fromData(buf.getvalue(), "PNG")
+
+    # ---------------------------------------------------- right-click copy
+    def _on_mpl_press(self, event, fig, toolbar):
+        """Right-click a panel: menu to copy just that panel or the whole figure.
+        Left alone while the toolbar's zoom/pan tool is on (it uses right-click)."""
+        if event.button != 3 or str(getattr(toolbar, "mode", "")):
+            return
+        group = self._panel_at(fig, event)
+        menu = QMenu(self)
+        copy_panel = menu.addAction("Copy this panel")
+        copy_panel.setEnabled(group is not None)
+        copy_all = menu.addAction("Copy whole figure")
+        picked = menu.exec_(QCursor.pos())
+        if picked is copy_panel and group is not None:
+            img = self.panel_image(fig, group)
+        elif picked is copy_all:
+            img = self.clipboard_image()
+        else:
+            return
+        if img is not None and not img.isNull():
+            QApplication.clipboard().setImage(img)
+            QToolTip.showText(QCursor.pos(), "Copied to clipboard")
+
+    @staticmethod
+    def _panel_at(fig, event):
+        """The panel (list of axes) under the mouse. A figure can group axes
+        that belong together via fig.explorer_panel_groups; otherwise every
+        visible axes is its own panel. Clicks on a panel's labels/title count."""
+        groups = getattr(fig, "explorer_panel_groups", None) or \
+            [[ax] for ax in fig.axes if ax.get_visible()]
+        if event.inaxes is not None:
+            for g in groups:
+                if event.inaxes in g:
+                    return g
+        renderer = fig.canvas.get_renderer()
+        for g in groups:
+            for ax in g:
+                bb = ax.get_tightbbox(renderer)
+                if bb is not None and bb.contains(event.x, event.y):
+                    return g
+        return None
+
+    @staticmethod
+    def panel_image(fig, axes) -> QImage | None:
+        """Just these axes (with their labels, ticks, title and legend) rendered
+        at MPL_CLIPBOARD_DPI."""
+        import io
+        from matplotlib.transforms import Bbox
+        renderer = fig.canvas.get_renderer()
+        boxes = [b for b in (ax.get_tightbbox(renderer) for ax in axes) if b is not None]
+        if not boxes:
+            return None
+        bbox = Bbox.union(boxes).transformed(fig.dpi_scale_trans.inverted()).padded(0.05)
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=MPL_CLIPBOARD_DPI, bbox_inches=bbox,
+                    facecolor="white")
         return QImage.fromData(buf.getvalue(), "PNG")
 
     # ---------------------------------------------------------------- save

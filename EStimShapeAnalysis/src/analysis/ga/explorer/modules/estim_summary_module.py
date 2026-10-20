@@ -225,15 +225,21 @@ class EStimSummaryModule(FigureModule):
         fig = Figure(figsize=(sum(ratios), h))
         grid = fig.add_gridspec(1, len(ratios), width_ratios=ratios)
         notes = []
+        groups = []   # right-click "Copy this panel" copies a whole group
         for i, panel in enumerate(panels):
             ax = fig.add_subplot(grid[0, i])
+            groups.append([ax])
             if panel == "histogram":
                 notes.append(self._draw_histogram(ax, values, effects, null_matrix, raws,
                                                   label))
             else:
                 notes.append(self._draw_fitness(ax, values, fitness))
+                fitness_group = groups[-1]
         if fit_box:
-            self._draw_fit_box(fig.add_subplot(grid[0, len(panels)]), fitness)
+            box_ax = fig.add_subplot(grid[0, len(panels)])
+            self._draw_fit_box(box_ax, fitness)
+            fitness_group.append(box_ax)   # the fit stats travel with their plot
+        fig.explorer_panel_groups = groups
         fig.tight_layout()
         hidden = [tt for tt in TRIAL_TYPES + [OTHER_TRIAL_TYPE] if tt not in shown]
         if hidden:
