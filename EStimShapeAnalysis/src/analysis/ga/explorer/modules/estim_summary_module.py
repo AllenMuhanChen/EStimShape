@@ -21,8 +21,10 @@ Data and statistics come from max_estim_per_experiment (read-only):
     effect, i.e. each bin's count averaged over the permutations
     (the same null the exceedance-count test uses).
 
-EStim parameter fitness, as avg_estim_per_experiment's 'closest' rule:
-  fitness = |ratio - center|, smaller = fitter
+EStim parameter fitness (higher = fitter, 1 = best), from the distance used by
+avg_estim_per_experiment's 'closest' rule:
+  fitness  = 1 / (1 + distance)          in (0, 1]; same ranking as the distance
+  distance = |ratio - center|
   ratio   = current_per_second / correlation half-distance  ((µA·Hz) / µm), per spec
   center  = ESTIM_DISTANCE_CENTERS[condition's trial type]
             (Hypothesized Shape 4.0, Delta Shape 0.0)
@@ -48,8 +50,7 @@ from src.analysis.ga.explorer.explorer_module import FigureModule, Param
 
 METRICS = ["pct_hyp_vs_delta", "pct_hypothesized"]
 CORR_METHODS = ["spearman", "pearson"]
-FITNESS_LABEL = ("EStim parameter fitness  |ratio − center|\n"
-                 "(ratio = current per second ÷ half-distance, µA·Hz/µm)")
+FITNESS_LABEL = "EStim parameter fitness"
 PANEL_SIZE = (6.0, 4.6)  # inches per plot
 # Fitness scatter dot color per trial type (others fall back to FALLBACK_COLORS).
 TRIAL_TYPE_COLORS = {"Hypothesized Shape": "#c0392b", "Delta Shape": "#2c7fb8"}
@@ -98,14 +99,14 @@ def spec_ratios(session, corr_method):
 
 
 def condition_fitness(cond, ratios, centers):
-    """|ratio - center| for one condition, or None (trial type without a
-    center, no spec, or no ratio for its spec)."""
+    """1 / (1 + |ratio - center|) for one condition (1 = at the center), or
+    None (trial type without a center, no spec, or no ratio for its spec)."""
     center = centers.get(cond.get("trial_type"))
     spec = cond.get("estim_spec_id")
     if center is None or spec is None or (isinstance(spec, float) and np.isnan(spec)):
         return None
     ratio = ratios.get(int(spec))
-    return None if ratio is None else abs(ratio - center)
+    return None if ratio is None else 1.0 / (1.0 + abs(ratio - center))
 
 
 def _fmt_p(p):
@@ -118,7 +119,7 @@ class EStimSummaryModule(FigureModule):
     name = "EStim results summary"
     description = ("EStim conditions of this session: histogram of effect sizes with "
                    "the max EStim effect, and effect vs EStim parameter fitness "
-                   "(|current per second ÷ half-distance − center|). Tick which to show.")
+                   "(1 = best). Tick which to show.")
 
     def params(self):
         return [
@@ -216,8 +217,8 @@ class EStimSummaryModule(FigureModule):
         if not keep.any():
             ax.text(0.5, 0.5, "No parameter fitness for these conditions", ha="center",
                     va="center", transform=ax.transAxes, fontsize=14, color="gray")
-            return (f"fitness: none of {effects.size} conditions has a trial type with a "
-                    "center and a current / half-distance ratio")
+            return (f"fitness: none of {effects.size} conditions has a fitness (needs "
+                    "Hypothesized/Delta trial type and current / half-distance)")
         types = np.array([c.get("trial_type") for c in conds], dtype=object)[keep]
         x, y = x[keep], effects[keep]
         ax.axhline(0, color="black", linewidth=1, zorder=1)
@@ -229,6 +230,7 @@ class EStimSummaryModule(FigureModule):
             ax.scatter(x[on], y[on], color=TRIAL_TYPE_COLORS.get(tt) or next(fallback),
                        s=60, alpha=0.8, zorder=3, label=tt)
         ax.legend(fontsize=12, frameon=False, loc="best")
+        ax.set_xlim(0, 1.03)  # fitness is in (0, 1]
 
         stats = ""
         if len(x) >= 3 and np.ptp(x) > 0:
