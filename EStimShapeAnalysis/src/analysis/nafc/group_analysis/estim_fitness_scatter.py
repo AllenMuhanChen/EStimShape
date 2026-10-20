@@ -134,7 +134,7 @@ def main():
     exclude_ratio_ranges = [(8, None)]    # drop ratio >= 8; None = keep all
     merge_behavioral = True               # one dot per (session, trial type, spec)
     studentize = False                    # True -> effect in z (two-proportion z-score)
-    min_trials = 10
+    min_trials = 5
 
     # --- This plot ---
     color_by = "trial type"   # "trial type" or "none" (all dots one color)
