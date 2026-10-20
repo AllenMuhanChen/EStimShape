@@ -110,9 +110,10 @@ def _fetch_spec_params(session_ids):
     return out
 
 
-def _fetch_spread(session_ids):
+def _fetch_spread(session_ids, corr_method='spearman'):
     """DataFrame keyed (session_id, estim_spec_id) with current_per_second, the
-    correlation half-distance and their ratio. Sessions that fail are skipped."""
+    correlation half-distance and their ratio. Sessions that fail are skipped.
+    corr_method: 'spearman' | 'pearson' for the half-distance's channel correlations."""
     # heavy modules (probe geometry, tuning metrics): import only when asked for
     from src.analysis.nafc.group_analysis.analyze_estim_isolation_effect import (
         _fetch_current_per_second)
@@ -121,7 +122,7 @@ def _fetch_spread(session_ids):
     rows = []
     for sid in session_ids:
         try:
-            half_dist = compute_session_half_distance(sid)
+            half_dist = compute_session_half_distance(sid, corr_method=corr_method)
             cps = _fetch_current_per_second([(sid, spec) for spec in half_dist])
         except Exception as exc:
             print(f"  {sid}: current spread failed ({type(exc).__name__}: {exc}); skipped")
