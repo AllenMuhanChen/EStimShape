@@ -23,16 +23,19 @@ def _is_plotly(fig) -> bool:
 
 
 class FigureView(QWidget):
-    def __init__(self, parent=None, keep_size=False, fit_height=False):
+    def __init__(self, parent=None, keep_size=False, fit_height=False, fit_width=False):
         """keep_size: show matplotlib figures at their own size (scrolling if
         needed) instead of stretching them to the window, so what you see is
         what gets saved. Use it for layout-sensitive figures.
         fit_height (with keep_size): by default scale the whole figure (text
         included, layout unchanged) so its full height fits the window; wide
-        figures scroll sideways. A checkbox above the figure turns it off."""
+        figures scroll sideways. A checkbox above the figure turns it off.
+        fit_width (with fit_height): scale so the whole figure fits both the
+        window's height and width (nothing scrolls)."""
         super().__init__(parent)
         self._keep_size = keep_size
         self._fit_height = fit_height
+        self._fit_width = fit_width
         self._mpl = None   # (fig, canvas, scroll, size_in, base_dpi) when fitting
         self._fig = None
         self._pixmap: QPixmap | None = None
@@ -88,10 +91,10 @@ class FigureView(QWidget):
             scroll.setWidget(canvas)
             scroll.setStyleSheet("background: white;")
             if self._fit_height:
-                fit = QCheckBox("Fit height to window")
+                fit = QCheckBox("Fit to window" if self._fit_width else "Fit height to window")
                 fit.setChecked(True)
-                fit.setToolTip("Scale the figure so the whole probe and legend are "
-                               "visible. Off = actual size (scroll).")
+                fit.setToolTip("Scale the whole figure (text included) to the window. "
+                               "Off = actual size (scroll).")
                 fit.toggled.connect(lambda _on: self._fit_mpl())
                 lay.addWidget(fit)
                 self._mpl = (fig, canvas, scroll, size_in, fig.dpi, fit)
@@ -126,6 +129,10 @@ class FigureView(QWidget):
                 -scroll.horizontalScrollBar().sizeHint().height()) - 4
             if avail > 50:
                 dpi = avail * ratio / size_in[1]
+            if self._fit_width:
+                avail_w = scroll.viewport().width() - 4
+                if avail_w > 50:
+                    dpi = min(dpi, avail_w * ratio / size_in[0])
         self._pin_canvas(fig, canvas, size_in, dpi)
 
     def _build_plotly_view(self, fig):

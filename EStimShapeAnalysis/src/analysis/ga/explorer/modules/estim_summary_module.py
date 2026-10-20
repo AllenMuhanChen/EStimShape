@@ -1,9 +1,10 @@
 """
-EStim results summary for this session. Plots ("Plot" setting):
-  - histogram: every EStim condition's effect size, with the max EStim effect
-    written on the figure.
-  - fitness scatter: one dot per condition, its effect size (y)
-    against the fitness of its EStim parameters (x).
+EStim results summary for this session. Every plot is drawn side by side in
+one figure; tick "Show ..." to choose which are on screen.
+  - Effect histogram: every EStim condition's effect size, with the max EStim
+    effect written on the figure.
+  - Effect vs parameter fitness: one dot per condition, its effect size (y)
+    against the EStim parameter fitness of its spec (x).
 
 Data and statistics come from max_estim_per_experiment (read-only):
   - Conditions: EStimPermutationTests rows for this session, metric and
@@ -20,17 +21,20 @@ Data and statistics come from max_estim_per_experiment (read-only):
     effect, i.e. each bin's count averaged over the permutations
     (the same null the exceedance-count test uses).
 
-Parameter fitness (per estim spec, so conditions sharing a spec share an x):
-  current_per_second / correlation half-distance  ((µA·Hz) / µm)
+EStim parameter fitness, as avg_estim_per_experiment's 'closest' rule:
+  fitness = |ratio - center|, smaller = fitter
+  ratio   = current_per_second / correlation half-distance  ((µA·Hz) / µm), per spec
+  center  = ESTIM_DISTANCE_CENTERS[condition's trial type]
+            (Hypothesized Shape 4.0, Delta Shape 0.0)
   - current_per_second = a1 × active channels × pulse rate (estim_hyperparameters)
   - half-distance: distance from the estim channels at which the channel
     correlation falls halfway from its near-field level to its far-field
     baseline (plot_current_spread_vs_tuning.compute_session_half_distance),
     with Spearman or Pearson correlations ("Correlation").
-  Both come from estim_condition_table._fetch_spread, the same numbers as the
-  'ratio' column of estim_condition_explorer_gui. Conditions whose spec has no
-  current or no half-distance are left out of the scatter (count in the status
-  bar, with the Spearman correlation of effect vs fitness).
+  The ratio comes from estim_condition_table._fetch_spread (same numbers as
+  avg_estim_per_experiment.get_spec_ratios). Conditions whose trial type has
+  no center, or whose spec has no ratio, are left out of the scatter (count
+  in the status bar, with the Spearman correlation of effect vs fitness).
 
 Nothing is written to any database.
 """
@@ -43,17 +47,16 @@ import pandas as pd
 from src.analysis.ga.explorer.explorer_module import FigureModule, Param
 
 METRICS = ["pct_hyp_vs_delta", "pct_hypothesized"]
-PLOT_HISTOGRAM = "histogram"
-PLOT_FITNESS = "fitness scatter"
-PLOTS = [PLOT_HISTOGRAM, PLOT_FITNESS]
 CORR_METHODS = ["spearman", "pearson"]
-FITNESS_LABEL = "Parameter fitness\n(current per second ÷ half-distance, µA·Hz/µm)"
+FITNESS_LABEL = ("EStim parameter fitness  |ratio − center|\n"
+                 "(ratio = current per second ÷ half-distance, µA·Hz/µm)")
+PANEL_SIZE = (6.0, 4.6)  # inches per plot
 
 
 def condition_effects(session_id, algorithm_label, metric, min_trials, studentize):
-    """(effects, null_matrix, spec_ids) for the session's qualifying
-    conditions, in % or z units. null_matrix is (conditions, permutations) in
-    the same units; spec_ids[i] is condition i's estim_spec_id (or None)."""
+    """(effects, null_matrix, conds) for the session's qualifying conditions,
+    in % or z units. null_matrix is (conditions, permutations) in the same
+    units; conds[i] is condition i's condition dict (estim_spec_id, trial_type, ...)."""
     from src.analysis.nafc.group_analysis.max_estim_per_experiment import \
         _load_qualifying_conditions
     entries = _load_qualifying_conditions(session_id, algorithm_label, metric,
@@ -61,7 +64,7 @@ def condition_effects(session_id, algorithm_label, metric, min_trials, studentiz
     if not entries:
         return np.array([]), None, []
     n_perms = min(len(e["null"]) for e in entries)
-    effects, nulls, spec_ids = [], [], []
+    effects, nulls, conds = [], [], []
     for e in entries:
         null = np.asarray(e["null"][:n_perms], dtype=float)
         if studentize:
@@ -73,14 +76,13 @@ def condition_effects(session_id, algorithm_label, metric, min_trials, studentiz
         else:
             effects.append(float(e["obs_effect"]))
             nulls.append(null)
-        spec = (e.get("cond_dict") or {}).get("estim_spec_id")
-        spec_ids.append(int(spec) if spec is not None else None)
+        conds.append(e.get("cond_dict") or {})
     if not effects:
         return np.array([]), None, []
-    return np.asarray(effects), np.stack(nulls), spec_ids
+    return np.asarray(effects), np.stack(nulls), conds
 
 
-def spec_fitness(session, corr_method):
+def spec_ratios(session, corr_method):
     """{estim_spec_id: current_per_second / half-distance, or None}, cached
     per session (the half-distance needs the session's channel responses)."""
     def load():
@@ -89,7 +91,18 @@ def spec_fitness(session, corr_method):
         return {int(r.estim_spec_id): (None if r.ratio is None or pd.isna(r.ratio)
                                        else float(r.ratio))
                 for r in spread.itertuples(index=False)}
-    return session.get_or_load(("estim_spec_fitness", corr_method), load)
+    return session.get_or_load(("estim_spec_ratio", corr_method), load)
+
+
+def condition_fitness(cond, ratios, centers):
+    """|ratio - center| for one condition, or None (trial type without a
+    center, no spec, or no ratio for its spec)."""
+    center = centers.get(cond.get("trial_type"))
+    spec = cond.get("estim_spec_id")
+    if center is None or spec is None or (isinstance(spec, float) and np.isnan(spec)):
+        return None
+    ratio = ratios.get(int(spec))
+    return None if ratio is None else abs(ratio - center)
 
 
 def _fmt_p(p):
@@ -101,15 +114,13 @@ def _fmt_p(p):
 class EStimSummaryModule(FigureModule):
     name = "EStim results summary"
     description = ("EStim conditions of this session: histogram of effect sizes with "
-                   "the max EStim effect, or effect vs parameter fitness (current "
-                   "per second ÷ correlation half-distance).")
+                   "the max EStim effect, and effect vs EStim parameter fitness "
+                   "(|current per second ÷ half-distance − center|). Tick which to show.")
 
     def params(self):
         return [
-            Param("plot", "Plot", "choice", PLOT_HISTOGRAM, choices=PLOTS,
-                  tooltip="histogram: all effect sizes. fitness scatter: "
-                          "each condition's effect against current per second ÷ "
-                          "correlation half-distance of its EStim parameters."),
+            Param("show_histogram", "Show effect histogram", "bool", True, live=True),
+            Param("show_fitness", "Show effect vs fitness", "bool", True, live=True),
             Param("metric", "Metric", "choice", "pct_hyp_vs_delta", choices=METRICS,
                   tooltip="EStimPermutationTests metric."),
             Param("algorithm_label", "Cutoff algorithm", "str", "none",
@@ -118,7 +129,7 @@ class EStimSummaryModule(FigureModule):
                   tooltip="Conditions need at least this many EStim ON and OFF trials."),
             Param("studentize", "Studentize (z units)", "bool", True,
                   tooltip="Standardize each condition's effect by its own permutation null."),
-            Param("bins", "Bins", "int", 20, minimum=3, maximum=200),
+            Param("bins", "Histogram bins", "int", 20, minimum=3, maximum=200),
             Param("show_null", "Show chance outline", "bool", True,
                   tooltip="Histogram: expected count per bin with no EStim effect "
                           "(permutation null)."),
@@ -129,63 +140,94 @@ class EStimSummaryModule(FigureModule):
         ]
 
     def make_figure(self, session, values):
+        from matplotlib.figure import Figure
+
+        panels = [name for name, key in (("histogram", "show_histogram"),
+                                         ("fitness", "show_fitness"))
+                  if values.get(key, True)]
+        if not panels:
+            self.status("Tick a plot to show.")
+            return None
         studentize = values["studentize"]
         label = values["algorithm_label"].strip() or "none"
-        effects, null_matrix, spec_ids = condition_effects(
+        effects, null_matrix, conds = condition_effects(
             session.session_id, label, values["metric"], values["min_trials"], studentize)
         if effects.size == 0:
             self.status(f"No EStim conditions for {session.session_id} with metric "
                         f"{values['metric']}, cutoff '{label}' and at least "
                         f"{values['min_trials']} trials per group.")
             return None
-        if values.get("plot", PLOT_HISTOGRAM) == PLOT_FITNESS:
-            return self._fitness_figure(session, values, effects, spec_ids)
-        return self._histogram_figure(session, values, effects, null_matrix, label)
+
+        w, h = PANEL_SIZE
+        fig = Figure(figsize=(w * len(panels), h))
+        axes = fig.subplots(1, len(panels), squeeze=False)[0]
+        notes = []
+        for ax, panel in zip(axes, panels):
+            if panel == "histogram":
+                notes.append(self._draw_histogram(ax, session, values, effects,
+                                                  null_matrix, label))
+            else:
+                notes.append(self._draw_fitness(ax, session, values, effects, conds))
+        fig.tight_layout()
+        self.status("  |  ".join(n for n in notes if n))
+        return fig
+
+    def create_view(self, parent):
+        # Whole figure scaled to the window (all plots visible, layout kept).
+        from src.analysis.ga.explorer.figure_view import FigureView
+        self._view = FigureView(parent, keep_size=True, fit_height=True, fit_width=True)
+        return self._view
 
     @staticmethod
     def _effect_label(studentize):
         return ("EStim effect (z, studentized)" if studentize
                 else "EStim effect (% points, ON − OFF)")
 
-    def _fitness_figure(self, session, values, effects, spec_ids):
-        from matplotlib.figure import Figure
-        from scipy.stats import spearmanr
-
-        fitness = spec_fitness(session, values["corr_method"])
-        x = np.array([np.nan if s is None or fitness.get(s) is None else fitness[s]
-                      for s in spec_ids], dtype=float)
-        keep = np.isfinite(x)
-        n_missing = int((~keep).sum())
-        if not keep.any():
-            self.status(f"No parameter fitness for any of {effects.size} conditions in "
-                        f"{session.session_id} (needs current per second and a "
-                        "correlation half-distance per estim spec).")
-            return None
-        x, y = x[keep], effects[keep]
-
-        fig = Figure(figsize=(9, 6))
-        ax = fig.add_subplot(111)
-        ax.axhline(0, color="black", linewidth=1, zorder=1)
-        ax.scatter(x, y, color="black", s=60, alpha=0.8, zorder=3)
-        ax.set_xlabel(FITNESS_LABEL, fontsize=15)
-        ax.set_ylabel(self._effect_label(values["studentize"]), fontsize=15)
-        ax.set_title("EStim effect vs parameter fitness", fontsize=16)
+    @staticmethod
+    def _style(ax, title):
+        ax.set_title(title, fontsize=16)
         ax.tick_params(labelsize=13)
         for side in ("top", "right"):
             ax.spines[side].set_visible(False)
-        fig.tight_layout()
+
+    def _draw_fitness(self, ax, session, values, effects, conds):
+        from scipy.stats import spearmanr
+        from src.analysis.nafc.group_analysis.avg_estim_per_experiment import \
+            ESTIM_DISTANCE_CENTERS
+
+        self._style(ax, "EStim effect vs parameter fitness")
+        ax.set_xlabel(FITNESS_LABEL, fontsize=15)
+        ax.set_ylabel(self._effect_label(values["studentize"]), fontsize=15)
+        try:
+            ratios = spec_ratios(session, values["corr_method"])
+        except Exception as exc:
+            # Keep the other plots; say loudly why this one is empty.
+            msg = f"Fitness failed: {type(exc).__name__}: {exc}"
+            ax.text(0.5, 0.5, msg, ha="center", va="center", transform=ax.transAxes,
+                    fontsize=12, color="#c0392b", wrap=True)
+            return msg
+        x = np.array([np.nan if (f := condition_fitness(c, ratios, ESTIM_DISTANCE_CENTERS))
+                      is None else f for c in conds], dtype=float)
+        keep = np.isfinite(x)
+        n_missing = int((~keep).sum())
+        if not keep.any():
+            ax.text(0.5, 0.5, "No parameter fitness for these conditions", ha="center",
+                    va="center", transform=ax.transAxes, fontsize=14, color="gray")
+            return (f"fitness: none of {effects.size} conditions has a trial type with a "
+                    "center and a current / half-distance ratio")
+        x, y = x[keep], effects[keep]
+        ax.axhline(0, color="black", linewidth=1, zorder=1)
+        ax.scatter(x, y, color="black", s=60, alpha=0.8, zorder=3)
 
         stats = ""
         if len(x) >= 3 and np.ptp(x) > 0:
             rho, p = spearmanr(x, y)
             stats = f", Spearman ρ = {rho:+.2f} ({_fmt_p(p)})"
-        self.status(f"{len(x)} conditions{stats}"
-                    + (f"  |  {n_missing} without a fitness value left out" if n_missing else "")
-                    + f"  |  half-distance from {values['corr_method']} correlations")
-        return fig
+        return (f"fitness: {len(x)} conditions{stats}"
+                + (f", {n_missing} without a fitness left out" if n_missing else "")
+                + f", half-distance from {values['corr_method']}")
 
-    def _histogram_figure(self, session, values, effects, null_matrix, label):
-        from matplotlib.figure import Figure
+    def _draw_histogram(self, ax, session, values, effects, null_matrix, label):
         from src.analysis.nafc.group_analysis.max_estim_per_experiment import \
             _build_max_stat_for_session
 
@@ -195,7 +237,6 @@ class EStimSummaryModule(FigureModule):
                                            studentize=studentize)
 
         unit = "z" if studentize else "%"
-        xlabel = self._effect_label(studentize)
         lo = min(effects.min(), 0.0)
         hi = max(effects.max(), 0.0)
         if null_matrix is not None and values["show_null"]:
@@ -203,8 +244,6 @@ class EStimSummaryModule(FigureModule):
             hi = max(hi, float(np.percentile(null_matrix, 99.5)))
         edges = np.linspace(lo, hi, values["bins"] + 1)
 
-        fig = Figure(figsize=(9, 6))
-        ax = fig.add_subplot(111)
         ax.hist(effects, bins=edges, color="#c0392b", edgecolor="white", linewidth=0.8,
                 label="Conditions")
         if null_matrix is not None and values["show_null"]:
@@ -213,7 +252,7 @@ class EStimSummaryModule(FigureModule):
                                  for k in range(null_matrix.shape[1])])
             expected = per_perm.mean(axis=0)
             ax.stairs(expected, edges, color="#555555", linewidth=2, label="Chance")
-            ax.legend(fontsize=13, frameon=False, loc="upper left")
+            ax.legend(fontsize=12, frameon=False, loc="upper left")
         ax.axvline(0, color="black", linewidth=1)
 
         if best is not None:
@@ -225,17 +264,14 @@ class EStimSummaryModule(FigureModule):
             else:
                 text = f"Max EStim effect: {top:+.1f}%\nmax-stat {_fmt_p(best['p_value'])}"
             ax.text(0.98, 0.97, text, transform=ax.transAxes, ha="right", va="top",
-                    fontsize=14, bbox=dict(boxstyle="round,pad=0.4", facecolor="white",
+                    fontsize=13, bbox=dict(boxstyle="round,pad=0.4", facecolor="white",
                                            edgecolor="#cccccc"))
 
-        ax.set_xlabel(xlabel, fontsize=15)
+        # Headroom above the bars for the legend and the max-effect box.
+        ax.set_ylim(0, ax.get_ylim()[1] * 1.35)
+        ax.set_xlabel(self._effect_label(studentize), fontsize=15)
         ax.set_ylabel("Conditions", fontsize=15)
-        ax.set_title("EStim effects", fontsize=16)
-        ax.tick_params(labelsize=13)
+        self._style(ax, "EStim effects")
         ax.yaxis.get_major_locator().set_params(integer=True)
-        for side in ("top", "right"):
-            ax.spines[side].set_visible(False)
-        fig.tight_layout()
-        self.status(f"{effects.size} conditions, metric {values['metric']}, cutoff '{label}', "
-                    f"max {effects.max():.2f}{unit}")
-        return fig
+        return (f"{effects.size} conditions, metric {values['metric']}, cutoff '{label}', "
+                f"max {effects.max():.2f}{unit}")
