@@ -486,6 +486,9 @@ def _condition_arrays(rows, studentize=False, merge_behavioral=False):
                       sqrt(p(1-p)(1/n_on + 1/n_off)), p = pooled choice rate — a
                       two-proportion z-score). Units with a zero chance SD (all
                       choices identical) have no z-score and are dropped.
+
+    'keys' lists (session_id, cond_dict) per returned effect; with merge_behavioral
+    the cond_dict is the unit's first condition (same trial type and spec).
     """
     units = [(d['session_id'], c) for d in rows for c in d['conditions']]
     n_on  = np.array([c['n_on']  for _, c in units], dtype=float)
@@ -495,6 +498,7 @@ def _condition_arrays(rows, studentize=False, merge_behavioral=False):
     p_pool  = (np.array([c['on_yes'] + c['off_yes'] for _, c in units])) / (n_on + n_off)
     null_var = 1e4 * p_pool * (1 - p_pool) * (1 / n_on + 1 / n_off)
     weights = n_on + n_off
+    keys = [(sid, c['cond_dict']) for sid, c in units]
 
     if merge_behavioral:
         groups = {}
@@ -505,10 +509,12 @@ def _condition_arrays(rows, studentize=False, merge_behavioral=False):
         effects  = np.array([np.dot(weights[g], effects[g]) for g in idx]) / W
         null_var = np.array([np.dot(weights[g] ** 2, null_var[g]) for g in idx]) / W ** 2
         weights  = W
+        keys     = [keys[g[0]] for g in idx]
 
     noun = _unit_noun(merge_behavioral)
     if not studentize:
-        return {'effects': effects, 'weights': weights, 'unit': '%', 'noun': noun}
+        return {'effects': effects, 'weights': weights, 'unit': '%', 'noun': noun,
+                'keys': keys}
 
     null_sd = np.sqrt(null_var)
     ok = null_sd > 0
@@ -516,7 +522,7 @@ def _condition_arrays(rows, studentize=False, merge_behavioral=False):
         print(f"  studentize: dropping {int((~ok).sum())} {noun} with zero chance SD "
               f"(all choices identical)")
     return {'effects': effects[ok] / null_sd[ok], 'weights': weights[ok], 'unit': 'z',
-            'noun': noun}
+            'noun': noun, 'keys': [k for k, keep in zip(keys, ok) if keep]}
 
 
 def _resolve_bin_width(bin_width, studentize):
