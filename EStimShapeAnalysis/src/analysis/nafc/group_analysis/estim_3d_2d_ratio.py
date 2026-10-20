@@ -48,7 +48,8 @@ from clat.util.connection import Connection
 
 from src.analysis.channel_data_loaders import ClusterChannelLoader, SolidPreferenceLoader
 from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYP_VS_DELTA
-from src.analysis.nafc.group_analysis.max_estim_per_experiment import _build_max_stat_for_session
+from src.analysis.nafc.group_analysis.max_estim_per_experiment import (
+    _build_max_stat_for_session, _expand_condition)
 from src.pga.stim_types import THREE_D_TEXTURES
 from src.startup.startup_system import ExperimentManager
 
@@ -175,8 +176,17 @@ def estim_effect_summary(session_id: str) -> dict:
         session_id, algorithm_label=ESTIM_EFFECT_ALGORITHM_LABEL, metric=ESTIM_EFFECT_METRIC,
         min_trials=ESTIM_EFFECT_MIN_TRIALS, studentize=True)
     if result is None:
-        return {"estim_effect": float("nan"), "estim_effect_p": float("nan")}
-    return {"estim_effect": result["observed_raw"], "estim_effect_p": result["p_value"]}
+        return {"estim_effect": float("nan"), "estim_effect_p": float("nan"), "best_condition": {}}
+    return {"estim_effect": result["observed_raw"], "estim_effect_p": result["p_value"],
+            "best_condition": expand_condition(session_id, result["best_cond_dict"])}
+
+
+def expand_condition(session_id: str, cond_dict: dict) -> dict:
+    """A condition's parameters, with estim_spec_id unfurled into its EStimParameters."""
+    try:
+        return _expand_condition(session_id, cond_dict)
+    except Exception:
+        return dict(cond_dict)
 
 
 def compute_ratio_table(exclude_session_ids=None, start_session_id=None) -> pd.DataFrame:
@@ -216,7 +226,7 @@ def compute_ratio_table(exclude_session_ids=None, start_session_id=None) -> pd.D
         except Exception:
             print(f"[3d/2d] could not load estim effect for session {sid}:")
             traceback.print_exc()
-            counts.update(estim_effect=float("nan"), estim_effect_p=float("nan"))
+            counts.update(estim_effect=float("nan"), estim_effect_p=float("nan"), best_condition={})
         rows.append({"session_id": sid, **counts})
 
     return pd.DataFrame(rows)
@@ -273,38 +283,86 @@ def plot_spi_histogram(table: pd.DataFrame):
     return fig
 
 
-def plot_spi_vs_estim_effect(table: pd.DataFrame, show_stats: bool = False):
-    """Scatter of mean GA-channel SPI vs best-condition estim effect, one point per session,
-    colored by the session's SPI significance (same colors as the histogram)."""
-    data = table.dropna(subset=["mean_spi", "estim_effect"])
+def id_colors(n: int) -> list:
+    """One distinct color per ID: tab20 up to 20 points, a continuous map beyond that."""
+    cmap = plt.get_cmap("tab20" if n <= 20 else "turbo")
+    return [cmap(i if n <= 20 else i / max(n - 1, 1)) for i in range(n)]
 
-    fig, ax = plt.subplots(figsize=(8.5, 4.5))
+
+def plot_spi_vs_estim_effect(table: pd.DataFrame, show_stats: bool = False,
+                             color_by: str = "significance"):
+    """Scatter of mean GA-channel SPI vs best-condition estim effect, one point per session.
+
+    color_by="significance": colored by the session's SPI significance (same colors as the
+    histogram). color_by="id": each point gets an ID 1..n (in session order) and its own
+    color, and a table beside the plot lists each ID's session and best condition."""
+    data = table.dropna(subset=["mean_spi", "estim_effect"]).sort_values("session_id")
+
+    if color_by == "id":
+        fig, (ax, ax_table) = plt.subplots(
+            1, 2, figsize=(15, max(4.5, 0.3 * len(data) + 1.5)),
+            gridspec_kw={"width_ratios": [1, 1.4]})
+    else:
+        fig, ax = plt.subplots(figsize=(8.5, 4.5))
     ax.axvline(0, color="#888888", linewidth=1, linestyle="--", zorder=0)
     ax.axhline(0, color="#888888", linewidth=1, linestyle="--", zorder=0)
-    for g in SPI_SIG_ORDER:
-        group = data[data["spi_sig"] == g]
-        if group.empty:
-            continue
-        ax.scatter(group["mean_spi"], group["estim_effect"], s=64, color=SPI_SIG_COLORS[g],
-                   edgecolor="white", linewidth=1.5, label=SPI_SIG_LABELS[g], zorder=3)
+
+    if color_by == "id":
+        colors = id_colors(len(data))
+        ax.scatter(data["mean_spi"], data["estim_effect"], s=64, c=colors,
+                   edgecolor="white", linewidth=1.5, zorder=3)
+        _draw_condition_table(ax_table, data, colors)
+    else:
+        for g in SPI_SIG_ORDER:
+            group = data[data["spi_sig"] == g]
+            if group.empty:
+                continue
+            ax.scatter(group["mean_spi"], group["estim_effect"], s=64, color=SPI_SIG_COLORS[g],
+                       edgecolor="white", linewidth=1.5, label=SPI_SIG_LABELS[g], zorder=3)
+        ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0, frameon=False,
+                  title=f"Combined GA channels, p < {SIGNIFICANCE_ALPHA}")
 
     if len(data) >= 3:
         rho, p = spearmanr(data["mean_spi"], data["estim_effect"])
         print(f"SPI vs estim effect: Spearman rho = {rho:.2f}, p = {p:.3g} (n = {len(data)})")
     if show_stats and len(data) >= 3:
-        ax.text(0.02, 0.97, f"Spearman ρ = {rho:.2f}, p = {p:.3g}", transform=ax.transAxes,
+        ax.text(0.02, 0.97, f"Spearman \u03c1 = {rho:.2f}, p = {p:.3g}", transform=ax.transAxes,
                 va="top", ha="left", fontsize=9, color="#444444")
 
-    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), borderaxespad=0, frameon=False,
-              title=f"Combined GA channels, p < {SIGNIFICANCE_ALPHA}")
     ax.set_xlim(-1, 1)
-    ax.set_xlabel("Mean solid preference index over GA channels  (2D ← → 3D)")
+    ax.set_xlabel("Mean solid preference index over GA channels  (2D \u2190 \u2192 3D)")
     ax.set_ylabel("EStim effect, best condition (% points)")
     ax.set_title("Solid preference index vs EStim effect")
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     fig.tight_layout()
     return fig
+
+
+def _draw_condition_table(ax, data: pd.DataFrame, colors: list):
+    """ID | session | one column per condition parameter, with each ID cell filled in its
+    point's color."""
+    ax.axis("off")
+    conditions = list(data["best_condition"])
+    if not conditions:
+        return
+    params = []
+    for cond in conditions:
+        params += [k for k in cond if k not in params]
+    rows = [[str(i), sid] + ["" if cond.get(k) is None else str(cond.get(k)) for k in params]
+            for i, (sid, cond) in enumerate(zip(data["session_id"], conditions), start=1)]
+    table = ax.table(cellText=rows, colLabels=["ID", "Session"] + params,
+                     cellLoc="center", loc="upper center")
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    table.auto_set_column_width(list(range(len(params) + 2)))
+    for (r, c), cell in table.get_celld().items():
+        cell.set_edgecolor("#dddddd")
+        if r == 0:
+            cell.set_text_props(weight="bold")
+        elif c == 0:
+            cell.set_facecolor(colors[r - 1])
+    ax.set_title("Best condition per session")
 
 
 def save_figure(fig, name: str):
@@ -317,6 +375,7 @@ def save_figure(fig, name: str):
 def main():
     SHOW_PLOTS = True
     SHOW_STATS_ON_PLOT = False  # Spearman rho/p on the scatter; always printed to console
+    SCATTER_COLOR_BY = "significance"  # or "id": IDs 1..n with a condition table beside the plot
     # Same session selection as max_estim_per_experiment.main().
     exclude_session_ids = ["260421_0", "260410_0"]
     start_session_id = "260402_0"  # first variant experiment; None = no lower bound
@@ -333,11 +392,13 @@ def main():
     total["mean_spi"] = table["mean_spi"].mean()
     total["n_spi_channels"] = int(table["n_spi_channels"].sum())
     total.update(spi_z=float("nan"), spi_p=float("nan"), spi_sig="",
-                 estim_effect=table["estim_effect"].mean(), estim_effect_p=float("nan"))
+                 estim_effect=table["estim_effect"].mean(), estim_effect_p=float("nan"),
+                 best_condition={})
     printed = pd.concat([table, pd.DataFrame([{"session_id": "ALL", **total}])], ignore_index=True)
 
     with pd.option_context("display.max_rows", None, "display.width", 200):
-        print(printed.to_string(index=False, float_format=lambda x: f"{x:.2f}"))
+        print(printed.drop(columns=["best_condition"])
+              .to_string(index=False, float_format=lambda x: f"{x:.2f}"))
     print()
     print(table["category"].value_counts().to_string())
     print()
@@ -345,7 +406,8 @@ def main():
 
     save_figure(plot_category_pie(table), "estim_3d_2d_category_pie.png")
     save_figure(plot_spi_histogram(table), "estim_session_spi_histogram.png")
-    save_figure(plot_spi_vs_estim_effect(table, show_stats=SHOW_STATS_ON_PLOT), "estim_session_spi_vs_estim_effect.png")
+    save_figure(plot_spi_vs_estim_effect(table, show_stats=SHOW_STATS_ON_PLOT,
+                                         color_by=SCATTER_COLOR_BY), "estim_session_spi_vs_estim_effect.png")
     if SHOW_PLOTS:
         plt.show()
 
