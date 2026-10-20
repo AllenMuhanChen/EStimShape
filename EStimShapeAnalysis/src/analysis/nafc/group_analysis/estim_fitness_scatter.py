@@ -214,14 +214,14 @@ def main():
     exclude_session_ids = ["260421_0", "260410_0"]
     start_session_id = "260402_0"
     algorithm_label = 'None'
-    trial_types = None                    # None = all, e.g. ['Hypothesized Shape', 'Delta Shape']
+    trial_types = ['Delta Shape']                    # None = all, e.g. ['Hypothesized Shape', 'Delta Shape']
     exclude_ratio_ranges = [(8, None)]    # drop ratio >= 8; None = keep all
     merge_behavioral = True               # one dot per (session, trial type, spec)
-    studentize = False                    # True -> effect in z (two-proportion z-score)
+    studentize = False                  # True -> effect in z (two-proportion z-score)
     min_trials = 5
 
     # --- This plot ---
-    corr_method = "spearman"  # half-distance from "spearman" or "pearson" channel correlations
+    corr_method = "pearson"  # half-distance from "spearman" or "pearson" channel correlations
     color_by = "trial type"   # "trial type" or "none" (all dots one color)
     fit_line = True           # least-squares line + stats box beside the plot
     show_plots = True
