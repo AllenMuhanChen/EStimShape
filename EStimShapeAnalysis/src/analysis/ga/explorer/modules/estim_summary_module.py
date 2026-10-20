@@ -307,10 +307,12 @@ class EStimSummaryModule(FigureModule):
             fitness_group.append(box_ax)   # the fit stats travel with their plot
         if id_table:
             table_ax = fig.add_subplot(grid[1, :])
-            self._draw_id_table(table_ax, fitness)
+            table = self._draw_id_table(table_ax, fitness)
             groups.append([table_ax])
         fig.explorer_panel_groups = groups
         fig.tight_layout()
+        if id_table:
+            self._widen_to_table(fig, table)
         hidden = [tt for tt in TRIAL_TYPES + [OTHER_TRIAL_TYPE] if tt not in shown]
         if hidden:
             notes.append("hidden: " + ", ".join(hidden))
@@ -478,6 +480,17 @@ class EStimSummaryModule(FigureModule):
             elif c == 0:
                 cell.set_facecolor(t["colors"][r - 1])
         ax.set_title("Conditions", fontsize=16)
+        return table
+
+    @staticmethod
+    def _widen_to_table(fig, table, margin_in=0.4):
+        """Column widths follow the text, so a table with long entries can be
+        wider than the figure and get clipped at both ends: measure it and widen
+        the figure to fit (the plots above stretch with it)."""
+        needed = table.get_window_extent().width / fig.dpi + margin_in
+        if needed > fig.get_figwidth():
+            fig.set_figwidth(needed)
+            fig.tight_layout()
 
     def _draw_histogram(self, ax, values, effects, null_matrix, raws, label):
         studentize = values["studentize"]
