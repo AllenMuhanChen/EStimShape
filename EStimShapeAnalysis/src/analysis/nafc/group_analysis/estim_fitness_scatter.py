@@ -44,7 +44,7 @@ from src.analysis.nafc.group_analysis.avg_estim_per_experiment import (
 
 FITNESS_LABEL = "EStim parameter fitness"
 TRIAL_TYPE_COLORS = {"Hypothesized Shape": "#c0392b", "Delta Shape": "#2c7fb8"}
-SINGLE_COLOR = "#555555"   # color_by='none'
+SINGLE_COLOR = "#2c7fb8"   # color_by='none'
 COLOR_BY = ("trial type", "none")
 
 

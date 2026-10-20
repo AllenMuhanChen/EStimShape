@@ -61,7 +61,7 @@ TRIAL_TYPES = ["Hypothesized Shape", "Delta Shape", "Removed Trial", "Coherence"
 OTHER_TRIAL_TYPE = "Other"
 STATS_BOX_WIDTH = 1.9  # inches, linear-fit stats box right of the fitness plot
 COLOR_BY = ["trial type", "ID", "none"]
-SINGLE_COLOR = "#555555"  # color_by "none"
+SINGLE_COLOR = "#2c7fb8"  # color_by "none"
 TABLE_FONTSIZE = 11
 
 
