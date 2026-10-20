@@ -123,8 +123,7 @@ class EStimSummaryModule(FigureModule):
 
     def params(self):
         return [
-            Param("show_histogram", "Show effect histogram", "bool", True, live=True),
-            Param("show_fitness", "Show effect vs fitness", "bool", True, live=True),
+            Param("sec_all", "All plots", "header", None),
             Param("metric", "Metric", "choice", "pct_hyp_vs_delta", choices=METRICS,
                   tooltip="EStimPermutationTests metric."),
             Param("algorithm_label", "Cutoff algorithm", "str", "none",
@@ -133,14 +132,22 @@ class EStimSummaryModule(FigureModule):
                   tooltip="Conditions need at least this many EStim ON and OFF trials."),
             Param("studentize", "Studentize (z units)", "bool", True,
                   tooltip="Standardize each condition's effect by its own permutation null."),
-            Param("bins", "Histogram bins", "int", 20, minimum=3, maximum=200),
-            Param("show_null", "Show chance outline", "bool", True,
-                  tooltip="Histogram: expected count per bin with no EStim effect "
-                          "(permutation null)."),
-            Param("corr_method", "Correlation (fitness)", "choice", "spearman",
+
+            Param("sec_hist", "Effect histogram", "header", None),
+            Param("show_histogram", "Show", "bool", True, live=True),
+            Param("bins", "Bins", "int", 20, minimum=3, maximum=200),
+            Param("show_null", "Chance outline", "bool", True,
+                  tooltip="Expected count per bin with no EStim effect (permutation null)."),
+
+            Param("sec_fit", "Effect vs parameter fitness", "header", None),
+            Param("show_fitness", "Show", "bool", True, live=True),
+            Param("corr_method", "Half-distance correlation", "choice", "spearman",
                   choices=CORR_METHODS,
                   tooltip="Channel correlation used for the half-distance in the "
                           "parameter fitness."),
+            Param("fit_line", "Regression line", "bool", True, live=True,
+                  tooltip="Least-squares line of effect on fitness, over all dots "
+                          "(slope, r² and p in the status bar)."),
         ]
 
     def make_figure(self, session, values):
@@ -195,7 +202,7 @@ class EStimSummaryModule(FigureModule):
             ax.spines[side].set_visible(False)
 
     def _draw_fitness(self, ax, session, values, effects, conds):
-        from scipy.stats import spearmanr
+        from scipy.stats import linregress, spearmanr
         from src.analysis.nafc.group_analysis.avg_estim_per_experiment import \
             ESTIM_DISTANCE_CENTERS
 
@@ -229,13 +236,20 @@ class EStimSummaryModule(FigureModule):
             on = types == tt
             ax.scatter(x[on], y[on], color=TRIAL_TYPE_COLORS.get(tt) or next(fallback),
                        s=60, alpha=0.8, zorder=3, label=tt)
-        ax.legend(fontsize=12, frameon=False, loc="best")
-        ax.set_xlim(0, 1.03)  # fitness is in (0, 1]
 
         stats = ""
         if len(x) >= 3 and np.ptp(x) > 0:
             rho, p = spearmanr(x, y)
             stats = f", Spearman ρ = {rho:+.2f} ({_fmt_p(p)})"
+            if values.get("fit_line", True):
+                fit = linregress(x, y)
+                xs = np.linspace(0, 1.03, 100)
+                ax.plot(xs, fit.slope * xs + fit.intercept, color="black", linewidth=1.8,
+                        zorder=2, label="Linear fit")
+                stats += (f", fit slope {fit.slope:+.2f}, r² = {fit.rvalue ** 2:.2f} "
+                          f"({_fmt_p(fit.pvalue)})")
+        ax.legend(fontsize=12, frameon=False, loc="best")
+        ax.set_xlim(0, 1.03)  # fitness is in (0, 1]
         return (f"fitness: {len(x)} conditions{stats}"
                 + (f", {n_missing} without a fitness left out" if n_missing else "")
                 + f", half-distance from {values['corr_method']}")
