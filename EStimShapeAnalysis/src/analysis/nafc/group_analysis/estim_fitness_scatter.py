@@ -163,7 +163,49 @@ def plot_fitness_scatter(points, studentize=False, merge_behavioral=False,
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     fig.tight_layout()
+    if wrap_ylabel(fig, ax):
+        fig.tight_layout()
     return fig, fit
+
+
+def wrap_ylabel(fig, ax, max_lines=4):
+    """Break a y title that runs past the top or bottom of the figure onto more lines
+    (at spaces, font size kept). Returns whether it changed."""
+    label = ax.yaxis.label
+    words = []
+    for w in label.get_text().split():
+        # keep a lone symbol (%, −, /) with the word after it, e.g. "% OFF"
+        if words and not any(ch.isalnum() for ch in words[-1]):
+            words[-1] += " " + w
+        else:
+            words.append(w)
+    fig_h = fig.bbox.height
+
+    def overflows():
+        ext = label.get_window_extent()
+        return ext.y0 < 0.01 * fig_h or ext.y1 > 0.99 * fig_h
+    if not overflows():
+        return False
+    text = label.get_text()
+    if ": " in text:
+        # first choice: break after the colon ("Studentized EStim effect:" / the formula)
+        label.set_text(text.replace(": ", ":\n", 1))
+        if not overflows():
+            return True
+    n_lines = 1
+    while overflows() and n_lines < min(max_lines, len(words)):
+        n_lines += 1
+        # balanced lines: break at the spaces closest to equal character counts
+        total = len(" ".join(words))
+        lines, line = [], []
+        for w in words:
+            if line and len(" ".join(lines + [" ".join(line + [w])])) > total * (len(lines) + 1) / n_lines:
+                lines.append(" ".join(line))
+                line = []
+            line.append(w)
+        lines.append(" ".join(line))
+        label.set_text("\n".join(lines))
+    return n_lines > 1
 
 
 def main():
