@@ -48,7 +48,6 @@ All figures are shown and saved to SAVE_DIR.
 
 from __future__ import annotations
 
-import json
 import os
 import traceback
 
@@ -59,7 +58,8 @@ from matplotlib import pyplot as plt
 from clat.util.connection import Connection
 
 from src.analysis.channel_data_loaders import ClusterChannelLoader, SolidPreferenceLoader
-from src.analysis.nafc.group_analysis.analyze_estim_by_condition import METRIC_PCT_HYP_VS_DELTA
+from src.analysis.nafc.group_analysis.analyze_estim_by_condition import (
+    METRIC_PCT_HYP_VS_DELTA, _normalize_cond_key)
 from src.analysis.nafc.group_analysis.avg_estim_per_experiment import (
     build_pooled_table_for_session, fisher_exact_for_table)
 from src.analysis.nafc.group_analysis.estim_condition_sets import (
@@ -227,7 +227,8 @@ def estim_effect_summary(session_id: str, top_fitness_members: dict) -> dict:
     """Average estim effect over all qualifying conditions, and over only those in the
     top-half-fitness condition set."""
     def in_top_half(sid, cond):
-        return in_condition_set([sid], [json.dumps(cond)], top_fitness_members)[0]
+        # _normalize_cond_key: JSON that handles numpy values (same form the set is saved in)
+        return in_condition_set([sid], [_normalize_cond_key(cond)], top_fitness_members)[0]
 
     all_conds = average_effect(session_id)
     top = average_effect(session_id, in_top_half)
