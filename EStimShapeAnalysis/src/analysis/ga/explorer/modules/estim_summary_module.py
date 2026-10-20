@@ -166,6 +166,24 @@ def condition_parameters(session, cond):
     return out
 
 
+def condition_on_off(session, cond, metric, algorithm_label):
+    """(ON %, OFF %, n ON, n OFF) of one condition, with the same cutoff the stored
+    effect used (max_estim_per_experiment._get_pct_on_off); Nones if it fails.
+    Cached per session."""
+    import json
+    from src.analysis.nafc.group_analysis.max_estim_per_experiment import _get_pct_on_off
+
+    def load():
+        try:
+            return _get_pct_on_off(session.session_id, cond, metric=metric,
+                                   algorithm_label=algorithm_label)
+        except Exception as exc:
+            print(f"[estim summary] could not load ON/OFF for {cond}: {exc}")
+            return None, None, None, None
+    key = ("estim_on_off", json.dumps(cond, sort_keys=True), metric, algorithm_label)
+    return session.get_or_load(key, load)
+
+
 def condition_fitness(cond, ratios, centers):
     """1 / (1 + |ratio - center|) for one condition (1 = at the center), or
     None (trial type without a center, no spec, or no ratio for its spec)."""
@@ -223,7 +241,7 @@ class EStimSummaryModule(FigureModule):
                           "with its stats in a box right of the plot."),
             Param("color_by", "Color dots by", "choice", "trial type", choices=COLOR_BY,
                   tooltip="ID: number the dots 1..n (left to right by fitness), each its "
-                          "own color, with a table beside the plot of what each "
+                          "own color, with a table below the plots of what each "
                           "condition is."),
         ]
 
@@ -259,15 +277,19 @@ class EStimSummaryModule(FigureModule):
         id_table = (fitness is not None and "x" in fitness
                     and values.get("color_by") == "ID")
         if id_table:
-            fitness["table"] = self._id_table(session, fitness)
+            fitness["table"] = self._id_table(session, fitness, values, label)
 
         w, h = PANEL_SIZE
         ratios = [w] * len(panels) + ([STATS_BOX_WIDTH] if fit_box else [])
+        heights = [h]
+        width = sum(ratios)
         if id_table:
-            ratios.append(self._table_width(fitness["table"]))
-            h = max(h, 0.3 * (len(fitness["x"]) + 1) + 1.0)
-        fig = Figure(figsize=(sum(ratios), h))
-        grid = fig.add_gridspec(1, len(ratios), width_ratios=ratios)
+            # The conditions table gets its own row below the plots.
+            heights.append(0.34 * (len(fitness["x"]) + 1) + 0.7)  # rows at TABLE_FONTSIZE
+            width = max(width, self._table_width(fitness["table"]))
+        fig = Figure(figsize=(width, sum(heights)))
+        grid = fig.add_gridspec(len(heights), len(ratios), width_ratios=ratios,
+                                height_ratios=heights)
         notes = []
         groups = []   # right-click "Copy this panel" copies a whole group
         for i, panel in enumerate(panels):
@@ -284,7 +306,7 @@ class EStimSummaryModule(FigureModule):
             self._draw_fit_box(box_ax, fitness)
             fitness_group.append(box_ax)   # the fit stats travel with their plot
         if id_table:
-            table_ax = fig.add_subplot(grid[0, len(ratios) - 1])
+            table_ax = fig.add_subplot(grid[1, :])
             self._draw_id_table(table_ax, fitness)
             groups.append([table_ax])
         fig.explorer_panel_groups = groups
@@ -360,7 +382,7 @@ class EStimSummaryModule(FigureModule):
         x, y, types = d["x"], d["y"], d["types"]
         ax.axhline(0, color="black", linewidth=1, zorder=1)
         if "table" in d:
-            # Each dot its own color; the ID table beside the plot says which is which.
+            # Each dot its own color; the ID table below the plots says which is which.
             order = d["table"]["order"]
             ax.scatter(x[order], y[order], c=d["table"]["colors"], s=70,
                        edgecolor="white", linewidth=1, zorder=3)
@@ -399,9 +421,10 @@ class EStimSummaryModule(FigureModule):
                 bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor="#cccccc"))
 
     @staticmethod
-    def _id_table(session, d):
+    def _id_table(session, d, values, algorithm_label):
         """IDs 1..n left to right by fitness (ties by effect): dot order, colors,
-        and one table row per ID of that condition's parameters."""
+        and one table row per ID: that condition's parameters, then its trial
+        counts, EStim ON / OFF %, effect and fitness."""
         order = np.lexsort((d["y"], d["x"]))
         conds = [condition_parameters(session, d["conds"][i]) for i in order]
         columns = []
@@ -410,10 +433,25 @@ class EStimSummaryModule(FigureModule):
         if "trial_type" in columns:   # trial type first, it's what reads quickest
             columns.remove("trial_type")
             columns.insert(0, "trial_type")
-        rows = [[str(i)] + ["" if c.get(k) is None else str(c.get(k)) for k in columns]
-                for i, c in enumerate(conds, start=1)]
+        unit = "z" if values["studentize"] else "% pts"
+
+        def num(v, fmt):
+            return "" if v is None or not np.isfinite(v) else format(v, fmt)
+        rows = []
+        for n, (i, c) in enumerate(zip(order, conds), start=1):
+            pct_on, pct_off, n_on, n_off = condition_on_off(
+                session, d["conds"][i], values["metric"], algorithm_label)
+            rows.append([str(n)]
+                        + ["" if c.get(k) is None else str(c.get(k)) for k in columns]
+                        + ["" if n_on is None else str(n_on),
+                           "" if n_off is None else str(n_off),
+                           num(pct_on, ".1f"), num(pct_off, ".1f"),
+                           num(d["y"][i], "+.2f"), num(d["x"][i], ".2f")])
         return {"order": order, "colors": id_colors(len(order)),
-                "columns": ["ID"] + [k.replace("_", " ") for k in columns], "rows": rows}
+                "columns": (["ID"] + [k.replace("_", " ") for k in columns]
+                            + ["n ON", "n OFF", "ON %", "OFF %", f"effect ({unit})",
+                               "fitness"]),
+                "rows": rows}
 
     @staticmethod
     def _table_width(t):
@@ -428,7 +466,7 @@ class EStimSummaryModule(FigureModule):
         ax.axis("off")
         t = d["table"]
         table = ax.table(cellText=t["rows"], colLabels=t["columns"], cellLoc="center",
-                         loc="center")
+                         loc="upper center")
         table.auto_set_font_size(False)
         table.set_fontsize(TABLE_FONTSIZE)
         table.auto_set_column_width(list(range(len(t["columns"]))))
