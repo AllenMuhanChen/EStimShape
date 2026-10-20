@@ -55,22 +55,53 @@ PANEL_SIZE = (6.0, 4.6)  # inches per plot
 # Fitness scatter dot color per trial type (others fall back to FALLBACK_COLORS).
 TRIAL_TYPE_COLORS = {"Hypothesized Shape": "#c0392b", "Delta Shape": "#2c7fb8"}
 FALLBACK_COLORS = ["#27ae60", "#8e44ad", "#e67e22", "#555555"]
+# Trial-type filter (applies to every plot). "Other" = any other trial type, or
+# conditions without one.
+TRIAL_TYPES = ["Hypothesized Shape", "Delta Shape", "Removed Trial", "Coherence"]
+OTHER_TRIAL_TYPE = "Other"
+STATS_BOX_WIDTH = 1.9  # inches, linear-fit stats box right of the fitness plot
+
+
+def _tt_key(trial_type):
+    return "tt_" + trial_type.lower().replace(" ", "_")
+
+
+def shown_trial_types(values):
+    """Ticked trial types (OTHER_TRIAL_TYPE stands for everything not listed)."""
+    return {tt for tt in TRIAL_TYPES + [OTHER_TRIAL_TYPE] if values.get(_tt_key(tt), True)}
+
+
+def keep_condition(cond, shown):
+    tt = cond.get("trial_type")
+    return (tt in shown) if tt in TRIAL_TYPES else (OTHER_TRIAL_TYPE in shown)
+
+
+def max_stat(effects, raws, null_matrix):
+    """Max-stat test over the given conditions, as
+    max_estim_per_experiment._build_max_stat_for_session (direction 'max'):
+    best = largest effect; null = per-permutation max across conditions;
+    p = fraction of null maxima >= the observed max."""
+    best = int(np.argmax(effects))
+    null_max = null_matrix.max(axis=0)
+    observed = float(effects[best])
+    return {"observed_signed": observed, "observed_raw": float(raws[best]),
+            "p_value": float(np.mean(null_max >= observed))}
 
 
 def condition_effects(session_id, algorithm_label, metric, min_trials, studentize):
-    """(effects, null_matrix, conds) for the session's qualifying conditions,
-    in % or z units. null_matrix is (conditions, permutations) in the same
-    units; conds[i] is condition i's condition dict (estim_spec_id, trial_type, ...)."""
+    """(effects, null_matrix, conds, raws) for the session's qualifying
+    conditions, in % or z units. null_matrix is (conditions, permutations) in
+    the same units; conds[i] is condition i's condition dict (estim_spec_id,
+    trial_type, ...); raws[i] its effect in % points."""
     from src.analysis.nafc.group_analysis.max_estim_per_experiment import \
         _load_qualifying_conditions
     entries = _load_qualifying_conditions(session_id, algorithm_label, metric,
                                           min_trials=min_trials)
     if not entries:
-        return np.array([]), None, []
-    n_perms = min(len(e["null"]) for e in entries)
-    effects, nulls, conds = [], [], []
+        return np.array([]), None, [], np.array([])
+    effects, nulls, conds, raws = [], [], [], []
     for e in entries:
-        null = np.asarray(e["null"][:n_perms], dtype=float)
+        null = np.asarray(e["null"], dtype=float)
         if studentize:
             mu, sd = float(np.mean(null)), float(np.std(null, ddof=1))
             if not np.isfinite(sd) or sd <= 0:
@@ -81,9 +112,13 @@ def condition_effects(session_id, algorithm_label, metric, min_trials, studentiz
             effects.append(float(e["obs_effect"]))
             nulls.append(null)
         conds.append(e.get("cond_dict") or {})
+        raws.append(float(e["obs_effect"]))
     if not effects:
-        return np.array([]), None, []
-    return np.asarray(effects), np.stack(nulls), conds
+        return np.array([]), None, [], np.array([])
+    # Align permutation counts (rows written at different times), as max_estim does.
+    n_perms = min(len(n) for n in nulls)
+    return (np.asarray(effects), np.stack([n[:n_perms] for n in nulls]), conds,
+            np.asarray(raws))
 
 
 def spec_ratios(session, corr_method):
@@ -132,6 +167,11 @@ class EStimSummaryModule(FigureModule):
                   tooltip="Conditions need at least this many EStim ON and OFF trials."),
             Param("studentize", "Studentize (z units)", "bool", True,
                   tooltip="Standardize each condition's effect by its own permutation null."),
+            *[Param(_tt_key(tt), f"Show {tt}", "bool", True,
+                    tooltip="Include this trial type's conditions in every plot."
+                    + (" (any trial type not listed above, or none)"
+                       if tt == OTHER_TRIAL_TYPE else ""))
+              for tt in TRIAL_TYPES + [OTHER_TRIAL_TYPE]],
 
             Param("sec_hist", "Effect histogram", "header", None),
             Param("show_histogram", "Show", "bool", True, live=True),
@@ -146,8 +186,8 @@ class EStimSummaryModule(FigureModule):
                   tooltip="Channel correlation used for the half-distance in the "
                           "parameter fitness."),
             Param("fit_line", "Regression line", "bool", True, live=True,
-                  tooltip="Least-squares line of effect on fitness, over all dots "
-                          "(slope, r² and p in the status bar)."),
+                  tooltip="Least-squares line of effect on fitness, over all dots, "
+                          "with its stats in a box right of the plot."),
         ]
 
     def make_figure(self, session, values):
@@ -161,25 +201,43 @@ class EStimSummaryModule(FigureModule):
             return None
         studentize = values["studentize"]
         label = values["algorithm_label"].strip() or "none"
-        effects, null_matrix, conds = condition_effects(
+        effects, null_matrix, conds, raws = condition_effects(
             session.session_id, label, values["metric"], values["min_trials"], studentize)
         if effects.size == 0:
             self.status(f"No EStim conditions for {session.session_id} with metric "
                         f"{values['metric']}, cutoff '{label}' and at least "
                         f"{values['min_trials']} trials per group.")
             return None
+        shown = shown_trial_types(values)
+        keep = np.array([keep_condition(c, shown) for c in conds], dtype=bool)
+        if not keep.any():
+            self.status(f"None of the {effects.size} conditions is of a ticked trial type.")
+            return None
+        effects, null_matrix, raws = effects[keep], null_matrix[keep], raws[keep]
+        conds = [c for c, k in zip(conds, keep) if k]
+
+        fitness = self._fitness_data(session, values, effects, conds) \
+            if "fitness" in panels else None
+        fit_box = fitness is not None and fitness.get("fit") is not None
 
         w, h = PANEL_SIZE
-        fig = Figure(figsize=(w * len(panels), h))
-        axes = fig.subplots(1, len(panels), squeeze=False)[0]
+        ratios = [w] * len(panels) + ([STATS_BOX_WIDTH] if fit_box else [])
+        fig = Figure(figsize=(sum(ratios), h))
+        grid = fig.add_gridspec(1, len(ratios), width_ratios=ratios)
         notes = []
-        for ax, panel in zip(axes, panels):
+        for i, panel in enumerate(panels):
+            ax = fig.add_subplot(grid[0, i])
             if panel == "histogram":
-                notes.append(self._draw_histogram(ax, session, values, effects,
-                                                  null_matrix, label))
+                notes.append(self._draw_histogram(ax, values, effects, null_matrix, raws,
+                                                  label))
             else:
-                notes.append(self._draw_fitness(ax, session, values, effects, conds))
+                notes.append(self._draw_fitness(ax, values, fitness))
+        if fit_box:
+            self._draw_fit_box(fig.add_subplot(grid[0, len(panels)]), fitness)
         fig.tight_layout()
+        hidden = [tt for tt in TRIAL_TYPES + [OTHER_TRIAL_TYPE] if tt not in shown]
+        if hidden:
+            notes.append("hidden: " + ", ".join(hidden))
         self.status("  |  ".join(n for n in notes if n))
         return fig
 
@@ -201,67 +259,87 @@ class EStimSummaryModule(FigureModule):
         for side in ("top", "right"):
             ax.spines[side].set_visible(False)
 
-    def _draw_fitness(self, ax, session, values, effects, conds):
+    def _fitness_data(self, session, values, effects, conds):
+        """Everything the fitness scatter needs: dict with 'x', 'y', 'types',
+        'n_missing', 'fit' (linregress result or None), 'rho', 'p_rho', or with
+        'error' / 'empty' set when there is nothing to plot."""
         from scipy.stats import linregress, spearmanr
         from src.analysis.nafc.group_analysis.avg_estim_per_experiment import \
             ESTIM_DISTANCE_CENTERS
 
-        self._style(ax, "EStim effect vs parameter fitness")
-        ax.set_xlabel(FITNESS_LABEL, fontsize=15)
-        ax.set_ylabel(self._effect_label(values["studentize"]), fontsize=15)
         try:
             ratios = spec_ratios(session, values["corr_method"])
         except Exception as exc:
-            # Keep the other plots; say loudly why this one is empty.
-            msg = f"Fitness failed: {type(exc).__name__}: {exc}"
-            ax.text(0.5, 0.5, msg, ha="center", va="center", transform=ax.transAxes,
-                    fontsize=12, color="#c0392b", wrap=True)
-            return msg
+            return {"error": f"Fitness failed: {type(exc).__name__}: {exc}"}
         x = np.array([np.nan if (f := condition_fitness(c, ratios, ESTIM_DISTANCE_CENTERS))
                       is None else f for c in conds], dtype=float)
         keep = np.isfinite(x)
-        n_missing = int((~keep).sum())
+        out = {"n_missing": int((~keep).sum()), "n_total": int(len(x)),
+               "corr_method": values["corr_method"], "fit": None, "rho": None,
+               "order": list(ESTIM_DISTANCE_CENTERS)}
         if not keep.any():
+            out["empty"] = True
+            return out
+        out["types"] = np.array([c.get("trial_type") for c in conds], dtype=object)[keep]
+        out["x"], out["y"] = x[keep], effects[keep]
+        if len(out["x"]) >= 3 and np.ptp(out["x"]) > 0:
+            out["rho"], out["p_rho"] = spearmanr(out["x"], out["y"])
+            if values.get("fit_line", True):
+                out["fit"] = linregress(out["x"], out["y"])
+        return out
+
+    def _draw_fitness(self, ax, values, d):
+        self._style(ax, "EStim effect vs parameter fitness")
+        ax.set_xlabel(FITNESS_LABEL, fontsize=15)
+        ax.set_ylabel(self._effect_label(values["studentize"]), fontsize=15)
+        if "error" in d:
+            # Keep the other plots; say loudly why this one is empty.
+            ax.text(0.5, 0.5, d["error"], ha="center", va="center", transform=ax.transAxes,
+                    fontsize=12, color="#c0392b", wrap=True)
+            return d["error"]
+        if d.get("empty"):
             ax.text(0.5, 0.5, "No parameter fitness for these conditions", ha="center",
                     va="center", transform=ax.transAxes, fontsize=14, color="gray")
-            return (f"fitness: none of {effects.size} conditions has a fitness (needs "
+            return (f"fitness: none of {d['n_total']} conditions has a fitness (needs "
                     "Hypothesized/Delta trial type and current / half-distance)")
-        types = np.array([c.get("trial_type") for c in conds], dtype=object)[keep]
-        x, y = x[keep], effects[keep]
+        x, y, types = d["x"], d["y"], d["types"]
         ax.axhline(0, color="black", linewidth=1, zorder=1)
         # One color per trial type, in ESTIM_DISTANCE_CENTERS order.
-        present = [t for t in ESTIM_DISTANCE_CENTERS if t in set(types)]
         fallback = iter(FALLBACK_COLORS * 4)
-        for tt in present:
+        for tt in [t for t in d["order"] if t in set(types)]:
             on = types == tt
             ax.scatter(x[on], y[on], color=TRIAL_TYPE_COLORS.get(tt) or next(fallback),
                        s=60, alpha=0.8, zorder=3, label=tt)
-
-        stats = ""
-        if len(x) >= 3 and np.ptp(x) > 0:
-            rho, p = spearmanr(x, y)
-            stats = f", Spearman ρ = {rho:+.2f} ({_fmt_p(p)})"
-            if values.get("fit_line", True):
-                fit = linregress(x, y)
-                xs = np.linspace(0, 1.03, 100)
-                ax.plot(xs, fit.slope * xs + fit.intercept, color="black", linewidth=1.8,
-                        zorder=2, label="Linear fit")
-                stats += (f", fit slope {fit.slope:+.2f}, r² = {fit.rvalue ** 2:.2f} "
-                          f"({_fmt_p(fit.pvalue)})")
-        ax.legend(fontsize=12, frameon=False, loc="best")
+        if d["fit"] is not None:
+            xs = np.linspace(0, 1.03, 100)
+            ax.plot(xs, d["fit"].slope * xs + d["fit"].intercept, color="black",
+                    linewidth=1.8, zorder=2, label="Linear fit")
+        ax.legend(fontsize=12, frameon=False, loc="lower right")
         ax.set_xlim(0, 1.03)  # fitness is in (0, 1]
+        stats = (f", Spearman ρ = {d['rho']:+.2f} ({_fmt_p(d['p_rho'])})"
+                 if d["rho"] is not None else "")
         return (f"fitness: {len(x)} conditions{stats}"
-                + (f", {n_missing} without a fitness left out" if n_missing else "")
-                + f", half-distance from {values['corr_method']}")
+                + (f", {d['n_missing']} without a fitness left out" if d["n_missing"] else "")
+                + f", half-distance from {d['corr_method']}")
 
-    def _draw_histogram(self, ax, session, values, effects, null_matrix, label):
-        from src.analysis.nafc.group_analysis.max_estim_per_experiment import \
-            _build_max_stat_for_session
+    @staticmethod
+    def _draw_fit_box(ax, d):
+        """Linear-fit stats in a box beside (not inside) the fitness plot."""
+        ax.axis("off")
+        fit = d["fit"]
+        text = (f"Linear fit\n"
+                f"slope = {fit.slope:+.2f}\n"
+                f"r² = {fit.rvalue ** 2:.2f}\n"
+                f"{_fmt_p(fit.pvalue)}\n"
+                f"n = {len(d['x'])}")
+        ax.text(0.0, 0.5, text, transform=ax.transAxes, ha="left", va="center",
+                fontsize=13, linespacing=1.5,
+                bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor="#cccccc"))
 
+    def _draw_histogram(self, ax, values, effects, null_matrix, raws, label):
         studentize = values["studentize"]
-        best = _build_max_stat_for_session(session.session_id, label, values["metric"],
-                                           min_trials=values["min_trials"],
-                                           studentize=studentize)
+        # Max-stat over the shown conditions only (trial-type filter applied).
+        best = max_stat(effects, raws, null_matrix)
 
         unit = "z" if studentize else "%"
         lo = min(effects.min(), 0.0)
