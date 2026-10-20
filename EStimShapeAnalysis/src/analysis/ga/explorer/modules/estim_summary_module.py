@@ -60,6 +60,8 @@ FALLBACK_COLORS = ["#27ae60", "#8e44ad", "#e67e22", "#555555"]
 TRIAL_TYPES = ["Hypothesized Shape", "Delta Shape", "Removed Trial", "Coherence"]
 OTHER_TRIAL_TYPE = "Other"
 STATS_BOX_WIDTH = 1.9  # inches, linear-fit stats box right of the fitness plot
+COLOR_BY = ["trial type", "ID"]
+TABLE_FONTSIZE = 11
 
 
 def _tt_key(trial_type):
@@ -133,6 +135,37 @@ def spec_ratios(session, corr_method):
     return session.get_or_load(("estim_spec_ratio", corr_method), load)
 
 
+def id_colors(n):
+    """One distinct color per ID: tab20 up to 20 dots, a continuous map beyond."""
+    from matplotlib import colormaps
+    cmap = colormaps["tab20" if n <= 20 else "turbo"]
+    return [cmap(i if n <= 20 else i / max(n - 1, 1)) for i in range(n)]
+
+
+def condition_parameters(session, cond):
+    """A condition's parameters with estim_spec_id unfurled into its EStimParameters
+    (polarity, a1, pulse_rate_hz, ...); the spec id is kept if that lookup fails.
+    Cached per session and spec."""
+    from src.analysis.nafc.group_analysis.max_estim_per_experiment import \
+        _unfurl_estim_spec
+    out = dict(cond)
+    spec = out.get("estim_spec_id")
+    if spec is None:
+        return out
+
+    def load():
+        try:
+            return _unfurl_estim_spec(session.session_id, spec)
+        except Exception as exc:
+            print(f"[estim summary] could not unfurl spec {spec}: {exc}")
+            return {}
+    params = session.get_or_load(("estim_spec_params", int(spec)), load)
+    if params:
+        out.pop("estim_spec_id")
+        out.update(params)
+    return out
+
+
 def condition_fitness(cond, ratios, centers):
     """1 / (1 + |ratio - center|) for one condition (1 = at the center), or
     None (trial type without a center, no spec, or no ratio for its spec)."""
@@ -188,6 +221,10 @@ class EStimSummaryModule(FigureModule):
             Param("fit_line", "Regression line", "bool", True, live=True,
                   tooltip="Least-squares line of effect on fitness, over all dots, "
                           "with its stats in a box right of the plot."),
+            Param("color_by", "Color dots by", "choice", "trial type", choices=COLOR_BY,
+                  tooltip="ID: number the dots 1..n (left to right by fitness), each its "
+                          "own color, with a table beside the plot of what each "
+                          "condition is."),
         ]
 
     def make_figure(self, session, values):
@@ -219,9 +256,16 @@ class EStimSummaryModule(FigureModule):
         fitness = self._fitness_data(session, values, effects, conds) \
             if "fitness" in panels else None
         fit_box = fitness is not None and fitness.get("fit") is not None
+        id_table = (fitness is not None and "x" in fitness
+                    and values.get("color_by") == "ID")
+        if id_table:
+            fitness["table"] = self._id_table(session, fitness)
 
         w, h = PANEL_SIZE
         ratios = [w] * len(panels) + ([STATS_BOX_WIDTH] if fit_box else [])
+        if id_table:
+            ratios.append(self._table_width(fitness["table"]))
+            h = max(h, 0.3 * (len(fitness["x"]) + 1) + 1.0)
         fig = Figure(figsize=(sum(ratios), h))
         grid = fig.add_gridspec(1, len(ratios), width_ratios=ratios)
         notes = []
@@ -239,6 +283,10 @@ class EStimSummaryModule(FigureModule):
             box_ax = fig.add_subplot(grid[0, len(panels)])
             self._draw_fit_box(box_ax, fitness)
             fitness_group.append(box_ax)   # the fit stats travel with their plot
+        if id_table:
+            table_ax = fig.add_subplot(grid[0, len(ratios) - 1])
+            self._draw_id_table(table_ax, fitness)
+            groups.append([table_ax])
         fig.explorer_panel_groups = groups
         fig.tight_layout()
         hidden = [tt for tt in TRIAL_TYPES + [OTHER_TRIAL_TYPE] if tt not in shown]
@@ -288,6 +336,7 @@ class EStimSummaryModule(FigureModule):
             return out
         out["types"] = np.array([c.get("trial_type") for c in conds], dtype=object)[keep]
         out["x"], out["y"] = x[keep], effects[keep]
+        out["conds"] = [c for c, k in zip(conds, keep) if k]
         if len(out["x"]) >= 3 and np.ptp(out["x"]) > 0:
             out["rho"], out["p_rho"] = spearmanr(out["x"], out["y"])
             if values.get("fit_line", True):
@@ -310,17 +359,24 @@ class EStimSummaryModule(FigureModule):
                     "Hypothesized/Delta trial type and current / half-distance)")
         x, y, types = d["x"], d["y"], d["types"]
         ax.axhline(0, color="black", linewidth=1, zorder=1)
-        # One color per trial type, in ESTIM_DISTANCE_CENTERS order.
-        fallback = iter(FALLBACK_COLORS * 4)
-        for tt in [t for t in d["order"] if t in set(types)]:
-            on = types == tt
-            ax.scatter(x[on], y[on], color=TRIAL_TYPE_COLORS.get(tt) or next(fallback),
-                       s=60, alpha=0.8, zorder=3, label=tt)
+        if "table" in d:
+            # Each dot its own color; the ID table beside the plot says which is which.
+            order = d["table"]["order"]
+            ax.scatter(x[order], y[order], c=d["table"]["colors"], s=70,
+                       edgecolor="white", linewidth=1, zorder=3)
+        else:
+            # One color per trial type, in ESTIM_DISTANCE_CENTERS order.
+            fallback = iter(FALLBACK_COLORS * 4)
+            for tt in [t for t in d["order"] if t in set(types)]:
+                on = types == tt
+                ax.scatter(x[on], y[on], color=TRIAL_TYPE_COLORS.get(tt) or next(fallback),
+                           s=60, alpha=0.8, zorder=3, label=tt)
         if d["fit"] is not None:
             xs = np.linspace(0, 1.03, 100)
             ax.plot(xs, d["fit"].slope * xs + d["fit"].intercept, color="black",
                     linewidth=1.8, zorder=2, label="Linear fit")
-        ax.legend(fontsize=12, frameon=False, loc="lower right")
+        if ax.get_legend_handles_labels()[0]:
+            ax.legend(fontsize=12, frameon=False, loc="lower right")
         ax.set_xlim(0, 1.03)  # fitness is in (0, 1]
         stats = (f", Spearman ρ = {d['rho']:+.2f} ({_fmt_p(d['p_rho'])})"
                  if d["rho"] is not None else "")
@@ -341,6 +397,49 @@ class EStimSummaryModule(FigureModule):
         ax.text(0.0, 0.5, text, transform=ax.transAxes, ha="left", va="center",
                 fontsize=13, linespacing=1.5,
                 bbox=dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor="#cccccc"))
+
+    @staticmethod
+    def _id_table(session, d):
+        """IDs 1..n left to right by fitness (ties by effect): dot order, colors,
+        and one table row per ID of that condition's parameters."""
+        order = np.lexsort((d["y"], d["x"]))
+        conds = [condition_parameters(session, d["conds"][i]) for i in order]
+        columns = []
+        for c in conds:
+            columns += [k for k in c if k not in columns]
+        if "trial_type" in columns:   # trial type first, it's what reads quickest
+            columns.remove("trial_type")
+            columns.insert(0, "trial_type")
+        rows = [[str(i)] + ["" if c.get(k) is None else str(c.get(k)) for k in columns]
+                for i, c in enumerate(conds, start=1)]
+        return {"order": order, "colors": id_colors(len(order)),
+                "columns": ["ID"] + [k.replace("_", " ") for k in columns], "rows": rows}
+
+    @staticmethod
+    def _table_width(t):
+        """Inches for the table panel, from its longest entry per column."""
+        chars = [max(len(r[j]) for r in t["rows"] + [t["columns"]])
+                 for j in range(len(t["columns"]))]
+        return sum(0.075 * c + 0.2 for c in chars) + 0.3
+
+    @staticmethod
+    def _draw_id_table(ax, d):
+        """ID | trial type | condition parameters, each ID cell in its dot's color."""
+        ax.axis("off")
+        t = d["table"]
+        table = ax.table(cellText=t["rows"], colLabels=t["columns"], cellLoc="center",
+                         loc="center")
+        table.auto_set_font_size(False)
+        table.set_fontsize(TABLE_FONTSIZE)
+        table.auto_set_column_width(list(range(len(t["columns"]))))
+        table.scale(1, 1.5)
+        for (r, c), cell in table.get_celld().items():
+            cell.set_edgecolor("#dddddd")
+            if r == 0:
+                cell.set_text_props(weight="bold")
+            elif c == 0:
+                cell.set_facecolor(t["colors"][r - 1])
+        ax.set_title("Conditions", fontsize=16)
 
     def _draw_histogram(self, ax, values, effects, null_matrix, raws, label):
         studentize = values["studentize"]
