@@ -352,7 +352,15 @@ class MuaDbCachedParser:
         if missing:
             print(f"MUA DB cache: served {len(task_ids) - len(missing)}/{len(task_ids)} "
                   f"tasks from MUAChannelResponses; detecting {len(missing)} from wideband.")
-            m_spikes, m_epochs, sr = self.fallback.parse(missing, intan_files_dir)
+            try:
+                m_spikes, m_epochs, sr = self.fallback.parse(missing, intan_files_dir)
+            except ValueError as e:
+                # e.g. trials missing from the Intan recording (Intan crashed /
+                # stopped). Return what we have so callers don't re-run this
+                # whole parse for every task; those tasks just get no MUA data.
+                print(f"MUA wideband detection failed for {len(missing)} task(s) "
+                      f"({str(e)[:80]}...); continuing without MUA data for them.")
+                m_spikes, m_epochs, sr = {}, {}, self.sample_rate
             spikes.update(m_spikes)
             epochs.update(m_epochs)
             self.sample_rate = sr

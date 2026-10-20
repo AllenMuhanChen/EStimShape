@@ -1,0 +1,730 @@
+"""Distance from each session's final recording site to selected atlas areas.
+
+Final recording sites are the rows of the Penetrations table whose color is
+RED (one or more per session). Each site is placed in MRI space exactly the
+way the mri-viewer draws it:
+
+    1. chamber screws (EBZ-relative, monkey_specific.py) + EBZ  -> raw world
+    2. chamber correction 4x4 applied to the screws, chamber refit
+       (origin / x / y / normal)
+    3. pen offsets (global daz/del/ddepth + per-session corrections) added
+       to the row's az / el / dist
+    4. calc_penetration_target(...) -> site in corrected MRI world
+
+The warped atlas (animal_warper output, same native space as the subject)
+rides on the subject correction, so atlas voxel -> corrected world is
+correction @ atlas_sform, the same matrix the viewer inverts to draw contours.
+
+Distance to an area = Euclidean distance (mm) from the site to the nearest
+voxel center labelled as that area. If the site's own atlas voxel already
+carries that area's label, the distance is 0.
+
+Outputs (never overwritten): OUT_BASE/<RUN_TAG>_<timestamp>/
+    config.json                 every parameter used + resolved paths/matrices
+    site_area_distances.csv     one row per red site, one column per area
+    site_area_distances.png     heatmap: sites x areas, annotated in mm
+    rf_map_by_area.png          receptive fields (ReceptiveFieldInfo) drawn as
+                                circles at their location/size, colored by the
+                                area the site is in (solid) or nearest to (dashed)
+    border_rf_check_<areas>.png RF radius / eccentricity vs distance to where the areas
+                                in each V4_BORDER_SETS entry meet (V4v/V4d, V4v/V4d/TEO)
+    motion_site_closest_regions.csv   every row labelled MT / motion / direction: its
+                                closest atlas regions (also printed in the console)
+"""
+import datetime
+import importlib.util
+import json
+import os
+from typing import Dict, List, Optional
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap
+from scipy.spatial import cKDTree
+
+from src.mri.atlas import load_atlas, load_atlas_labels
+from src.mri.chamber import calc_penetration_target, fit_chamber
+from src.mri.correction import load_corrections
+
+MRI_VIEWER_CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../mri/mri_viewer_config.json')
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Viewer-equivalent geometry
+# ═══════════════════════════════════════════════════════════════════════════
+
+def load_viewer_geometry(config_path: str, corrections_file: Optional[str] = None) -> dict:
+    """Rebuild the viewer's chamber frame, pen offsets, subject correction and atlas.
+
+    corrections_file : optional opt_*.json (the file you load with "Load PCA
+        result" in the viewer). If None, uses what the viewer currently has
+        applied: <monkey_specific>_chamber_corrections.json (current version)
+        and <monkey_specific>_pen_offsets.json.
+    """
+    with open(config_path) as f:
+        cfg = json.load(f)
+
+    # Subject (MRI) correction: the viewer reads <volume>_corrections.json.
+    subj_corr_path = os.path.splitext(cfg['default_path'])[0] + '_corrections.json'
+    if not os.path.exists(subj_corr_path):
+        print(f"WARNING: no subject correction at {subj_corr_path}; using identity (as the viewer would)")
+    subj_corr, _ = load_corrections(subj_corr_path)
+
+    # Chamber
+    monkey_path = cfg['monkey_specific_path']
+    spec = importlib.util.spec_from_file_location('monkey_specific', monkey_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    screws_ebz = np.array(mod.get_screw_hole_coords(), dtype=float)
+    ref_idx = mod.get_reference_screw_idx()
+    cor_offset = mod.get_center_of_rotation_offset()
+    is_fit_circle = mod.get_is_fit_circle() if hasattr(mod, 'get_is_fit_circle') else False
+    ebz_world = np.array(cfg['ebz_world'], dtype=float)
+
+    if corrections_file:
+        with open(corrections_file) as f:
+            opt = json.load(f)
+        ch_corr = np.array(opt['chamber_correction_4x4'], dtype=float)
+        pen_offsets = {
+            'daz_deg': float(opt.get('daz_deg', 0.0)),
+            'del_deg': float(opt.get('del_deg', 0.0)),
+            'ddepth_mm': float(opt.get('ddepth_mm', 0.0)),
+            'per_session_corrections': opt.get('per_session_corrections', {}) or {},
+        }
+        ch_corr_source = corrections_file
+        offsets_source = corrections_file
+    else:
+        ch_corr_source = os.path.splitext(monkey_path)[0] + '_chamber_corrections.json'
+        ch_corr, _ = load_corrections(ch_corr_source)
+        offsets_source = os.path.splitext(monkey_path)[0] + '_pen_offsets.json'
+        pen_offsets = {'daz_deg': 0.0, 'del_deg': 0.0, 'ddepth_mm': 0.0,
+                       'per_session_corrections': {}}
+        if os.path.exists(offsets_source):
+            with open(offsets_source) as f:
+                data = json.load(f)
+            for k in ('daz_deg', 'del_deg', 'ddepth_mm'):
+                pen_offsets[k] = float(data.get(k, 0.0))
+            pen_offsets['per_session_corrections'] = data.get('per_session_corrections', {}) or {}
+        else:
+            offsets_source = None
+
+    # Same as ChamberMixin._refit_chamber
+    screws_world = screws_ebz + ebz_world
+    if not np.allclose(ch_corr, np.eye(4)):
+        screws_world = (ch_corr[:3, :3] @ screws_world.T).T + ch_corr[:3, 3]
+    center, origin, x, y, normal = fit_chamber(screws_world, ref_idx, cor_offset, is_fit_circle)
+
+    atlas_data, atlas_sform = load_atlas(cfg['atlas_nifti_path'])
+    label_names = load_atlas_labels(cfg['atlas_label_path'])
+
+    return {
+        'cfg': cfg,
+        'chamber': dict(origin=origin, x=x, y=y, normal=normal, cor_offset=cor_offset),
+        'pen_offsets': pen_offsets,
+        'subj_corr': subj_corr,
+        'atlas_data': atlas_data,
+        'atlas_sform': atlas_sform,
+        'label_names': label_names,
+        'sources': dict(subject_correction=subj_corr_path,
+                        chamber_correction=ch_corr_source,
+                        pen_offsets=offsets_source,
+                        monkey_specific=monkey_path,
+                        atlas_nifti=cfg['atlas_nifti_path'],
+                        atlas_labels=cfg['atlas_label_path']),
+        'chamber_correction': ch_corr,
+    }
+
+
+def offset_pen(pen: dict, pen_offsets: dict, per_session: bool) -> dict:
+    """Same as ChamberMixin._offset_pen."""
+    sc = pen_offsets.get('per_session_corrections', {}).get(pen['session_id'], {}) if per_session else {}
+    return dict(pen,
+                az_deg=pen['az_deg'] + pen_offsets.get('daz_deg', 0.) + sc.get('daz_deg', 0.),
+                el_deg=pen['el_deg'] + pen_offsets.get('del_deg', 0.) + sc.get('del_deg', 0.),
+                dist_mm=pen['dist_mm'] + pen_offsets.get('ddepth_mm', 0.) + sc.get('ddepth_mm', 0.))
+
+
+def site_world(pen: dict, chamber: dict) -> np.ndarray:
+    target, _, _ = calc_penetration_target(
+        chamber['origin'], pen['az_deg'], pen['el_deg'], pen['dist_mm'],
+        chamber['x'], chamber['y'], chamber['normal'], chamber['cor_offset'])
+    return target
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Atlas areas
+# ═══════════════════════════════════════════════════════════════════════════
+
+def resolve_area_indices(label_names: Dict[int, str], area_names: Dict[str, List[str]]) -> Dict[str, List[int]]:
+    """Map each area to its atlas label indices by exact (case-insensitive) name
+    match against any comma-separated token of the label name, like the
+    viewer's region highlighter. Fails loudly if an area matches nothing."""
+    out = {}
+    for area, aliases in area_names.items():
+        wanted = {a.strip().lower() for a in aliases}
+        idxs = [idx for idx, name in label_names.items()
+                if wanted & {t.strip().lower() for t in [name] + name.split(',')}]
+        if not idxs:
+            # Loose stems (e.g. 'v4d' -> 'v4') so the error shows the neighbours
+            stems = wanted | {w.rstrip('dvtlrsmpi') or w for w in wanted}
+            near = [f"{i}: {n}" for i, n in label_names.items()
+                    if any(st in n.lower() for st in stems)]
+            raise ValueError(f"Area '{area}' (aliases {aliases}) matched no atlas label. "
+                             f"Partial matches: {near[:20] or 'none'}")
+        out[area] = sorted(idxs)
+        print(f"  {area:>5} -> " + ", ".join(f"{i}: {label_names[i]}" for i in out[area]))
+    return out
+
+
+def area_distances(sites: np.ndarray, atlas_data: np.ndarray, atlas_to_world: np.ndarray,
+                   area_indices: Dict[str, List[int]]) -> pd.DataFrame:
+    """Distance (mm) from each site to the nearest voxel of each area; 0 if inside."""
+    world_to_vox = np.linalg.inv(atlas_to_world)
+    sites_h = np.c_[sites, np.ones(len(sites))]
+    vox = np.round((world_to_vox @ sites_h.T).T[:, :3]).astype(int)
+    in_bounds = np.all((vox >= 0) & (vox < np.array(atlas_data.shape[:3])), axis=1)
+    site_labels = np.zeros(len(sites), dtype=int)
+    site_labels[in_bounds] = atlas_data[vox[in_bounds, 0], vox[in_bounds, 1], vox[in_bounds, 2]]
+
+    cols = {}
+    for area, idxs in area_indices.items():
+        ijk = np.argwhere(np.isin(atlas_data, idxs))
+        if len(ijk) == 0:
+            raise ValueError(f"Area '{area}' has labels {idxs} but no voxels in the atlas volume")
+        area_world = (atlas_to_world @ np.c_[ijk, np.ones(len(ijk))].T).T[:, :3]
+        d, nn = cKDTree(area_world).query(sites)
+        d[np.isin(site_labels, idxs)] = 0.0
+        cols[area] = d
+        # World position of the nearest voxel of this area, so it can be checked in the viewer
+        for k, ax in enumerate(('ML', 'AP', 'DV')):
+            cols[f'nearest_{area}_{ax}'] = area_world[nn, k]
+    df = pd.DataFrame(cols)
+    df.insert(0, 'site_label_index', site_labels)
+    return df
+
+
+def nearby_regions(sites: np.ndarray, atlas_data: np.ndarray, atlas_to_world: np.ndarray,
+                   label_names: Dict[int, str], radius_mm: float = 5.0, n_max: int = 4) -> List[str]:
+    """For each site, the closest atlas regions of ANY label within radius_mm,
+    e.g. 'V4 0.6, V3v 1.8' — shows what the site actually sits next to."""
+    world_to_vox = np.linalg.inv(atlas_to_world)
+    vox_mm = np.sqrt((atlas_to_world[:3, :3] ** 2).sum(axis=0))
+    half = np.ceil(radius_mm / vox_mm).astype(int)
+    shape = np.array(atlas_data.shape[:3])
+    out = []
+    for w in sites:
+        c = np.round((world_to_vox @ np.r_[w, 1])[:3]).astype(int)
+        lo, hi = np.maximum(c - half, 0), np.minimum(c + half + 1, shape)
+        if np.any(hi <= lo):
+            out.append('')
+            continue
+        block = atlas_data[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]]
+        ijk = np.argwhere(block > 0)
+        if len(ijk) == 0:
+            out.append('')
+            continue
+        labs = block[tuple(ijk.T)]
+        world = (atlas_to_world @ np.c_[ijk + lo, np.ones(len(ijk))].T).T[:, :3]
+        d = np.linalg.norm(world - w, axis=1)
+        best = pd.Series(d).groupby(labs).min()
+        best = best[best <= radius_mm].sort_values().head(n_max)
+        out.append(', '.join(f"{label_names.get(int(l), l)} {v:.1f}" for l, v in best.items()))
+    return out
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Penetrations table
+# ═══════════════════════════════════════════════════════════════════════════
+
+def fetch_red_penetrations(conn, table: str, color: str = 'red') -> List[dict]:
+    conn.execute(
+        f"SELECT id, session_id, label, az_deg, el_deg, dist_mm, pen_type, color, notes "
+        f"FROM {table} WHERE LOWER(color) = %s ORDER BY session_id, id", (color.lower(),))
+    keys = ['id', 'session_id', 'label', 'az_deg', 'el_deg', 'dist_mm', 'pen_type', 'color', 'notes']
+    return [dict(zip(keys, row)) for row in conn.fetch_all()]
+
+
+def label_matches(label: str, keywords: List[str]) -> bool:
+    """Case-insensitive keyword match on a penetration label. Keywords of 3
+    characters or fewer (e.g. 'MT') must be whole words so they don't match
+    inside other words; longer ones match at a word start ('direction'
+    also matches 'directional')."""
+    import re
+    for kw in keywords:
+        pat = r'(?<![A-Za-z])' + re.escape(kw) + (r'(?![A-Za-z])' if len(kw) <= 3 else '')
+        if re.search(pat, label or '', flags=re.IGNORECASE):
+            return True
+    return False
+
+
+def closest_regions(sites: np.ndarray, atlas_data: np.ndarray, atlas_to_world: np.ndarray,
+                    label_names: Dict[int, str], top_n: int = 3,
+                    search_radius_mm: float = 20.0) -> List[List[tuple]]:
+    """For each site, the top_n closest atlas regions (any label) as
+    [(name, distance_mm), ...], nearest first. Distance is to the nearest
+    voxel center of that region; the region the site sits in gets 0."""
+    world_to_vox = np.linalg.inv(atlas_to_world)
+    vox_mm = np.sqrt((atlas_to_world[:3, :3] ** 2).sum(axis=0))
+    half = np.ceil(search_radius_mm / vox_mm).astype(int)
+    shape = np.array(atlas_data.shape[:3])
+    out = []
+    for w in sites:
+        c = np.round((world_to_vox @ np.r_[w, 1])[:3]).astype(int)
+        own = int(atlas_data[tuple(c)]) if np.all((c >= 0) & (c < shape)) else 0
+        lo, hi = np.maximum(c - half, 0), np.minimum(c + half + 1, shape)
+        if np.any(hi <= lo):
+            out.append([])
+            continue
+        block = atlas_data[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]]
+        ijk = np.argwhere(block > 0)
+        if len(ijk) == 0:
+            out.append([])
+            continue
+        labs = block[tuple(ijk.T)]
+        world = (atlas_to_world @ np.c_[ijk + lo, np.ones(len(ijk))].T).T[:, :3]
+        best = pd.Series(np.linalg.norm(world - w, axis=1)).groupby(labs).min()
+        if own:
+            best[own] = 0.0
+        best = best[best <= search_radius_mm].sort_values().head(top_n)
+        out.append([(label_names.get(int(l), f"label {l}"), float(d)) for l, d in best.items()])
+    return out
+
+
+def fetch_penetrations_by_label(conn, table: str, keywords: List[str]) -> List[dict]:
+    conn.execute(
+        f"SELECT id, session_id, label, az_deg, el_deg, dist_mm, pen_type, color, notes "
+        f"FROM {table} ORDER BY session_id, id")
+    keys = ['id', 'session_id', 'label', 'az_deg', 'el_deg', 'dist_mm', 'pen_type', 'color', 'notes']
+    rows = [dict(zip(keys, row)) for row in conn.fetch_all()]
+    return [r for r in rows if label_matches(r['label'], keywords)]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Main computation + plot
+# ═══════════════════════════════════════════════════════════════════════════
+
+def compute_site_distances(pens: List[dict], geom: dict, area_names: Dict[str, List[str]],
+                           per_session_corrections: bool = True) -> pd.DataFrame:
+    if not pens:
+        raise ValueError("No red penetrations found — nothing to compute.")
+    chamber = geom['chamber']
+    rows, sites = [], []
+    for p in pens:
+        po = offset_pen(p, geom['pen_offsets'], per_session_corrections)
+        w = site_world(po, chamber)
+        sites.append(w)
+        rows.append(dict(pen_id=p['id'], session_id=p['session_id'], label=p['label'],
+                         pen_type=p['pen_type'],
+                         az_deg=p['az_deg'], el_deg=p['el_deg'], dist_mm=p['dist_mm'],
+                         az_deg_corrected=po['az_deg'], el_deg_corrected=po['el_deg'],
+                         dist_mm_corrected=po['dist_mm'],
+                         ML=w[0], AP=w[1], DV=w[2]))
+    sites = np.array(sites)
+    area_idx = resolve_area_indices(geom['label_names'], area_names)
+    atlas_to_world = geom['subj_corr'] @ geom['atlas_sform']
+    dists = area_distances(sites, geom['atlas_data'], atlas_to_world, area_idx)
+
+    df = pd.DataFrame(rows)
+    ebz = np.array(geom['cfg'].get('ebz_world', [0, 0, 0]), dtype=float)
+    df['ML_ebz'], df['AP_ebz'], df['DV_ebz'] = (sites - ebz).T
+    df['site_region'] = [geom['label_names'].get(int(i), 'outside atlas / unlabelled') if i else
+                         'outside atlas / unlabelled' for i in dists['site_label_index']]
+    df['nearby_regions_mm'] = nearby_regions(sites, geom['atlas_data'], atlas_to_world,
+                                             geom['label_names'])
+    for c in [c for c in dists.columns if c.startswith('nearest_')]:
+        dists[c] = dists[c] - ebz[('ML', 'AP', 'DV').index(c.rsplit('_', 1)[1])]   # EBZ-relative
+    df = pd.concat([df, dists.drop(columns='site_label_index')], axis=1)
+    for _, r in df.iterrows():
+        print(f"  {r['session_id']} ({r['label']}): EBZ-rel ML={r['ML_ebz']:.2f} AP={r['AP_ebz']:.2f} "
+              f"DV={r['DV_ebz']:.2f} | in: {r['site_region']} | within 5 mm: {r['nearby_regions_mm'] or 'none'}")
+    df.attrs['area_indices'] = area_idx
+    return df
+
+
+def plot_distance_heatmap(df: pd.DataFrame, areas: List[str], out_path: str, title: str):
+    # One row per site; label with session (+ pen label if a session has several)
+    multi = df['session_id'].duplicated(keep=False)
+    row_labels = [f"{s}  ({l})" if m else str(s)
+                  for s, l, m in zip(df['session_id'], df['label'], multi)]
+    D = df[areas].to_numpy(dtype=float)
+
+    vmax = max(1.0, float(np.nanmax(D)))
+    cmap = LinearSegmentedColormap.from_list('dist', ['#1b7f3b', '#f7f7f7', '#b2182b'])
+    n_rows = len(df)
+    fig, ax = plt.subplots(figsize=(2.0 + 1.6 * len(areas), 1.5 + 0.45 * n_rows))
+    im = ax.imshow(D, cmap=cmap, vmin=0, vmax=vmax, aspect='auto')
+    for i in range(D.shape[0]):
+        for j in range(D.shape[1]):
+            v = D[i, j]
+            txt = 'in' if v == 0 else f"{v:.1f}"
+            ax.text(j, i, txt, ha='center', va='center', fontsize=12,
+                    fontweight='bold' if v == 0 else 'normal',
+                    color='white' if (v == 0 or v > 0.75 * vmax) else 'black')
+    ax.set_xticks(range(len(areas)))
+    ax.set_xticklabels(areas, fontsize=14)
+    ax.xaxis.tick_top()
+    ax.set_yticks(range(n_rows))
+    ax.set_yticklabels(row_labels, fontsize=12)
+    ax.set_title(title, fontsize=15, pad=30)
+    for s in ax.spines.values():
+        s.set_visible(False)
+    ax.set_xticks(np.arange(-.5, len(areas)), minor=True)
+    ax.set_yticks(np.arange(-.5, n_rows), minor=True)
+    ax.grid(which='minor', color='white', linewidth=2)
+    ax.tick_params(which='minor', length=0)
+    cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
+    cb.set_label('Distance to area (mm)', fontsize=13)
+    cb.ax.tick_params(labelsize=11)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    return fig
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Receptive fields colored by area
+# ═══════════════════════════════════════════════════════════════════════════
+
+def assign_area(df: pd.DataFrame, areas: List[str]) -> pd.DataFrame:
+    """Add 'area' (the area the site is in, else the nearest one) and
+    'inside' (True if the site is in that area)."""
+    D = df[areas].to_numpy(dtype=float)
+    j = np.argmin(D, axis=1)
+    out = df.copy()
+    out['area'] = [areas[k] for k in j]
+    out['inside'] = D[np.arange(len(D)), j] == 0
+    return out
+
+
+def fetch_rfs(conn, channel: str) -> pd.DataFrame:
+    conn.execute("SELECT session_id, x, y, radius FROM ReceptiveFieldInfo WHERE channel = %s",
+                 (channel,))
+    rows = [r for r in conn.fetch_all() if None not in r]
+    return pd.DataFrame(rows, columns=['session_id', 'rf_x', 'rf_y', 'rf_radius'])
+
+
+def one_site_per_session(df: pd.DataFrame) -> pd.DataFrame:
+    """RFs are per session; if a session has several red sites, keep the most
+    recently added one (highest pen_id)."""
+    dup = df['session_id'][df['session_id'].duplicated()].unique()
+    if len(dup):
+        print(f"  Sessions with >1 red site (using the latest pen_id for RF coloring): {list(dup)}")
+    return df.sort_values('pen_id').groupby('session_id', as_index=False).last()
+
+
+AREA_COLORS = {   # roughly ventral -> dorsal stream, distinct hues
+    'V3v': '#9467bd', 'V4v': '#1f77b4', 'TEO': '#17becf',
+    'V3d': '#e377c2', 'V4d': '#2ca02c', 'V4t': '#ff7f0e', 'MT': '#d62728',
+}
+
+
+def plot_rf_map(df: pd.DataFrame, areas: List[str], out_path: str, title: str,
+                label_sessions: bool = True):
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Circle
+    fallback = plt.get_cmap('tab10')
+    colors = {a: AREA_COLORS.get(a, fallback(i % 10)) for i, a in enumerate(areas)}
+
+    fig, ax = plt.subplots(figsize=(10, 9))
+    # Big circles first so small ones stay visible on top
+    for _, r in df.sort_values('rf_radius', ascending=False).iterrows():
+        c = colors[r['area']]
+        ax.add_patch(Circle((r['rf_x'], r['rf_y']), r['rf_radius'], facecolor=c, alpha=0.18,
+                            edgecolor='none'))
+        ax.add_patch(Circle((r['rf_x'], r['rf_y']), r['rf_radius'], facecolor='none',
+                            edgecolor=c, lw=2.2, linestyle='-' if r['inside'] else '--'))
+        ax.plot(r['rf_x'], r['rf_y'], 'o', color=c, markersize=4)
+        if label_sessions:
+            ax.annotate(str(r['session_id']), (r['rf_x'], r['rf_y']), xytext=(4, 4),
+                        textcoords='offset points', fontsize=9, color='#333333')
+
+    ext = np.r_[np.abs(df['rf_x']) + df['rf_radius'], np.abs(df['rf_y']) + df['rf_radius']]
+    lim = float(np.ceil(np.max(ext) + 1)) if len(ext) else 10.0
+    ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
+    ax.set_aspect('equal')
+    ax.axhline(0, color='#999999', lw=0.8, zorder=0)
+    ax.axvline(0, color='#999999', lw=0.8, zorder=0)
+    ax.plot(0, 0, '+', color='black', markersize=14, markeredgewidth=2)
+    ax.set_xlabel('Horizontal position (deg)', fontsize=14)
+    ax.set_ylabel('Vertical position (deg)', fontsize=14)
+    ax.tick_params(labelsize=12)
+    ax.set_title(title, fontsize=15)
+
+    counts = df['area'].value_counts()
+    handles = [Line2D([], [], color=colors[a], lw=6, alpha=0.6,
+                      label=f"{a} (n={counts.get(a, 0)})") for a in areas if counts.get(a, 0)]
+    handles += [Line2D([], [], color='#444444', lw=2, ls='-', label='inside area'),
+                Line2D([], [], color='#444444', lw=2, ls='--', label='nearest area')]
+    ax.legend(handles=handles, fontsize=12, loc='center left', bbox_to_anchor=(1.02, 0.5),
+              frameon=False)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150, bbox_inches='tight')
+    return fig
+
+
+def border_distance(sites: np.ndarray, atlas_data: np.ndarray, atlas_to_world: np.ndarray,
+                    area_idx_lists: List[List[int]], tol_mm: float = 1.0,
+                    name: str = 'border') -> np.ndarray:
+    """Distance (mm) from each site to the border where ALL the given areas meet.
+
+    Border = every voxel of any of the areas that has a voxel of EACH other
+    area within tol_mm (voxel centers). With 2 areas that is the shared edge;
+    with 3 it is the junction where all three touch. Distance is to the
+    nearest border voxel center. Fails loudly if the areas never all come
+    within tol_mm of each other, reporting how close they get.
+    """
+    worlds = []
+    for idxs in area_idx_lists:
+        ijk = np.argwhere(np.isin(atlas_data, idxs))
+        worlds.append((atlas_to_world @ np.c_[ijk, np.ones(len(ijk))].T).T[:, :3])
+    trees = [cKDTree(w) for w in worlds]
+    border, best_gap = [], np.inf
+    for i, w in enumerate(worlds):
+        # distance from each voxel of area i to the farthest of the other areas' nearest voxels
+        far = np.max([trees[j].query(w)[0] for j in range(len(worlds)) if j != i], axis=0)
+        best_gap = min(best_gap, float(far.min()))
+        border.append(w[far < tol_mm])
+    border = np.concatenate(border)
+    if len(border) == 0:
+        raise ValueError(f"{name}: the areas never all come within {tol_mm} mm of each other "
+                         f"(closest: {best_gap:.2f} mm); raise V4_BORDER_TOLERANCE_MM")
+    print(f"  {name}: {len(border)} border voxels (within {tol_mm} mm of every other area)")
+    return cKDTree(border).query(sites)[0]
+
+
+def border_col(areas: List[str]) -> str:
+    return '_'.join(areas) + '_border'
+
+
+def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str],
+                         regression_line: bool = False, color_by_area: bool = False):
+    """Sanity check: sites close to where the border_areas meet (the foveal
+    confluence) should have small, near-foveal RFs.
+
+    RF radius and RF eccentricity vs distance to the border
+    (column border_col(border_areas); see border_distance), with Spearman
+    correlation (rank-based, no linearity assumption). Dots are colored by
+    which of border_areas the site is in, else the nearest one.
+    """
+    from scipy.stats import spearmanr
+    name = '/'.join(border_areas)
+    score = df[border_col(border_areas)].to_numpy(float)
+    radius = df['rf_radius'].to_numpy(float)
+    ecc = np.hypot(df['rf_x'].to_numpy(float), df['rf_y'].to_numpy(float))
+    # Dot color = which of border_areas the site is in, else the nearest one
+    site_area = (assign_area(df, list(border_areas))['area'].to_numpy() if color_by_area
+                 else np.full(len(df), None))
+    fallback = plt.get_cmap('tab10')
+    colors = {a: AREA_COLORS.get(a, fallback(i % 10)) for i, a in enumerate(border_areas)}
+
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.8))
+
+    for ax, y, ylabel in ((axes[0], radius, 'RF radius (deg)'),
+                          (axes[1], ecc, 'RF eccentricity (deg)')):
+        if color_by_area:
+            for a in border_areas:
+                m = site_area == a
+                if m.any():
+                    ax.scatter(score[m], y[m], s=90, color=colors[a], edgecolor='black',
+                               linewidth=0.6, label=f"{a} (n={int(m.sum())})")
+        else:
+            ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
+        if regression_line and len(score) >= 2:
+            slope, intercept = np.polyfit(score, y, 1)   # ordinary least squares
+            xs = np.array([score.min(), score.max()])
+            ax.plot(xs, slope * xs + intercept, color='#d62728', lw=2)
+        if len(score) >= 3:
+            rho, pval = spearmanr(score, y)
+            ax.text(0.03, 0.97, f"Spearman \u03c1 = {rho:.2f}\np = {pval:.3g}\nn = {len(score)}",
+                    transform=ax.transAxes, va='top', fontsize=13)
+        ax.set_xlabel(f'Distance to {name} border (mm)', fontsize=14)
+        ax.set_ylabel(ylabel, fontsize=14)
+        ax.set_xlim(left=-0.3); ax.set_ylim(bottom=0)
+        ax.set_title(f'{ylabel.split(" (")[0]} vs distance to {name} border', fontsize=15)
+
+    for ax in axes:
+        ax.tick_params(labelsize=12)
+        ax.spines[['top', 'right']].set_visible(False)
+    if color_by_area:
+        axes[1].legend(fontsize=12, loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150, bbox_inches='tight')
+    return fig
+
+
+def filter_by_label_substring(pens: List[dict], keywords: List[str]) -> List[dict]:
+    """Keep rows whose label contains any keyword (case-insensitive substring,
+    so 'rec' also matches 'recording'). Prints the rows it drops."""
+    if not keywords:
+        return pens
+    kws = [k.lower() for k in keywords]
+    kept = [p for p in pens if any(k in (p['label'] or '').lower() for k in kws)]
+    dropped = [p for p in pens if p not in kept]
+    print(f"  Label filter {keywords}: kept {len(kept)} of {len(pens)} sites")
+    for p in dropped:
+        print(f"    dropped {p['session_id']} (pen {p['id']}): {p['label']!r}")
+    return kept
+
+
+def filter_by_start_date(pens: List[dict], start_date: Optional[str]) -> List[dict]:
+    """Keep sessions whose id date (YYMMDD prefix, e.g. 260402_0) is on/after start_date."""
+    if not start_date:
+        return pens
+    start = str(start_date).replace('-', '')[-6:]   # accepts "260401" or "2026-04-01"
+    kept = [p for p in pens if str(p['session_id'])[:6] >= start]
+    print(f"  START_DATE {start_date}: kept {len(kept)} of {len(pens)} sites")
+    return kept
+
+
+def main():
+    # ---- PARAMETERS ------------------------------------------------------
+    OUT_BASE = "/home/connorlab/Documents/penetration_optimization_plots/recording_site_area_distances"
+    RUN_TAG = None                       # e.g. "45X"; None -> timestamp only
+    MRI_CONFIG = MRI_VIEWER_CONFIG_PATH  # same config the mri-viewer loads
+    # Correction file: an opt_*.json (what "Load PCA result" takes in the viewer).
+    # None -> use whatever the viewer currently has applied (chamber correction
+    # sidecar + pen offsets beside monkey_specific.py).
+    CORRECTIONS_FILE = None
+    PER_SESSION_CORRECTIONS = True       # viewer's "Sess.Corr: ON" (its default)
+    PEN_TABLE = None                     # None -> config's penetration_table
+    FINAL_SITE_COLOR = "red"
+    FINAL_SITE_LABEL_KEYWORDS = ['rec', 'loc']   # red rows also need one of these in the label (case-insensitive)
+    SHOW_PLOTS = True                    # open the figure in a window after saving
+    # Area -> atlas label name(s) to match (case-insensitive, whole name or
+    # any comma-separated token of the D99 label).
+    AREAS = {
+        'V4v': ['V4v'],
+        'V4d': ['V4d', 'V4'],   # D99 labels dorsal V4 as plain 'V4'
+        'TEO': ['TEO'],
+        'V4t': ['V4t'],
+        'MT':  ['MT'],
+        'V3d': ['V3d', 'V3'],
+        'V3v': ['V3v'],
+    }
+    # Receptive-field map (ReceptiveFieldInfo in the data repository)
+    PLOT_RF_MAP = True
+    PLOT_V4_BORDER_CHECK = True          # RF size/eccentricity vs distance to the V4v/V4d border
+    V4_BORDER_TOLERANCE_MM = 1.0         # voxels this close to every other area count as border
+    # One border-check figure per entry: the place where ALL listed areas meet
+    V4_BORDER_SETS = [['V4v', 'V4d'], ['V4v', 'V4d', 'TEO']]
+    V4_REGRESSION_LINE_SETS = [['V4v', 'V4d', 'TEO']]   # border plots that get a least-squares line
+    V4_COLOR_BY_AREA = False             # color border-plot dots by the area each site is in/nearest
+    V4_CHECK_EXCLUDE_AREAS = ['V3v']     # drop sessions in (or nearest to) these areas from the V4 check
+    # Motion-area sites: every Penetrations row whose label contains one of these
+    # keywords (case-insensitive; 'MT' only as a whole word), distance to these areas
+    REPORT_MOTION_SITES = True
+    MOTION_LABEL_KEYWORDS = ['MT', 'motion', 'direction']
+    MOTION_TOP_N = 3                     # closest atlas regions to report per motion site
+    MOTION_SEARCH_RADIUS_MM = 20.0       # regions farther than this aren't considered
+    RF_CHANNEL = 'SUPRA-000'             # which channel's RF to draw per session
+    LABEL_SESSIONS = False               # session id next to each RF center
+    PRINT_AREAS = ['TEO']                # print sessions in (or nearest to) these areas
+    START_DATE = "251021"                    # e.g. "260401" (YYMMDD) -> only sessions on/after; None = all
+    DB = dict(database="allen_data_repository", user="xper_rw",
+              password="up2nite", host="172.30.6.61")
+    # ----------------------------------------------------------------------
+
+    from clat.util.connection import Connection
+
+    ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    out_dir = os.path.join(OUT_BASE, f"{RUN_TAG}_{ts}" if RUN_TAG else ts)
+    os.makedirs(out_dir, exist_ok=True)
+
+    geom = load_viewer_geometry(MRI_CONFIG, CORRECTIONS_FILE)
+    table = PEN_TABLE or geom['cfg'].get('penetration_table', 'Penetrations')
+
+    conn = Connection(**DB)
+    pens = filter_by_start_date(
+        filter_by_label_substring(fetch_red_penetrations(conn, table, FINAL_SITE_COLOR),
+                                  FINAL_SITE_LABEL_KEYWORDS),
+        START_DATE)
+    df = compute_site_distances(pens, geom, AREAS, PER_SESSION_CORRECTIONS)
+    if PLOT_V4_BORDER_CHECK:
+        idx = df.attrs['area_indices']
+        for areas in V4_BORDER_SETS:
+            df[border_col(areas)] = border_distance(
+                df[['ML', 'AP', 'DV']].to_numpy(float), geom['atlas_data'],
+                geom['subj_corr'] @ geom['atlas_sform'], [idx[a] for a in areas],
+                V4_BORDER_TOLERANCE_MM, name='/'.join(areas))
+
+    with open(os.path.join(out_dir, 'config.json'), 'w') as f:
+        json.dump(dict(
+            timestamp=ts, run_tag=RUN_TAG, mri_config=os.path.abspath(MRI_CONFIG),
+            corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
+            pen_table=table, final_site_color=FINAL_SITE_COLOR,
+            final_site_label_keywords=FINAL_SITE_LABEL_KEYWORDS, areas=AREAS, show_plots=SHOW_PLOTS,
+            plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK,
+            v4_border_tolerance_mm=V4_BORDER_TOLERANCE_MM, v4_border_sets=V4_BORDER_SETS,
+            v4_check_exclude_areas=V4_CHECK_EXCLUDE_AREAS, v4_color_by_area=V4_COLOR_BY_AREA,
+            rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
+            print_areas=PRINT_AREAS, start_date=START_DATE,
+            report_motion_sites=REPORT_MOTION_SITES, motion_label_keywords=MOTION_LABEL_KEYWORDS,
+            motion_top_n=MOTION_TOP_N, motion_search_radius_mm=MOTION_SEARCH_RADIUS_MM,
+            area_label_indices=df.attrs['area_indices'],
+            sources=geom['sources'],
+            subject_correction=geom['subj_corr'].tolist(),
+            chamber_correction=geom['chamber_correction'].tolist(),
+            pen_offsets=geom['pen_offsets'],
+            n_sites=len(df), n_sessions=int(df['session_id'].nunique()),
+        ), f, indent=2)
+    df.to_csv(os.path.join(out_dir, 'site_area_distances.csv'), index=False)
+    plot_distance_heatmap(df, list(AREAS), os.path.join(out_dir, 'site_area_distances.png'),
+                          "Recording site distance to area")
+
+    sites = assign_area(one_site_per_session(df), list(AREAS))
+    for area in PRINT_AREAS:
+        sel = sites[sites['area'] == area].sort_values('session_id')
+        print(f"\n{area} sessions ({len(sel)}):")
+        for _, r in sel.iterrows():
+            where = 'in' if r['inside'] else f"nearest, {r[area]:.1f} mm"
+            print(f"  {r['session_id']}  ({where})")
+    print()
+
+    if PLOT_RF_MAP or PLOT_V4_BORDER_CHECK:
+        rfs = fetch_rfs(conn, RF_CHANNEL)
+        rf_df = sites.merge(rfs, on='session_id', how='inner')
+        missing = sorted(set(sites['session_id']) - set(rf_df['session_id']))
+        if missing:
+            print(f"  No {RF_CHANNEL} RF for sessions: {missing}")
+        if rf_df.empty:
+            raise ValueError(f"No ReceptiveFieldInfo rows for channel {RF_CHANNEL} match the red sites")
+        rf_df.to_csv(os.path.join(out_dir, 'rf_map_by_area.csv'), index=False)
+        if PLOT_RF_MAP:
+            plot_rf_map(rf_df, list(AREAS), os.path.join(out_dir, 'rf_map_by_area.png'),
+                        "Receptive fields by recording area",
+                        LABEL_SESSIONS)
+        if PLOT_V4_BORDER_CHECK:
+            v4_df = rf_df[~rf_df['area'].isin(V4_CHECK_EXCLUDE_AREAS)]
+            dropped = sorted(rf_df.loc[rf_df['area'].isin(V4_CHECK_EXCLUDE_AREAS), 'session_id'])
+            if dropped:
+                print(f"  V4 check: excluded {len(dropped)} sessions in/nearest {V4_CHECK_EXCLUDE_AREAS}: {dropped}")
+            for areas in V4_BORDER_SETS:
+                plot_v4_border_check(v4_df, os.path.join(
+                    out_dir, f"border_rf_check_{'_'.join(areas)}.png"), areas,
+                    regression_line=areas in V4_REGRESSION_LINE_SETS,
+                    color_by_area=V4_COLOR_BY_AREA)
+
+    if REPORT_MOTION_SITES:
+        motion_pens = filter_by_start_date(
+            fetch_penetrations_by_label(conn, table, MOTION_LABEL_KEYWORDS), START_DATE)
+        motion_df = compute_site_distances(motion_pens, geom, {}, PER_SESSION_CORRECTIONS)
+        top = closest_regions(motion_df[['ML', 'AP', 'DV']].to_numpy(float), geom['atlas_data'],
+                              geom['subj_corr'] @ geom['atlas_sform'], geom['label_names'],
+                              MOTION_TOP_N, MOTION_SEARCH_RADIUS_MM)
+        print(f"\nClosest {MOTION_TOP_N} regions to each motion site "
+              f"(label contains {MOTION_LABEL_KEYWORDS}; 0.0 = inside):")
+        for k in range(MOTION_TOP_N):
+            motion_df[f'region_{k + 1}'] = [t[k][0] if len(t) > k else '' for t in top]
+            motion_df[f'region_{k + 1}_mm'] = [t[k][1] if len(t) > k else np.nan for t in top]
+        for (_, r), t in zip(motion_df.iterrows(), top):
+            regions = ', '.join(f"{n} {d:.1f} mm" for n, d in t) or 'none within search radius'
+            print(f"  {r['session_id']}  {r['label']:<24}  {regions}")
+        motion_df.to_csv(os.path.join(out_dir, 'motion_site_closest_regions.csv'), index=False)
+
+    print(f"Wrote {len(df)} sites from {df['session_id'].nunique()} sessions -> {out_dir}")
+    if SHOW_PLOTS:
+        plt.show()
+
+
+if __name__ == "__main__":
+    main()

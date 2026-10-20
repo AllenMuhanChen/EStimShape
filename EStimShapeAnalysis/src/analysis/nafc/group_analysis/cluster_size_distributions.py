@@ -21,13 +21,14 @@ sys.path.insert(0, str(Path(__file__).parents[3]))
 from src.analysis.nafc.group_analysis import plot_current_spread_vs_tuning as cs
 
 
-def load_spec_half_distances():
+def load_spec_half_distances(corr_method='spearman'):
     """DataFrame (session_id, estim_spec_id, half-distance) for every spec in the
-    viewer's effect-points table that has a half-distance."""
+    viewer's effect-points table that has a half-distance. corr_method: 'spearman' |
+    'pearson' for the channel correlations the half-distance is built from."""
     config = cs._comparison_config_kwargs()
     config.pop('save_dir')
     config.pop('by_polarity')
-    _, _, points = cs.prepare_effect_points(**config)
+    _, _, points = cs.prepare_effect_points(**config, corr_method=corr_method)
     if len(points) == 0:
         return points
     specs = (points[['session_id', 'estim_spec_id', cs.HALFDIST_COL]]
@@ -38,10 +39,10 @@ def load_spec_half_distances():
     return specs.dropna(subset=[cs.HALFDIST_COL]).reset_index(drop=True)
 
 
-def plot_cluster_size_distributions(bin_width=50, save_path=None):
+def plot_cluster_size_distributions(bin_width=50, save_path=None, corr_method='spearman'):
     """Histogram of corr half-distance (µm), one count per estim spec. bin_width in µm
     (None -> matplotlib 'auto')."""
-    specs = load_spec_half_distances()
+    specs = load_spec_half_distances(corr_method)
     if len(specs) == 0:
         print("No estim specs with a half-distance.")
         return specs
@@ -79,8 +80,9 @@ def plot_cluster_size_distributions(bin_width=50, save_path=None):
 
 
 def main():
+    corr_method = 'spearman'    # 'spearman' or 'pearson'
     plot_cluster_size_distributions(
-        bin_width=50,
+        bin_width=50, corr_method=corr_method,
         save_path="/home/connorlab/Documents/plots/across_experiments/cluster_size_distributions.png")
 
 

@@ -110,9 +110,10 @@ def _fetch_spec_params(session_ids):
     return out
 
 
-def _fetch_spread(session_ids):
+def _fetch_spread(session_ids, corr_method='spearman'):
     """DataFrame keyed (session_id, estim_spec_id) with current_per_second, the
-    correlation half-distance and their ratio. Sessions that fail are skipped."""
+    correlation half-distance and their ratio. Sessions that fail are skipped.
+    corr_method: 'spearman' | 'pearson' for the half-distance's channel correlations."""
     # heavy modules (probe geometry, tuning metrics): import only when asked for
     from src.analysis.nafc.group_analysis.analyze_estim_isolation_effect import (
         _fetch_current_per_second)
@@ -121,7 +122,7 @@ def _fetch_spread(session_ids):
     rows = []
     for sid in session_ids:
         try:
-            half_dist = compute_session_half_distance(sid)
+            half_dist = compute_session_half_distance(sid, corr_method=corr_method)
             cps = _fetch_current_per_second([(sid, spec) for spec in half_dist])
         except Exception as exc:
             print(f"  {sid}: current spread failed ({type(exc).__name__}: {exc}); skipped")
@@ -268,7 +269,7 @@ def _sem(values):
 def summarize_groups(df, group_cols, nulls=None, alternative='two-sided'):
     """One row per combination of group_cols: n_conditions, n_sessions, effect
     (mean of per-session mean effects) ± effect_sem, the same for ON% / OFF%, trial
-    totals, and the permutation p-value (None without nulls). group_cols may be []
+    totals, and the permutation p-value (None without nulls) with its null size n_null. group_cols may be []
     (one group of everything)."""
     group_cols = list(group_cols)
     groups = df.groupby(group_cols, dropna=False, sort=True, observed=True) if group_cols else [((), df)]
@@ -278,14 +279,16 @@ def summarize_groups(df, group_cols, nulls=None, alternative='two-sided'):
         per_session = gdf.groupby('session_id')[[EFFECT_COL, ON_COL, OFF_COL]].mean()
         effect = float(per_session[EFFECT_COL].mean())
         row = dict(zip(group_cols, key))
+        null = grand_null(gdf, nulls) if nulls is not None and alternative else None
         row.update({
             'n_conditions': len(gdf), 'n_sessions': len(per_session),
             'effect': effect, 'effect_sem': _sem(per_session[EFFECT_COL]),
             'on': float(per_session[ON_COL].mean()), 'on_sem': _sem(per_session[ON_COL]),
             'off': float(per_session[OFF_COL].mean()), 'off_sem': _sem(per_session[OFF_COL]),
             'n_on_trials': int(gdf[N_ON_COL].sum()), 'n_off_trials': int(gdf[N_OFF_COL].sum()),
-            'p': (p_value(effect, grand_null(gdf, nulls), alternative)
-                  if nulls is not None and alternative else None),
+            'p': p_value(effect, null, alternative) if null is not None else None,
+            # null size: the smallest nonzero p is 1 / n_null
+            'n_null': len(null) if null is not None else None,
         })
         rows.append(row)
     return pd.DataFrame(rows)
@@ -372,8 +375,9 @@ def pairwise_label_permutation(df, label_col, a, b, n_perm=PAIRWISE_N_PERM, seed
     return out
 
 
-def pairwise_welch(df, label_col, a, b):
-    """Welch's (unequal-variance) t-test between group a and group b on their
+def pairwise_welch(df, label_col, a, b, equal_var=False):
+    """Welch's (unequal-variance; equal_var=True: Student's, pooled-variance)
+    t-test between group a and group b on their
     per-session mean effects — one value per session per group, the same numbers
     the bars and their SEMs are built from. Sessions need not appear in both
     groups. Treats a session in both groups as two independent values (no
@@ -394,10 +398,16 @@ def pairwise_welch(df, label_col, a, b):
     if len(va) and len(vb):
         out['diff'] = float(va.mean() - vb.mean())
     if len(va) >= 2 and len(vb) >= 2:
-        t, p = sp_stats.ttest_ind(va, vb, equal_var=False)
+        t, p = sp_stats.ttest_ind(va, vb, equal_var=equal_var)
         if np.isfinite(p):
             out['t'], out['p'] = float(t), float(p)
     return out
+
+
+def pairwise_student(df, label_col, a, b):
+    """Student's (equal-variance) t-test on per-session mean effects; otherwise
+    as pairwise_welch."""
+    return pairwise_welch(df, label_col, a, b, equal_var=True)
 
 
 def holm(p_values):

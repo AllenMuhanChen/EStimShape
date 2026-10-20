@@ -18,16 +18,29 @@ Per session — one-sided Fisher's exact test on the pooled 2x2 table:
           (each trial counted once) rather than stacked per condition.
     alternative='greater' tests ON > OFF; 'less' tests ON < OFF.
 
-Population — Fisher's combined-probability test:
+Population — selected with ``stats_method`` (a parameter at the top of main()):
+
+  'ttest' (default) — one-sample t-test on the distribution of EStim effects.
+    Each unit's effect is e_i = %ON_i - %OFF_i (or its z-score when studentized).
+    The units are the values in the plot being drawn: one per condition (or per
+    spec with merge_behavioral) in the histograms, one per session in the dot plot.
+    H0: mean(e) = 0.  t = mean(e) / (SD(e) / sqrt(n)), SD with ddof=1,
+    df = n - 1, one-sided ('greater': H1 mean > 0; 'less': H1 mean < 0).
+    Every unit counts equally (unweighted mean), as in a standard t-test.
+    Caveat: conditions in the same behavioral group share one OFF baseline, so
+    per-condition / per-spec effects are not strictly independent.
+
+  'fisher_combined' — Fisher's combined-probability test over the per-session
+    Fisher's exact p-values:
     X^2 = -2 * sum_i ln(p_i)  ~  chi^2 with 2S degrees of freedom (S sessions)
-Sessions use disjoint trials, so the per-session p-values are independent.
+    Sessions use disjoint trials, so the per-session p-values are independent.
 
 Caveats:
   - Pooling across behavioral groups (trial_type, noise, ...) ignores differences in
     baseline between groups. If the ON:OFF ratio differs a lot between groups the
     pooled effect can be biased (Simpson's paradox).
-  - Fisher's exact p-values are discrete and conservative, so the combined test is
-    conservative too (it errs toward p being too large, not too small).
+  - Fisher's exact p-values are discrete and conservative, so the Fisher combined
+    test is conservative too (it errs toward p being too large, not too small).
 """
 
 import os
@@ -56,6 +69,11 @@ from src.analysis.nafc.group_analysis.estim_groups_permutation_test import (
 DEFAULT_MIN_TRIALS = 15
 
 ALTERNATIVES = ('greater', 'less')
+
+# Population test (see module docstring).
+STATS_TTEST  = 'ttest'             # one-sample t-test: mean effect vs 0
+STATS_FISHER = 'fisher_combined'   # Fisher's combined probability over sessions
+STATS_METHODS = (STATS_TTEST, STATS_FISHER)
 
 
 def _get_sessions_with_effects(algorithm_label='none', metric=METRIC_PCT_HYPOTHESIZED):
@@ -176,31 +194,91 @@ def _fmt_p(p):
     return f"p={p:.2f}"
 
 
-def compute_population_stats(rows, alternative='greater'):
-    """Fisher's combined-probability test across sessions, plus descriptive summaries."""
-    n = len(rows)
-    if n == 0:
+def one_sample_ttest(effects, alternative='greater'):
+    """
+    One-sample t-test of mean(effects) against 0 (SD with ddof=1, df = n - 1).
+    alternative='greater' -> H1 mean > 0; 'less' -> H1 mean < 0.
+    Returns (t, df, p); t and p are NaN when n < 2 or every effect is identical.
+    """
+    effects = np.asarray(effects, dtype=float)
+    n = len(effects)
+    if n < 2 or np.std(effects) == 0:
+        return float('nan'), max(n - 1, 0), float('nan')
+    res = sp_stats.ttest_1samp(effects, 0.0, alternative=alternative)
+    return float(res.statistic), n - 1, float(res.pvalue)
+
+
+def compute_population_stats(rows, alternative='greater', stats_method=STATS_TTEST,
+                             effects=None, unit='%', noun='sessions'):
+    """
+    Population test across sessions, plus descriptive summaries.
+
+    stats_method='ttest': one-sample t-test on ``effects`` (the distribution being
+        plotted, e.g. per-condition effects from _condition_arrays). If ``effects`` is
+        None, the per-session pooled effects (ON% - OFF%) are used, with noun='sessions'.
+    stats_method='fisher_combined': Fisher's combined test on the per-session
+        Fisher's exact p-values (``effects`` is then only used for the mean shown).
+
+    The returned dict carries 'p' (the population p-value) for either method.
+    """
+    if stats_method not in STATS_METHODS:
+        raise ValueError(f"stats_method must be one of {STATS_METHODS}, got {stats_method!r}")
+    n_sessions = len(rows)
+    if n_sessions == 0:
         return None
 
-    chi2, df, p_comb = fishers_combined_probability([d['p_value'] for d in rows])
-    effects = np.array([d['pct_on'] - d['pct_off'] for d in rows])
+    if effects is None:
+        effects, unit, noun = [d['pct_on'] - d['pct_off'] for d in rows], '%', 'sessions'
+    effects = np.asarray(effects, dtype=float)
     n_sig   = int(np.sum(np.array([d['p_value'] for d in rows]) < 0.05))
 
     stats = {
-        'n':           n,
-        'chi2':        chi2,
-        'df':          df,
-        'p_combined':  p_comb,
+        'method':      stats_method,
+        'n_sessions':  n_sessions,
+        'n':           len(effects),
+        'noun':        noun,
+        'unit':        unit,
         'mean_effect': float(np.mean(effects)),
+        'sem':         float(sp_stats.sem(effects)) if len(effects) > 1 else float('nan'),
         'n_sig':       n_sig,
         'alternative': alternative,
     }
 
-    print(f"\nPopulation stats (n={n} sessions, alternative={alternative}):")
-    print(f"  Mean pooled effect (ON-OFF): {stats['mean_effect']:+.2f}%")
-    print(f"  Fisher's combined:           X²={chi2:.2f}, df={df}, {_fmt_p(p_comb)}")
-    print(f"  Individually significant:    {n_sig}/{n} sessions (p<0.05)")
+    print(f"\nPopulation stats ({n_sessions} sessions, alternative={alternative}):")
+    print(f"  Individually significant sessions (Fisher's exact p<0.05): {n_sig}/{n_sessions}")
+    if stats_method == STATS_TTEST:
+        t, df, p = one_sample_ttest(effects, alternative)
+        stats.update(t=t, df=df, p=p)
+        print(f"  One-sample t-test on {len(effects)} {noun}: mean = "
+              f"{stats['mean_effect']:+.2f}{unit} ± {stats['sem']:.2f} SEM, "
+              f"t({df}) = {t:.2f}, {_fmt_p(p) if np.isfinite(p) else 'p=n/a'}")
+    else:
+        chi2, df, p = fishers_combined_probability([d['p_value'] for d in rows])
+        stats.update(chi2=chi2, df=df, p=p)
+        print(f"  Mean effect ({noun}): {stats['mean_effect']:+.2f}{unit}")
+        print(f"  Fisher's combined: X²={chi2:.2f}, df={df}, {_fmt_p(p)}")
     return stats
+
+
+def _h1_text(pop):
+    return {'greater': ("ON > OFF", "mean > 0"),
+            'less':    ("ON < OFF", "mean < 0")}[pop['alternative']]
+
+
+def _pop_result_lines(pop):
+    """(test name, statistic line, p text) describing the population test."""
+    if pop['method'] == STATS_TTEST:
+        p_txt = _fmt_p(pop['p']) if np.isfinite(pop['p']) else "p = n/a (n<2)"
+        return (f"One-sample t-test ({_h1_text(pop)[1]})",
+                f"t({pop['df']}) = {pop['t']:.2f}",
+                p_txt)
+    return (f"Fisher's combined ({_h1_text(pop)[0]})",
+            f"X² = {pop['chi2']:.1f}, df = {pop['df']}",
+            _fmt_p(pop['p']))
+
+
+def _pop_is_sig(pop):
+    return np.isfinite(pop['p']) and pop['p'] < 0.05
 
 
 def _draw_stats_panel(ax_text, pop):
@@ -208,12 +286,15 @@ def _draw_stats_panel(ax_text, pop):
     if pop is None:
         return
 
-    sig_color = "darkred" if pop['p_combined'] < 0.05 else "#444444"
-    h1 = "ON > OFF" if pop['alternative'] == 'greater' else "ON < OFF"
+    sig_color = "darkred" if _pop_is_sig(pop) else "#444444"
+    h1 = _h1_text(pop)[0]
+    name, stat_line, p_txt = _pop_result_lines(pop)
+    formula = ("t = mean(eᵢ) / (SD / √n),  eᵢ = %ON − %OFF"
+               if pop['method'] == STATS_TTEST else "X² = −2 Σ ln pᵢ  ~  χ²(2S)")
 
     lines = [
         ("Population Statistics", 1.00, 11, "bold", sig_color),
-        (f"n = {pop['n']} sessions  ·  H₁: {h1}", 0.92, 9, "normal", "black"),
+        (f"n = {pop['n_sessions']} sessions  ·  H₁: {h1}", 0.92, 9, "normal", "black"),
         ("", 0.86, 9, "normal", "black"),
 
         ("Per session: Fisher's exact test", 0.80, 9, "bold", "black"),
@@ -222,13 +303,13 @@ def _draw_stats_panel(ax_text, pop):
         (f"  Mean pooled effect: {pop['mean_effect']:+.2f}%", 0.60, 9, "normal", "#444444"),
         ("", 0.54, 9, "normal", "black"),
 
-        ("Fisher's combined-probability test", 0.48, 9, "bold", "black"),
-        ("X² = −2 Σ ln pᵢ  ~  χ²(2S)", 0.41, 8, "normal", "#444444"),
-        (f"  X² = {pop['chi2']:.2f},  df = {pop['df']}", 0.34, 9, "normal", sig_color),
-        (f"  {_fmt_p(pop['p_combined'])}", 0.26, 10, "bold", sig_color),
+        (name, 0.48, 9, "bold", "black"),
+        (formula, 0.41, 8, "normal", "#444444"),
+        (f"  {stat_line}", 0.34, 9, "normal", sig_color),
+        (f"  {p_txt}", 0.26, 10, "bold", sig_color),
         ("", 0.20, 9, "normal", "black"),
 
-        (f"Sessions individually significant (p<0.05): {pop['n_sig']}/{pop['n']}",
+        (f"Sessions individually significant (p<0.05): {pop['n_sig']}/{pop['n_sessions']}",
          0.12, 8, "normal", "#444444"),
     ]
     for text, y, size, weight, color in lines:
@@ -380,7 +461,9 @@ DEFAULT_BIN_WIDTH_Z   = 0.5   # standard deviations
 
 
 def _unit_noun(merge_behavioral):
-    return "specs" if merge_behavioral else "conditions"
+    # Plot / printout noun. With merge_behavioral each unit is a (session, trial type,
+    # spec), but it is still labelled a condition.
+    return "conditions"
 
 
 def _spec_unit_key(session_id, cond_dict):
@@ -403,6 +486,9 @@ def _condition_arrays(rows, studentize=False, merge_behavioral=False):
                       sqrt(p(1-p)(1/n_on + 1/n_off)), p = pooled choice rate — a
                       two-proportion z-score). Units with a zero chance SD (all
                       choices identical) have no z-score and are dropped.
+
+    'keys' lists (session_id, cond_dict) per returned effect; with merge_behavioral
+    the cond_dict is the unit's first condition (same trial type and spec).
     """
     units = [(d['session_id'], c) for d in rows for c in d['conditions']]
     n_on  = np.array([c['n_on']  for _, c in units], dtype=float)
@@ -412,6 +498,7 @@ def _condition_arrays(rows, studentize=False, merge_behavioral=False):
     p_pool  = (np.array([c['on_yes'] + c['off_yes'] for _, c in units])) / (n_on + n_off)
     null_var = 1e4 * p_pool * (1 - p_pool) * (1 / n_on + 1 / n_off)
     weights = n_on + n_off
+    keys = [(sid, c['cond_dict']) for sid, c in units]
 
     if merge_behavioral:
         groups = {}
@@ -422,10 +509,12 @@ def _condition_arrays(rows, studentize=False, merge_behavioral=False):
         effects  = np.array([np.dot(weights[g], effects[g]) for g in idx]) / W
         null_var = np.array([np.dot(weights[g] ** 2, null_var[g]) for g in idx]) / W ** 2
         weights  = W
+        keys     = [keys[g[0]] for g in idx]
 
     noun = _unit_noun(merge_behavioral)
     if not studentize:
-        return {'effects': effects, 'weights': weights, 'unit': '%', 'noun': noun}
+        return {'effects': effects, 'weights': weights, 'unit': '%', 'noun': noun,
+                'keys': keys}
 
     null_sd = np.sqrt(null_var)
     ok = null_sd > 0
@@ -433,7 +522,7 @@ def _condition_arrays(rows, studentize=False, merge_behavioral=False):
         print(f"  studentize: dropping {int((~ok).sum())} {noun} with zero chance SD "
               f"(all choices identical)")
     return {'effects': effects[ok] / null_sd[ok], 'weights': weights[ok], 'unit': 'z',
-            'noun': noun}
+            'noun': noun, 'keys': [k for k, keep in zip(keys, ok) if keep]}
 
 
 def _resolve_bin_width(bin_width, studentize):
@@ -443,10 +532,10 @@ def _resolve_bin_width(bin_width, studentize):
 
 
 def _effect_axis_label(studentize, merge_behavioral=False):
-    per = "per spec" if merge_behavioral else "per condition"
+    per = "per condition"
     if studentize:
         return f"Studentized EStim effect: (% ON − % OFF) / chance SD  (z, {per})"
-    return f"EStim effect: % ON − % OFF ({per})"
+    return "EStim Effect Size: ON - OFF (% Chose Hypothesized Shape)"
 
 
 def _histogram_edges(array_sets, bin_width):
@@ -462,7 +551,7 @@ def _histogram_edges(array_sets, bin_width):
 def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='greater',
                               color="#d9534f", title=None):
     """Draw one per-condition effect histogram, a reference line at 0 and the
-    Fisher's combined result onto ``ax``."""
+    population test result onto ``ax``."""
     effects, unit, noun = arrays['effects'], arrays['unit'], arrays['noun']
     trial_weighted = float(np.average(effects, weights=arrays['weights']))
     raw_mean       = float(effects.mean())
@@ -471,18 +560,24 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
             label=f"n={len(effects)} {noun}, {len(rows)} sessions")
     ax.axvline(0, color="gray", linestyle="--", linewidth=1)
 
-    h1 = "ON > OFF" if alternative == 'greater' else "ON < OFF"
-    sig_color = "darkred" if pop['p_combined'] < 0.05 else "#444444"
-    ax.text(0.02, 0.97,
-            f"Fisher's combined ({h1}), {pop['n']} sessions\n"
-            f"X² = {pop['chi2']:.1f}, df = {pop['df']}, {_fmt_p(pop['p_combined'])}",
+    sig_color = "darkred" if _pop_is_sig(pop) else "#444444"
+    name, stat_line, p_txt = _pop_result_lines(pop)
+    if pop['method'] == STATS_TTEST:
+        header = f"{name}, n = {pop['n']} {pop['noun']}"
+        detail = f"mean = {pop['mean_effect']:+.2f}{unit}, {stat_line}, {p_txt}"
+    else:
+        header = f"{name}, {pop['n_sessions']} sessions"
+        detail = f"{stat_line}, {p_txt}"
+    # test box and legend sit outside the axes, to the right, clear of the bars
+    ax.text(1.02, 1.0, f"{header}\n{detail}",
             transform=ax.transAxes, va="top", ha="left", fontsize=9, color=sig_color,
             bbox=dict(facecolor="#f8f8f8", edgecolor="#cccccc", boxstyle="round,pad=0.4"))
 
     if title:
         ax.set_title(title, fontsize=11, loc="left", fontweight="bold")
     ax.set_ylabel(f"Number of {noun}", fontsize=12)
-    ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
+    ax.legend(fontsize=9, loc="lower left", bbox_to_anchor=(1.02, 0.0),
+              borderaxespad=0, framealpha=0.9)
     ax.spines[['top', 'right']].set_visible(False)
 
     print(f"\nEffect histogram{' [' + title + ']' if title else ''}: {len(effects)} {noun}, "
@@ -494,13 +589,17 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
                                     alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                     bin_width=None, studentize=False,
                                     trial_types=None, exclude_ratio_ranges=None,
-                                    merge_behavioral=False, save_path=None):
+                                    merge_behavioral=False, stats_method=STATS_TTEST,
+                                    save_path=None):
     """
     Histogram of per-condition effect sizes (ON% - OFF%, one value per qualifying
     condition across all sessions).
 
-    The p-value shown is the session-level Fisher's combined test, not a test on the
-    histogram: conditions share OFF trials, so they are not independent.
+    stats_method  : 'ttest' (default) -> one-sample t-test on the histogram's values
+                    (mean effect > 0 for alternative='greater').
+                    'fisher_combined' -> session-level Fisher's combined test
+                    on each session's pooled Fisher's exact p (not a test on the
+                    histogram: conditions share OFF trials, so they are not independent).
 
     studentize    : True puts each condition's effect in z units (effect / chance SD),
                     so small-n conditions no longer fill the tails. z measures strength
@@ -513,7 +612,8 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
     merge_behavioral : True -> one histogram value per (session, trial type, spec),
                     averaging that spec's behavioral groups (see _condition_arrays)
                     instead of one per condition. Adds __perspec to the filename.
-                    The Fisher's combined test is unaffected (same trials).
+                    The t-test then runs on the per-spec values; the Fisher's
+                    combined test is unaffected (same trials).
     """
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
                                 metric, alternative, min_trials, trial_types=trial_types,
@@ -521,8 +621,10 @@ def plot_condition_effect_histogram(exclude_session_ids=None, start_session_id=N
     if not rows:
         print("No data to plot.")
         return None
-    pop = compute_population_stats(rows, alternative=alternative)
     arrays = _condition_arrays(rows, studentize=studentize, merge_behavioral=merge_behavioral)
+    pop = compute_population_stats(rows, alternative=alternative, stats_method=stats_method,
+                                   effects=arrays['effects'], unit=arrays['unit'],
+                                   noun=arrays['noun'])
     edges = _histogram_edges([arrays], _resolve_bin_width(bin_width, studentize))
 
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -694,15 +796,18 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                exclude_ratio_ranges=None, rule_mode=RULE_MODE_RANGE,
                                centers=ESTIM_DISTANCE_CENTERS,
                                fraction=DISTANCE_RULE_FRACTION, merge_behavioral=False,
-                               save_path=None):
+                               stats_method=STATS_TTEST, save_path=None,
+                               condition_set_names=None, individual_plots=True):
     """
     Per-condition effect histograms split by the estim rules, stacked on a shared
     x-axis (and shared bins / y-axis) for direct comparison:
         top    = conditions within the rules
         bottom = conditions outside the rules (same trial types, ratio out of range)
 
-    Each panel has its own session-level Fisher's combined test (each session's
-    within-rule / outside-rule conditions pooled into their own 2x2 table).
+    Each panel has its own population test (stats_method): 'ttest' (default) runs a
+    one-sample t-test on that panel's histogram values; 'fisher_combined' runs a
+    session-level Fisher's combined test (each session's within-rule / outside-rule
+    conditions pooled into their own 2x2 table).
 
     rule_mode     : 'range' (default) — within = ratio inside ESTIM_RULES[trial_type].
                     'closest' — within = the closest ``fraction`` of conditions to
@@ -719,6 +824,12 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
     merge_behavioral : True -> one value per (session, trial type, spec), averaging
                     the spec's behavioral groups; in 'closest' mode specs (not
                     conditions) are ranked. Adds __perspec to the filename.
+    individual_plots : True -> after the stacked figure, one figure per half (same
+                    bins and x-axis), saved with __top / __bottom added to the name.
+    condition_set_names : None, or (top name, bottom name) — save the conditions in
+                    each histogram as a named condition set (estim_condition_sets),
+                    replacing any set of that name, for other scripts / the condition
+                    explorer to filter by.
     """
     if rule_mode not in RULE_MODES:
         raise ValueError(f"rule_mode must be one of {RULE_MODES}, got {rule_mode!r}")
@@ -735,9 +846,10 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
 
         def classify(sid, cond):
             return classify_closest(sid, cond, centers, thresholds)
-        groups = [(RULE_IN,  f"Closest {pct} to center",        "#d9534f"),
-                  (RULE_OUT, f"Farther from center (other {100 - 100 * fraction:g}%)", "#7f7f7f")]
-        rule_text = (f"Closest {pct} by |ratio − center|: " + "; ".join(
+        groups = [(RULE_IN,  f"Top {pct} by EStim Parameter Fitness", "#d9534f"),
+                  (RULE_OUT, f"Bottom {100 - 100 * fraction:g}% by EStim Parameter Fitness",
+                   "#7f7f7f")]
+        rule_text = ("EStim parameter fitness ranked by |ratio − center|: " + "; ".join(
             f"{tt}: center {c:g}" + (f" (≤ {thresholds[tt]:.2g})" if tt in thresholds else "")
             for tt, c in centers.items()))
         if save_path:
@@ -751,14 +863,32 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
         rule_text = f"Rules: {_describe_rules(rules)}"
 
     results = {}
+    members = {}  # key -> [(session_id, cond_dict)] of the conditions in that histogram
     for key, label, _ in groups:
         print(f"\n===== {label} =====")
-        rows = collect_session_rows(
-            condition_filter=lambda sid, cond, key=key: classify(sid, cond) == key, **common)
-        pop = compute_population_stats(rows, alternative=alternative) if rows else None
-        results[key] = (rows, pop,
-                        _condition_arrays(rows, studentize=studentize,
-                                          merge_behavioral=merge_behavioral) if rows else None)
+        members[key] = []
+
+        def in_group(sid, cond, key=key):
+            # called only for conditions that pass min_trials, trial_types and the
+            # ratio exclusions, so what it records is exactly the histogram's set
+            if classify(sid, cond) != key:
+                return False
+            members[key].append((sid, cond))
+            return True
+        rows = collect_session_rows(condition_filter=in_group, **common)
+        arrays = (_condition_arrays(rows, studentize=studentize,
+                                    merge_behavioral=merge_behavioral) if rows else None)
+        pop = (compute_population_stats(rows, alternative=alternative,
+                                        stats_method=stats_method,
+                                        effects=arrays['effects'], unit=arrays['unit'],
+                                        noun=arrays['noun']) if rows else None)
+        results[key] = (rows, pop, arrays)
+
+    if condition_set_names is not None:
+        _save_rule_condition_sets(condition_set_names, groups, members, rule_text,
+                                  dict(common, rule_mode=rule_mode, rules=rules,
+                                       centers=centers, fraction=fraction,
+                                       merge_behavioral=merge_behavioral))
 
     present = [results[k][2] for k, _, _ in groups if results[k][2] is not None]
     if not present:
@@ -766,7 +896,7 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
         return None
     edges = _histogram_edges(present, _resolve_bin_width(bin_width, studentize))
 
-    fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 1, figsize=(11, 8), sharex=True, sharey=True)
     for ax, (key, label, color) in zip(axes, groups):
         rows, pop, arrays = results[key]
         if arrays is None:
@@ -784,8 +914,37 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
 
     _save_figure(fig, save_path, trial_types, exclude_ratio_ranges, merge_behavioral)
 
+    if individual_plots:
+        for (key, label, color), part in zip(groups, ("top", "bottom")):
+            rows, pop, arrays = results[key]
+            if arrays is None:
+                continue
+            fig_one, ax = plt.subplots(figsize=(11, 4.5))
+            _draw_condition_histogram(ax, rows, pop, arrays, edges,
+                                      alternative=alternative, color=color, title=label)
+            ax.set_xlim(edges[0], edges[-1])
+            ax.set_xlabel(_effect_axis_label(studentize, merge_behavioral), fontsize=12)
+            fig_one.suptitle(f"{_filter_label(trial_types)}  ·  {rule_text}",
+                             fontsize=10, color="#444444")
+            fig_one.tight_layout()
+            if save_path:
+                root, ext = os.path.splitext(save_path)
+                _save_figure(fig_one, f"{root}__{part}{ext}", trial_types,
+                             exclude_ratio_ranges, merge_behavioral)
+
     plt.show()
     return fig
+
+
+def _save_rule_condition_sets(names, groups, members, rule_text, params):
+    """Save the top (within rules / closest) and bottom histograms' conditions as
+    the condition sets names[0] / names[1]."""
+    from src.analysis.nafc.group_analysis.estim_condition_sets import save_condition_set
+    for name, (key, label, _) in zip(names, groups):
+        if name:
+            save_condition_set(name, members[key], description=f"{label}. {rule_text}",
+                               source='avg_estim_per_experiment',
+                               params={**params, 'group': key})
 
 
 def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=None,
@@ -793,7 +952,7 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
                                   alternative='greater', min_trials=DEFAULT_MIN_TRIALS,
                                   save_path=None, show_n=True,
                                   x_spacing=1.0, width_per_exp=1.5, trial_types=None,
-                                  exclude_ratio_ranges=None):
+                                  exclude_ratio_ranges=None, stats_method=STATS_TTEST):
     """
     exclude_session_ids : optional iterable of session_ids to drop.
     start_session_id    : only include sessions with session_id >= this value.
@@ -804,6 +963,8 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
     trial_types         : None (all) or trial-type names to keep; added to the filename.
     exclude_ratio_ranges: None or [(lo, hi), ...] ratio ranges to drop (inclusive;
                           None for an open end); added to the filename.
+    stats_method        : 'ttest' (default) -> one-sample t-test on the per-session
+                          pooled effects; 'fisher_combined' -> Fisher's combined test.
     """
     rows = collect_session_rows(exclude_session_ids, start_session_id, algorithm_label,
                                 metric, alternative, min_trials, trial_types=trial_types,
@@ -812,7 +973,7 @@ def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=Non
         print("No data to plot.")
         return None
 
-    pop = compute_population_stats(rows, alternative=alternative)
+    pop = compute_population_stats(rows, alternative=alternative, stats_method=stats_method)
 
     n_exp       = len(rows)
     plot_width  = width_per_exp * n_exp * x_spacing
@@ -892,8 +1053,8 @@ def main():
     # to each saved filename, e.g. ..._histogram__HypothesizedShape.png
     trial_types = None
     # trial_types = ['Hypothesized Shape']
-    trial_types = ['Hypothesized Shape', 'Delta Shape']
-    # trial_types = ['Delta Shape']
+    # trial_types = ['Hypothesized Shape', 'Delta Shape']
+    trial_types = ['Delta Shape']
     # current : half-distance ratio ranges to drop from EVERY plot (inclusive; None =
     # open end); also appended to each filename, e.g. ..._histogram__xratio8-inf.png
     exclude_ratio_ranges = [(8, None)]
@@ -909,8 +1070,20 @@ def main():
     # 'closest' -> closest DISTANCE_RULE_FRACTION of conditions to
     #              ESTIM_DISTANCE_CENTERS (Hypothesized 4, Delta 0), no hard cutoff
 
+    # Population test, used by every plot below:
+    # 'ttest'           -> one-sample t-test on the plotted distribution of EStim
+    #                      effects (one value per condition / spec / session),
+    #                      H1: mean effect > 0 (alternative='greater')
+    # 'fisher_combined' -> Fisher's combined test over per-session Fisher's exact p's
+    stats_method = 'ttest'
+
     studentize = False
-    min_trials = 10
+    min_trials = 5
+
+    # Save the rule split's two halves as named condition sets (in the data
+    # repository) for the condition explorer / other scripts to filter by:
+    # (top name, bottom name), or None to not save. Re-running replaces them.
+    condition_set_names = ('estim_rule_top_half', 'estim_rule_bottom_half')
     plot_condition_effect_histogram(
         exclude_session_ids=exclude_session_ids,
         start_session_id=start_session_id,
@@ -918,11 +1091,12 @@ def main():
         metric=metric,
         alternative='greater',   # 'less' -> test whether the average effect is negative
         min_trials=min_trials,
-        bin_width=None,          # None -> 5 %-points, or 0.5 z when studentized
+        bin_width=10,          # None -> 5 %-points, or 0.5 z when studentized
         studentize=studentize,        # True -> x-axis in z = effect / chance SD
         trial_types=trial_types,
         exclude_ratio_ranges=exclude_ratio_ranges,
         merge_behavioral=merge_behavioral,
+        stats_method=stats_method,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_condition_histogram.png",
     )
 
@@ -942,7 +1116,10 @@ def main():
         exclude_ratio_ranges=exclude_ratio_ranges,
         rule_mode=rule_mode,
         merge_behavioral=merge_behavioral,
+        stats_method=stats_method,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
+        condition_set_names=condition_set_names,
+        individual_plots=True,   # also one figure per half after the stacked one
     )
 
     # Per-session ON/OFF dot plot (same test, one pooled pair of dots per session):
@@ -959,6 +1136,7 @@ def main():
     #     width_per_exp=1.0,
     #     trial_types=trial_types,
     #     exclude_ratio_ranges=exclude_ratio_ranges,
+    #     stats_method=stats_method,
     # )
 
 

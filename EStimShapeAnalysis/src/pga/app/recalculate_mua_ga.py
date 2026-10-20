@@ -58,8 +58,10 @@ def main():
     clear_driving_responses(ga_config.connection())
     processor.process_to_db(ga_config.ga_name)
 
-    # 3) Push the recomputed GA responses into the repository (best-effort).
-    update_repository_with_ga_responses()
+    # 3) Push the recomputed GA responses + MUA spikes into the repository
+    #    (MUASpikeResponses, tagged with this metric). Fails loudly: without this
+    #    export the session isn't migrated to MUA for repository-based analyses.
+    update_repository_with_ga_responses(data_type=f"mua_{metric}", raise_on_failure=True)
     print("Done: MUA backfill + driving-response recompute complete.")
 
 

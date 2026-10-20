@@ -24,10 +24,19 @@ from __future__ import annotations
 import traceback
 
 
-def update_repository_with_ga_responses(use_baseline_correction: bool = False) -> bool:
+def update_repository_with_ga_responses(use_baseline_correction: bool = False,
+                                        data_type: str = None,
+                                        raise_on_failure: bool = False) -> bool:
     """Re-compile + export the current GA session so the repository reflects the
     GA Responses that were just computed. Returns True on success, False (with an
-    explanation printed) if the update couldn't be completed."""
+    explanation printed) if the update couldn't be completed.
+
+    data_type picks the spike table the export writes: None/'raw' ->
+    RawSpikeResponses (spike.dat), 'mua' / 'mua_<metric>' -> MUASpikeResponses
+    tagged with that metric.
+
+    raise_on_failure=True (for offline migrations like recalculate_mua_ga) turns
+    the best-effort behavior off: any failure, or exporting zero rows, raises."""
     # Imported lazily so the GA/response-processing path doesn't pay for the heavy
     # analysis import unless this actually runs, and to avoid import cycles.
     try:
@@ -36,20 +45,29 @@ def update_repository_with_ga_responses(use_baseline_correction: bool = False) -
     except Exception as e:
         print("[ga-repo-update] Skipping repository update: could not import the analysis "
               f"stack ({type(e).__name__}: {e}). GA response processing was unaffected.")
+        if raise_on_failure:
+            raise
         return False
 
     try:
-        analysis = PlotTopNAnalysis(use_baseline_correction=use_baseline_correction)
-        print(f"[ga-repo-update] Updating repository from '{context.ga_database}' so it "
+        analysis = PlotTopNAnalysis(use_baseline_correction=use_baseline_correction,
+                                    data_type=data_type)
+        print(f"[ga-repo-update] Updating repository from '{context.ga_database}' "
+              f"({analysis.response_table or 'RawSpikeResponses'}) so it "
               "reflects the newly-computed GA Responses...")
         data = analysis.compile_and_export()
         n_rows = 0 if data is None else len(data)
+        if raise_on_failure and n_rows == 0:
+            raise RuntimeError(f"Exported 0 trial rows from '{context.ga_database}' to the "
+                               "repository; nothing with a GA Response to export.")
         print(f"[ga-repo-update] Done: exported {n_rows} trial row(s) with GA Responses to "
               "the repository.")
         return True
     except Exception as e:
         print("[ga-repo-update] Could not update the repository with GA Responses "
               f"({type(e).__name__}: {e}).")
+        if raise_on_failure:
+            raise
         print("[ga-repo-update] This is non-fatal: GA response processing completed; only the "
               "repository export was skipped. Common causes: the session isn't exportable yet "
               "(no completed trials with responses), the repository database is unreachable, or "
