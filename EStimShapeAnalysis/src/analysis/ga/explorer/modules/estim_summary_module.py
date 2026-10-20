@@ -51,6 +51,9 @@ CORR_METHODS = ["spearman", "pearson"]
 FITNESS_LABEL = ("EStim parameter fitness  |ratio − center|\n"
                  "(ratio = current per second ÷ half-distance, µA·Hz/µm)")
 PANEL_SIZE = (6.0, 4.6)  # inches per plot
+# Fitness scatter dot color per trial type (others fall back to FALLBACK_COLORS).
+TRIAL_TYPE_COLORS = {"Hypothesized Shape": "#c0392b", "Delta Shape": "#2c7fb8"}
+FALLBACK_COLORS = ["#27ae60", "#8e44ad", "#e67e22", "#555555"]
 
 
 def condition_effects(session_id, algorithm_label, metric, min_trials, studentize):
@@ -215,9 +218,17 @@ class EStimSummaryModule(FigureModule):
                     va="center", transform=ax.transAxes, fontsize=14, color="gray")
             return (f"fitness: none of {effects.size} conditions has a trial type with a "
                     "center and a current / half-distance ratio")
+        types = np.array([c.get("trial_type") for c in conds], dtype=object)[keep]
         x, y = x[keep], effects[keep]
         ax.axhline(0, color="black", linewidth=1, zorder=1)
-        ax.scatter(x, y, color="black", s=60, alpha=0.8, zorder=3)
+        # One color per trial type, in ESTIM_DISTANCE_CENTERS order.
+        present = [t for t in ESTIM_DISTANCE_CENTERS if t in set(types)]
+        fallback = iter(FALLBACK_COLORS * 4)
+        for tt in present:
+            on = types == tt
+            ax.scatter(x[on], y[on], color=TRIAL_TYPE_COLORS.get(tt) or next(fallback),
+                       s=60, alpha=0.8, zorder=3, label=tt)
+        ax.legend(fontsize=12, frameon=False, loc="best")
 
         stats = ""
         if len(x) >= 3 and np.ptp(x) > 0:
