@@ -25,6 +25,9 @@ from src.analysis.ga.explorer.ga_data import (DATA_TYPES, load_side_test_data,
                                               parse_channel)
 
 
+BOX_FONTSIZE = 18  # SPI and linear-fit boxes
+
+
 def solid_preference_index(resp_3d, resp_2d) -> float:
     total_3d, total_2d = float(np.sum(resp_3d)), float(np.sum(resp_2d))
     denom = max(total_3d, total_2d)
@@ -82,8 +85,11 @@ class SolidPreferenceModule(FigureModule):
             Param("fit_line", "Regression line", "bool", False,
                   tooltip="Least-squares fit of 3D on 2D, with slope, r² and p in a "
                           "box right of the plot."),
-            Param("box_fontsize", "Box text size", "int", 24, minimum=8, maximum=60,
-                  tooltip="Font size (pt) of the SPI and linear-fit boxes."),
+            Param("title_fontsize", "Title size", "int", 24, minimum=8, maximum=60),
+            Param("label_fontsize", "Axis label size", "int", 22, minimum=8, maximum=60,
+                  tooltip="Font size (pt) of the x and y axis titles."),
+            Param("tick_fontsize", "Tick label size", "int", 18, minimum=6, maximum=60,
+                  tooltip="Font size (pt) of the numbers on the axes."),
         ]
 
     def make_figure(self, session, values):
@@ -128,7 +134,7 @@ class SolidPreferenceModule(FigureModule):
             boxes.append((f"Linear fit\nslope = {fit.slope:.2f}\n"
                           f"$r^2$ = {fit.rvalue ** 2:.2f}\n{_fmt_p(fit.pvalue)}", "black"))
         # Box column and figure grow with the box text (sizes in points).
-        box_fs = values["box_fontsize"]
+        box_fs = BOX_FONTSIZE
         line_h, box_pad, gap = 1.5 * 1.15 * box_fs, 1.2 * box_fs, 0.8 * box_fs
         heights = [t.count("\n") * line_h + 1.15 * box_fs + box_pad for t, _c in boxes]
         longest = max(len(line.replace("$", "")) for t, _c in boxes for line in t.split("\n"))
@@ -165,10 +171,10 @@ class SolidPreferenceModule(FigureModule):
                                                     facecolor="white", edgecolor="#cccccc")))
             top -= h + gap
         unit = "GA response" if channel == "GA" else "response (sp/s)"
-        ax.set_xlabel(f"2D mean {unit}", fontsize=15)
-        ax.set_ylabel(f"3D mean {unit}", fontsize=15)
-        ax.set_title("Solid preference", fontsize=16)
-        ax.tick_params(labelsize=13)
+        ax.set_xlabel(f"2D mean {unit}", fontsize=values["label_fontsize"])
+        ax.set_ylabel(f"3D mean {unit}", fontsize=values["label_fontsize"])
+        ax.set_title("Solid preference", fontsize=values["title_fontsize"])
+        ax.tick_params(labelsize=values["tick_fontsize"])
         ax.legend(fontsize=14, frameon=False, loc="lower right")
         for side in ("top", "right"):
             ax.spines[side].set_visible(False)
