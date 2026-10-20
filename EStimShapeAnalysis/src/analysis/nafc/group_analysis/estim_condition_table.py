@@ -375,8 +375,9 @@ def pairwise_label_permutation(df, label_col, a, b, n_perm=PAIRWISE_N_PERM, seed
     return out
 
 
-def pairwise_welch(df, label_col, a, b):
-    """Welch's (unequal-variance) t-test between group a and group b on their
+def pairwise_welch(df, label_col, a, b, equal_var=False):
+    """Welch's (unequal-variance; equal_var=True: Student's, pooled-variance)
+    t-test between group a and group b on their
     per-session mean effects — one value per session per group, the same numbers
     the bars and their SEMs are built from. Sessions need not appear in both
     groups. Treats a session in both groups as two independent values (no
@@ -397,10 +398,16 @@ def pairwise_welch(df, label_col, a, b):
     if len(va) and len(vb):
         out['diff'] = float(va.mean() - vb.mean())
     if len(va) >= 2 and len(vb) >= 2:
-        t, p = sp_stats.ttest_ind(va, vb, equal_var=False)
+        t, p = sp_stats.ttest_ind(va, vb, equal_var=equal_var)
         if np.isfinite(p):
             out['t'], out['p'] = float(t), float(p)
     return out
+
+
+def pairwise_student(df, label_col, a, b):
+    """Student's (equal-variance) t-test on per-session mean effects; otherwise
+    as pairwise_welch."""
+    return pairwise_welch(df, label_col, a, b, equal_var=True)
 
 
 def holm(p_values):

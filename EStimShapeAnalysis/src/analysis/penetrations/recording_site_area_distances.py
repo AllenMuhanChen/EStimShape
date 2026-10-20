@@ -26,7 +26,8 @@ Outputs (never overwritten): OUT_BASE/<RUN_TAG>_<timestamp>/
     rf_map_by_area.png          receptive fields (ReceptiveFieldInfo) drawn as
                                 circles at their location/size, colored by the
                                 area the site is in (solid) or nearest to (dashed)
-    v4_border_rf_check.png      RF radius / eccentricity vs closeness to both V4v and V4d
+    border_rf_check_<areas>.png RF radius / eccentricity vs distance to where the areas
+                                in each V4_BORDER_SETS entry meet (V4v/V4d, V4v/V4d/TEO)
     motion_site_closest_regions.csv   every row labelled MT / motion / direction: its
                                 closest atlas regions (also printed in the console)
 """
@@ -461,52 +462,108 @@ def plot_rf_map(df: pd.DataFrame, areas: List[str], out_path: str, title: str,
     return fig
 
 
-def plot_v4_border_check(df: pd.DataFrame, out_path: str, a: str = 'V4v', b: str = 'V4d'):
-    """Sanity check: sites close to BOTH V4v and V4d (the foveal confluence)
-    should have small, near-foveal RFs.
+def border_distance(sites: np.ndarray, atlas_data: np.ndarray, atlas_to_world: np.ndarray,
+                    area_idx_lists: List[List[int]], tol_mm: float = 1.0,
+                    name: str = 'border') -> np.ndarray:
+    """Distance (mm) from each site to the border where ALL the given areas meet.
 
-    Closeness-to-both score = max(d_a, d_b): small only when the site is near
-    both areas at once (it is the distance to the farther of the two).
-    Spearman correlation (rank-based, no linearity assumption) is reported
-    for RF radius and RF eccentricity against that score.
+    Border = every voxel of any of the areas that has a voxel of EACH other
+    area within tol_mm (voxel centers). With 2 areas that is the shared edge;
+    with 3 it is the junction where all three touch. Distance is to the
+    nearest border voxel center. Fails loudly if the areas never all come
+    within tol_mm of each other, reporting how close they get.
+    """
+    worlds = []
+    for idxs in area_idx_lists:
+        ijk = np.argwhere(np.isin(atlas_data, idxs))
+        worlds.append((atlas_to_world @ np.c_[ijk, np.ones(len(ijk))].T).T[:, :3])
+    trees = [cKDTree(w) for w in worlds]
+    border, best_gap = [], np.inf
+    for i, w in enumerate(worlds):
+        # distance from each voxel of area i to the farthest of the other areas' nearest voxels
+        far = np.max([trees[j].query(w)[0] for j in range(len(worlds)) if j != i], axis=0)
+        best_gap = min(best_gap, float(far.min()))
+        border.append(w[far < tol_mm])
+    border = np.concatenate(border)
+    if len(border) == 0:
+        raise ValueError(f"{name}: the areas never all come within {tol_mm} mm of each other "
+                         f"(closest: {best_gap:.2f} mm); raise V4_BORDER_TOLERANCE_MM")
+    print(f"  {name}: {len(border)} border voxels (within {tol_mm} mm of every other area)")
+    return cKDTree(border).query(sites)[0]
+
+
+def border_col(areas: List[str]) -> str:
+    return '_'.join(areas) + '_border'
+
+
+def plot_v4_border_check(df: pd.DataFrame, out_path: str, border_areas: List[str],
+                         regression_line: bool = False, color_by_area: bool = False):
+    """Sanity check: sites close to where the border_areas meet (the foveal
+    confluence) should have small, near-foveal RFs.
+
+    RF radius and RF eccentricity vs distance to the border
+    (column border_col(border_areas); see border_distance), with Spearman
+    correlation (rank-based, no linearity assumption). Dots are colored by
+    which of border_areas the site is in, else the nearest one.
     """
     from scipy.stats import spearmanr
-    d_a, d_b = df[a].to_numpy(float), df[b].to_numpy(float)
-    score = np.maximum(d_a, d_b)
+    name = '/'.join(border_areas)
+    score = df[border_col(border_areas)].to_numpy(float)
     radius = df['rf_radius'].to_numpy(float)
     ecc = np.hypot(df['rf_x'].to_numpy(float), df['rf_y'].to_numpy(float))
+    # Dot color = which of border_areas the site is in, else the nearest one
+    site_area = (assign_area(df, list(border_areas))['area'].to_numpy() if color_by_area
+                 else np.full(len(df), None))
+    fallback = plt.get_cmap('tab10')
+    colors = {a: AREA_COLORS.get(a, fallback(i % 10)) for i, a in enumerate(border_areas)}
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5.8))
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5.8))
 
-    ax = axes[0]
-    sc = ax.scatter(d_a, d_b, c=radius, cmap='viridis', s=90, edgecolor='black', linewidth=0.6)
-    lim = max(1.0, float(np.nanmax(np.r_[d_a, d_b])) * 1.08)
-    ax.set_xlim(-0.3, lim); ax.set_ylim(-0.3, lim); ax.set_aspect('equal')
-    ax.set_xlabel(f'Distance to {a} (mm)', fontsize=14)
-    ax.set_ylabel(f'Distance to {b} (mm)', fontsize=14)
-    ax.set_title(f'Distance to {a} vs {b}', fontsize=15)
-    cb = fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.04)
-    cb.set_label('RF radius (deg)', fontsize=13)
-    cb.ax.tick_params(labelsize=11)
-
-    for ax, y, ylabel in ((axes[1], radius, 'RF radius (deg)'),
-                          (axes[2], ecc, 'RF eccentricity (deg)')):
-        ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
+    for ax, y, ylabel in ((axes[0], radius, 'RF radius (deg)'),
+                          (axes[1], ecc, 'RF eccentricity (deg)')):
+        if color_by_area:
+            for a in border_areas:
+                m = site_area == a
+                if m.any():
+                    ax.scatter(score[m], y[m], s=90, color=colors[a], edgecolor='black',
+                               linewidth=0.6, label=f"{a} (n={int(m.sum())})")
+        else:
+            ax.scatter(score, y, s=90, color='#1f77b4', edgecolor='black', linewidth=0.6)
+        if regression_line and len(score) >= 2:
+            slope, intercept = np.polyfit(score, y, 1)   # ordinary least squares
+            xs = np.array([score.min(), score.max()])
+            ax.plot(xs, slope * xs + intercept, color='#d62728', lw=2)
         if len(score) >= 3:
             rho, pval = spearmanr(score, y)
             ax.text(0.03, 0.97, f"Spearman \u03c1 = {rho:.2f}\np = {pval:.3g}\nn = {len(score)}",
                     transform=ax.transAxes, va='top', fontsize=13)
-        ax.set_xlabel(f'Distance to farther of {a} / {b} (mm)', fontsize=14)
+        ax.set_xlabel(f'Distance to {name} border (mm)', fontsize=14)
         ax.set_ylabel(ylabel, fontsize=14)
         ax.set_xlim(left=-0.3); ax.set_ylim(bottom=0)
-        ax.set_title(f'{ylabel.split(" (")[0]} vs closeness to both', fontsize=15)
+        ax.set_title(f'{ylabel.split(" (")[0]} vs distance to {name} border', fontsize=15)
 
     for ax in axes:
         ax.tick_params(labelsize=12)
         ax.spines[['top', 'right']].set_visible(False)
+    if color_by_area:
+        axes[1].legend(fontsize=12, loc='center left', bbox_to_anchor=(1.02, 0.5), frameon=False)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150, bbox_inches='tight')
     return fig
+
+
+def filter_by_label_substring(pens: List[dict], keywords: List[str]) -> List[dict]:
+    """Keep rows whose label contains any keyword (case-insensitive substring,
+    so 'rec' also matches 'recording'). Prints the rows it drops."""
+    if not keywords:
+        return pens
+    kws = [k.lower() for k in keywords]
+    kept = [p for p in pens if any(k in (p['label'] or '').lower() for k in kws)]
+    dropped = [p for p in pens if p not in kept]
+    print(f"  Label filter {keywords}: kept {len(kept)} of {len(pens)} sites")
+    for p in dropped:
+        print(f"    dropped {p['session_id']} (pen {p['id']}): {p['label']!r}")
+    return kept
 
 
 def filter_by_start_date(pens: List[dict], start_date: Optional[str]) -> List[dict]:
@@ -531,6 +588,7 @@ def main():
     PER_SESSION_CORRECTIONS = True       # viewer's "Sess.Corr: ON" (its default)
     PEN_TABLE = None                     # None -> config's penetration_table
     FINAL_SITE_COLOR = "red"
+    FINAL_SITE_LABEL_KEYWORDS = ['rec', 'loc']   # red rows also need one of these in the label (case-insensitive)
     SHOW_PLOTS = True                    # open the figure in a window after saving
     # Area -> atlas label name(s) to match (case-insensitive, whole name or
     # any comma-separated token of the D99 label).
@@ -545,7 +603,13 @@ def main():
     }
     # Receptive-field map (ReceptiveFieldInfo in the data repository)
     PLOT_RF_MAP = True
-    PLOT_V4_BORDER_CHECK = True          # RF size/eccentricity vs closeness to both V4v and V4d
+    PLOT_V4_BORDER_CHECK = True          # RF size/eccentricity vs distance to the V4v/V4d border
+    V4_BORDER_TOLERANCE_MM = 1.0         # voxels this close to every other area count as border
+    # One border-check figure per entry: the place where ALL listed areas meet
+    V4_BORDER_SETS = [['V4v', 'V4d'], ['V4v', 'V4d', 'TEO']]
+    V4_REGRESSION_LINE_SETS = [['V4v', 'V4d', 'TEO']]   # border plots that get a least-squares line
+    V4_COLOR_BY_AREA = False             # color border-plot dots by the area each site is in/nearest
+    V4_CHECK_EXCLUDE_AREAS = ['V3v']     # drop sessions in (or nearest to) these areas from the V4 check
     # Motion-area sites: every Penetrations row whose label contains one of these
     # keywords (case-insensitive; 'MT' only as a whole word), distance to these areas
     REPORT_MOTION_SITES = True
@@ -570,15 +634,29 @@ def main():
     table = PEN_TABLE or geom['cfg'].get('penetration_table', 'Penetrations')
 
     conn = Connection(**DB)
-    pens = filter_by_start_date(fetch_red_penetrations(conn, table, FINAL_SITE_COLOR), START_DATE)
+    pens = filter_by_start_date(
+        filter_by_label_substring(fetch_red_penetrations(conn, table, FINAL_SITE_COLOR),
+                                  FINAL_SITE_LABEL_KEYWORDS),
+        START_DATE)
     df = compute_site_distances(pens, geom, AREAS, PER_SESSION_CORRECTIONS)
+    if PLOT_V4_BORDER_CHECK:
+        idx = df.attrs['area_indices']
+        for areas in V4_BORDER_SETS:
+            df[border_col(areas)] = border_distance(
+                df[['ML', 'AP', 'DV']].to_numpy(float), geom['atlas_data'],
+                geom['subj_corr'] @ geom['atlas_sform'], [idx[a] for a in areas],
+                V4_BORDER_TOLERANCE_MM, name='/'.join(areas))
 
     with open(os.path.join(out_dir, 'config.json'), 'w') as f:
         json.dump(dict(
             timestamp=ts, run_tag=RUN_TAG, mri_config=os.path.abspath(MRI_CONFIG),
             corrections_file=CORRECTIONS_FILE, per_session_corrections=PER_SESSION_CORRECTIONS,
-            pen_table=table, final_site_color=FINAL_SITE_COLOR, areas=AREAS, show_plots=SHOW_PLOTS,
-            plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK, rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
+            pen_table=table, final_site_color=FINAL_SITE_COLOR,
+            final_site_label_keywords=FINAL_SITE_LABEL_KEYWORDS, areas=AREAS, show_plots=SHOW_PLOTS,
+            plot_rf_map=PLOT_RF_MAP, plot_v4_border_check=PLOT_V4_BORDER_CHECK,
+            v4_border_tolerance_mm=V4_BORDER_TOLERANCE_MM, v4_border_sets=V4_BORDER_SETS,
+            v4_check_exclude_areas=V4_CHECK_EXCLUDE_AREAS, v4_color_by_area=V4_COLOR_BY_AREA,
+            rf_channel=RF_CHANNEL, label_sessions=LABEL_SESSIONS,
             print_areas=PRINT_AREAS, start_date=START_DATE,
             report_motion_sites=REPORT_MOTION_SITES, motion_label_keywords=MOTION_LABEL_KEYWORDS,
             motion_top_n=MOTION_TOP_N, motion_search_radius_mm=MOTION_SEARCH_RADIUS_MM,
@@ -616,7 +694,15 @@ def main():
                         "Receptive fields by recording area",
                         LABEL_SESSIONS)
         if PLOT_V4_BORDER_CHECK:
-            plot_v4_border_check(rf_df, os.path.join(out_dir, 'v4_border_rf_check.png'))
+            v4_df = rf_df[~rf_df['area'].isin(V4_CHECK_EXCLUDE_AREAS)]
+            dropped = sorted(rf_df.loc[rf_df['area'].isin(V4_CHECK_EXCLUDE_AREAS), 'session_id'])
+            if dropped:
+                print(f"  V4 check: excluded {len(dropped)} sessions in/nearest {V4_CHECK_EXCLUDE_AREAS}: {dropped}")
+            for areas in V4_BORDER_SETS:
+                plot_v4_border_check(v4_df, os.path.join(
+                    out_dir, f"border_rf_check_{'_'.join(areas)}.png"), areas,
+                    regression_line=areas in V4_REGRESSION_LINE_SETS,
+                    color_by_area=V4_COLOR_BY_AREA)
 
     if REPORT_MOTION_SITES:
         motion_pens = filter_by_start_date(

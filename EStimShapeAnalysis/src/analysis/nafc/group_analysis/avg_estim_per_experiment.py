@@ -535,7 +535,7 @@ def _effect_axis_label(studentize, merge_behavioral=False):
     per = "per condition"
     if studentize:
         return f"Studentized EStim effect: (% ON − % OFF) / chance SD  (z, {per})"
-    return f"EStim effect: % ON − % OFF ({per})"
+    return "EStim Effect Size: ON - OFF (% Chose Hypothesized Shape)"
 
 
 def _histogram_edges(array_sets, bin_width):
@@ -568,14 +568,16 @@ def _draw_condition_histogram(ax, rows, pop, arrays, edges, *, alternative='grea
     else:
         header = f"{name}, {pop['n_sessions']} sessions"
         detail = f"{stat_line}, {p_txt}"
-    ax.text(0.02, 0.97, f"{header}\n{detail}",
+    # test box and legend sit outside the axes, to the right, clear of the bars
+    ax.text(1.02, 1.0, f"{header}\n{detail}",
             transform=ax.transAxes, va="top", ha="left", fontsize=9, color=sig_color,
             bbox=dict(facecolor="#f8f8f8", edgecolor="#cccccc", boxstyle="round,pad=0.4"))
 
     if title:
         ax.set_title(title, fontsize=11, loc="left", fontweight="bold")
     ax.set_ylabel(f"Number of {noun}", fontsize=12)
-    ax.legend(fontsize=9, loc="upper right", framealpha=0.9)
+    ax.legend(fontsize=9, loc="lower left", bbox_to_anchor=(1.02, 0.0),
+              borderaxespad=0, framealpha=0.9)
     ax.spines[['top', 'right']].set_visible(False)
 
     print(f"\nEffect histogram{' [' + title + ']' if title else ''}: {len(effects)} {noun}, "
@@ -794,7 +796,8 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                exclude_ratio_ranges=None, rule_mode=RULE_MODE_RANGE,
                                centers=ESTIM_DISTANCE_CENTERS,
                                fraction=DISTANCE_RULE_FRACTION, merge_behavioral=False,
-                               stats_method=STATS_TTEST, save_path=None):
+                               stats_method=STATS_TTEST, save_path=None,
+                               condition_set_names=None, individual_plots=True):
     """
     Per-condition effect histograms split by the estim rules, stacked on a shared
     x-axis (and shared bins / y-axis) for direct comparison:
@@ -821,6 +824,12 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
     merge_behavioral : True -> one value per (session, trial type, spec), averaging
                     the spec's behavioral groups; in 'closest' mode specs (not
                     conditions) are ranked. Adds __perspec to the filename.
+    individual_plots : True -> after the stacked figure, one figure per half (same
+                    bins and x-axis), saved with __top / __bottom added to the name.
+    condition_set_names : None, or (top name, bottom name) — save the conditions in
+                    each histogram as a named condition set (estim_condition_sets),
+                    replacing any set of that name, for other scripts / the condition
+                    explorer to filter by.
     """
     if rule_mode not in RULE_MODES:
         raise ValueError(f"rule_mode must be one of {RULE_MODES}, got {rule_mode!r}")
@@ -837,9 +846,10 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
 
         def classify(sid, cond):
             return classify_closest(sid, cond, centers, thresholds)
-        groups = [(RULE_IN,  f"Closest {pct} to center",        "#d9534f"),
-                  (RULE_OUT, f"Farther from center (other {100 - 100 * fraction:g}%)", "#7f7f7f")]
-        rule_text = (f"Closest {pct} by |ratio − center|: " + "; ".join(
+        groups = [(RULE_IN,  f"Top {pct} by EStim Parameter Fitness", "#d9534f"),
+                  (RULE_OUT, f"Bottom {100 - 100 * fraction:g}% by EStim Parameter Fitness",
+                   "#7f7f7f")]
+        rule_text = ("EStim parameter fitness ranked by |ratio − center|: " + "; ".join(
             f"{tt}: center {c:g}" + (f" (≤ {thresholds[tt]:.2g})" if tt in thresholds else "")
             for tt, c in centers.items()))
         if save_path:
@@ -853,10 +863,19 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
         rule_text = f"Rules: {_describe_rules(rules)}"
 
     results = {}
+    members = {}  # key -> [(session_id, cond_dict)] of the conditions in that histogram
     for key, label, _ in groups:
         print(f"\n===== {label} =====")
-        rows = collect_session_rows(
-            condition_filter=lambda sid, cond, key=key: classify(sid, cond) == key, **common)
+        members[key] = []
+
+        def in_group(sid, cond, key=key):
+            # called only for conditions that pass min_trials, trial_types and the
+            # ratio exclusions, so what it records is exactly the histogram's set
+            if classify(sid, cond) != key:
+                return False
+            members[key].append((sid, cond))
+            return True
+        rows = collect_session_rows(condition_filter=in_group, **common)
         arrays = (_condition_arrays(rows, studentize=studentize,
                                     merge_behavioral=merge_behavioral) if rows else None)
         pop = (compute_population_stats(rows, alternative=alternative,
@@ -865,13 +884,19 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
                                         noun=arrays['noun']) if rows else None)
         results[key] = (rows, pop, arrays)
 
+    if condition_set_names is not None:
+        _save_rule_condition_sets(condition_set_names, groups, members, rule_text,
+                                  dict(common, rule_mode=rule_mode, rules=rules,
+                                       centers=centers, fraction=fraction,
+                                       merge_behavioral=merge_behavioral))
+
     present = [results[k][2] for k, _, _ in groups if results[k][2] is not None]
     if not present:
         print("No conditions in either group.")
         return None
     edges = _histogram_edges(present, _resolve_bin_width(bin_width, studentize))
 
-    fig, axes = plt.subplots(2, 1, figsize=(8, 8), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 1, figsize=(11, 8), sharex=True, sharey=True)
     for ax, (key, label, color) in zip(axes, groups):
         rows, pop, arrays = results[key]
         if arrays is None:
@@ -889,8 +914,37 @@ def plot_estim_rule_histograms(exclude_session_ids=None, start_session_id=None,
 
     _save_figure(fig, save_path, trial_types, exclude_ratio_ranges, merge_behavioral)
 
+    if individual_plots:
+        for (key, label, color), part in zip(groups, ("top", "bottom")):
+            rows, pop, arrays = results[key]
+            if arrays is None:
+                continue
+            fig_one, ax = plt.subplots(figsize=(11, 4.5))
+            _draw_condition_histogram(ax, rows, pop, arrays, edges,
+                                      alternative=alternative, color=color, title=label)
+            ax.set_xlim(edges[0], edges[-1])
+            ax.set_xlabel(_effect_axis_label(studentize, merge_behavioral), fontsize=12)
+            fig_one.suptitle(f"{_filter_label(trial_types)}  ·  {rule_text}",
+                             fontsize=10, color="#444444")
+            fig_one.tight_layout()
+            if save_path:
+                root, ext = os.path.splitext(save_path)
+                _save_figure(fig_one, f"{root}__{part}{ext}", trial_types,
+                             exclude_ratio_ranges, merge_behavioral)
+
     plt.show()
     return fig
+
+
+def _save_rule_condition_sets(names, groups, members, rule_text, params):
+    """Save the top (within rules / closest) and bottom histograms' conditions as
+    the condition sets names[0] / names[1]."""
+    from src.analysis.nafc.group_analysis.estim_condition_sets import save_condition_set
+    for name, (key, label, _) in zip(names, groups):
+        if name:
+            save_condition_set(name, members[key], description=f"{label}. {rule_text}",
+                               source='avg_estim_per_experiment',
+                               params={**params, 'group': key})
 
 
 def plot_avg_estim_per_experiment(exclude_session_ids=None, start_session_id=None,
@@ -1024,7 +1078,12 @@ def main():
     stats_method = 'ttest'
 
     studentize = False
-    min_trials = 10
+    min_trials = 5
+
+    # Save the rule split's two halves as named condition sets (in the data
+    # repository) for the condition explorer / other scripts to filter by:
+    # (top name, bottom name), or None to not save. Re-running replaces them.
+    condition_set_names = ('estim_rule_top_half', 'estim_rule_bottom_half')
     plot_condition_effect_histogram(
         exclude_session_ids=exclude_session_ids,
         start_session_id=start_session_id,
@@ -1059,6 +1118,8 @@ def main():
         merge_behavioral=merge_behavioral,
         stats_method=stats_method,
         save_path="/home/connorlab/Documents/plots/across_experiments/avg_estim_rule_histograms.png",
+        condition_set_names=condition_set_names,
+        individual_plots=True,   # also one figure per half after the stacked one
     )
 
     # Per-session ON/OFF dot plot (same test, one pooled pair of dots per session):
