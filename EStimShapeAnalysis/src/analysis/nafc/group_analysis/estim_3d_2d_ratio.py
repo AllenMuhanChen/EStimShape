@@ -44,6 +44,9 @@ parameter fitness: the condition set TOP_FITNESS_CONDITION_SET that avg_estim_pe
 saves to the data repository (its 'closest' rule split; currently Delta Shape conditions).
 estim_effect_top_fitness is the same studentized max-stat best-condition effect, taken over
 only the session's conditions in that set. Re-run avg_estim_per_experiment to refresh the set.
+With TOP_FITNESS_POINTS = "per_condition" (main()), those two scatters instead plot every
+top-half-fitness condition as its own point (its raw effect, % points) against its session's
+SPI / RF size.
 All figures are shown and saved to SAVE_DIR.
 """
 
@@ -248,9 +251,19 @@ def top_fitness_effect_summary(session_id: str, members: dict) -> dict:
         min_trials=ESTIM_EFFECT_MIN_TRIALS)
     keep = in_condition_set([session_id] * len(entries),
                             [json.dumps(e['cond_dict']) for e in entries], members)
-    result = max_stat_over_entries([e for e, k in zip(entries, keep) if k])
+    kept = [e for e, k in zip(entries, keep) if k]
+    result = max_stat_over_entries(kept)
     return {"estim_effect_top_fitness": result["effect"],
-            "estim_effect_top_fitness_p": result["p"]}
+            "estim_effect_top_fitness_p": result["p"],
+            "top_fitness_condition_effects": [float(e['obs_effect']) for e in kept]}
+
+
+def top_fitness_condition_table(table: pd.DataFrame) -> pd.DataFrame:
+    """One row per top-half-fitness condition, carrying its session's SPI / RF columns."""
+    long = table.explode("top_fitness_condition_effects").dropna(
+        subset=["top_fitness_condition_effects"])
+    return long.assign(condition_effect_top_fitness=lambda d: d[
+        "top_fitness_condition_effects"].astype(float))
 
 
 def compute_ratio_table(exclude_session_ids=None, start_session_id=None) -> pd.DataFrame:
@@ -302,7 +315,8 @@ def compute_ratio_table(exclude_session_ids=None, start_session_id=None) -> pd.D
             print(f"[3d/2d] could not load top-fitness estim effect for session {sid}:")
             traceback.print_exc()
             counts.update(estim_effect_top_fitness=float("nan"),
-                          estim_effect_top_fitness_p=float("nan"))
+                          estim_effect_top_fitness_p=float("nan"),
+                          top_fitness_condition_effects=[])
         try:
             counts.update(rf_size_summary(repo_conn, sid))
         except Exception:
@@ -369,7 +383,10 @@ EFFECT_AXIS_LABELS = {
     "estim_effect": "EStim effect, best condition (% points)",
     "estim_effect_top_fitness": "EStim effect, best top-half-fitness condition (% points)",
 }
-EFFECT_TITLE_SUFFIX = {"estim_effect": "", "estim_effect_top_fitness": " (top half fitness)"}
+EFFECT_AXIS_LABELS["condition_effect_top_fitness"] = \
+    "EStim effect, top-half-fitness conditions (% points)"
+EFFECT_TITLE_SUFFIX = {"estim_effect": "", "estim_effect_top_fitness": " (top half fitness)",
+                       "condition_effect_top_fitness": " (top half fitness)"}
 
 
 def plot_spi_vs_estim_effect(table: pd.DataFrame, show_stats: bool = False,
@@ -446,6 +463,9 @@ def save_figure(fig, name: str):
 def main():
     SHOW_PLOTS = True
     SHOW_STATS_ON_PLOT = False  # Spearman rho/p on the scatter; always printed to console
+    # Top-half-fitness scatters: "per_condition" = every condition in the set is a point;
+    # "best_per_session" = one point per session (its best condition in the set).
+    TOP_FITNESS_POINTS = "per_condition"
     # Same session selection as max_estim_per_experiment.main().
     exclude_session_ids = ["260421_0", "260410_0"]
     start_session_id = "260402_0"  # first variant experiment; None = no lower bound
@@ -464,13 +484,13 @@ def main():
     total.update(spi_z=float("nan"), spi_p=float("nan"), spi_sig="",
                  estim_effect=table["estim_effect"].mean(), estim_effect_p=float("nan"),
                  estim_effect_top_fitness=table["estim_effect_top_fitness"].mean(),
-                 estim_effect_top_fitness_p=float("nan"),
+                 estim_effect_top_fitness_p=float("nan"), top_fitness_condition_effects=[],
                  mean_rf_radius=table["mean_rf_radius"].mean(),
                  n_rf_channels=int(table["n_rf_channels"].sum()), rf_source="")
     printed = pd.concat([table, pd.DataFrame([{"session_id": "ALL", **total}])], ignore_index=True)
 
     with pd.option_context("display.max_rows", None, "display.width", 200):
-        print(printed.to_string(index=False, float_format=lambda x: f"{x:.2f}"))
+        print(printed.drop(columns=["top_fitness_condition_effects"]).to_string(index=False, float_format=lambda x: f"{x:.2f}"))
     print()
     print(table["category"].value_counts().to_string())
     print()
@@ -481,12 +501,17 @@ def main():
     save_figure(plot_spi_vs_estim_effect(table, show_stats=SHOW_STATS_ON_PLOT), "estim_session_spi_vs_estim_effect.png")
     save_figure(plot_rf_size_vs_estim_effect(table, show_stats=SHOW_STATS_ON_PLOT),
                 "estim_session_rf_size_vs_estim_effect.png")
-    save_figure(plot_spi_vs_estim_effect(table, show_stats=SHOW_STATS_ON_PLOT,
-                                         effect_col="estim_effect_top_fitness"),
-                "estim_session_spi_vs_estim_effect_top_fitness.png")
-    save_figure(plot_rf_size_vs_estim_effect(table, show_stats=SHOW_STATS_ON_PLOT,
-                                             effect_col="estim_effect_top_fitness"),
-                "estim_session_rf_size_vs_estim_effect_top_fitness.png")
+    if TOP_FITNESS_POINTS == "per_condition":
+        top_data, top_col, top_tag = (top_fitness_condition_table(table),
+                                      "condition_effect_top_fitness", "_per_condition")
+    else:
+        top_data, top_col, top_tag = table, "estim_effect_top_fitness", ""
+    save_figure(plot_spi_vs_estim_effect(top_data, show_stats=SHOW_STATS_ON_PLOT,
+                                         effect_col=top_col),
+                f"estim_session_spi_vs_estim_effect_top_fitness{top_tag}.png")
+    save_figure(plot_rf_size_vs_estim_effect(top_data, show_stats=SHOW_STATS_ON_PLOT,
+                                             effect_col=top_col),
+                f"estim_session_rf_size_vs_estim_effect_top_fitness{top_tag}.png")
     if SHOW_PLOTS:
         plt.show()
 
