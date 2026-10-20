@@ -2,8 +2,9 @@
 Solid preference index (SPI) for this session's 2D vs 3D side test.
 
 Scatter as side_test.TwoDvsThreeDScatterPlotter: one dot per tested shape
-(TestId), mean 2D response (x) vs mean 3D response (y), identity line and a
-least-squares fit. The SPI and its significance are written on the plot.
+(TestId), mean 2D response (x) vs mean 3D response (y), identity line and an
+optional least-squares fit. The SPI with its significance, and the fit's stats,
+are in boxes to the right of the plot.
 
   SPI = (sum of 3D trial responses - sum of 2D trial responses)
         / max(the two sums)                  (as solid_preference_index.py)
@@ -78,8 +79,9 @@ class SolidPreferenceModule(FigureModule):
                   step=1000),
             Param("alpha", "Significance level", "float", 0.05, minimum=0.0001,
                   maximum=0.5, step=0.01, decimals=4),
-            Param("fit_line", "Regression line", "bool", True,
-                  tooltip="Least-squares fit of 3D on 2D, with slope, r² and p."),
+            Param("fit_line", "Regression line", "bool", False,
+                  tooltip="Least-squares fit of 3D on 2D, with slope, r² and p in a "
+                          "box right of the plot."),
         ]
 
     def make_figure(self, session, values):
@@ -115,35 +117,44 @@ class SolidPreferenceModule(FigureModule):
         means = means.dropna(subset=["2D", "3D"])
         x, y = means["2D"].to_numpy(), means["3D"].to_numpy()
 
-        fig = Figure(figsize=(7.5, 7))
-        ax = fig.add_subplot(111)
+        fit = (linregress(x, y) if values["fit_line"] and len(x) >= 3 and np.ptp(x) > 0
+               else None)
+        fig = Figure(figsize=(10.5, 7))
+        grid = fig.add_gridspec(1, 2, width_ratios=[7, 3])
+        ax = fig.add_subplot(grid[0, 0])
+        ax_info = fig.add_subplot(grid[0, 1])   # boxes beside (not inside) the plot
         vals = np.concatenate([x, y]) if len(x) else np.array([0.0, 1.0])
         lo, hi = float(vals.min()), float(vals.max())
         pad = (hi - lo) * 0.08 or 1.0
         lo, hi = lo - pad, hi + pad
         ax.plot([lo, hi], [lo, hi], color="gray", lw=1.2, ls="--", zorder=1, label="y = x")
         ax.scatter(x, y, color="black", s=60, alpha=0.8, zorder=3)
-        if values["fit_line"] and len(x) >= 3:
-            fit = linregress(x, y)
+        if fit is not None:
             xs = np.linspace(lo, hi, 200)
             ax.plot(xs, fit.slope * xs + fit.intercept, color="#c0392b", lw=1.8, zorder=2,
-                    label=f"fit: slope {fit.slope:.2f}, $r^2$ = {fit.rvalue ** 2:.2f}, "
-                          f"{_fmt_p(fit.pvalue)}")
+                    label="Linear fit")
         ax.set_xlim(lo, hi)
         ax.set_ylim(lo, hi)
         ax.set_aspect("equal", adjustable="box")
 
         verdict = "significant" if significant else "not significant"
-        ax.text(0.03, 0.97, f"SPI = {spi:+.3f}\n{_fmt_p(p, n_perm)}, {verdict}",
-                transform=ax.transAxes, ha="left", va="top", fontsize=15,
-                color="#c0392b" if significant else "black",
-                bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="#cccccc"))
+        box = dict(boxstyle="round,pad=0.5", facecolor="white", edgecolor="#cccccc")
+        ax_info.axis("off")
+        ax_info.text(0.0, 0.85, f"SPI = {spi:+.3f}\n{_fmt_p(p, n_perm)}\n{verdict}",
+                     transform=ax_info.transAxes, ha="left", va="top", fontsize=18,
+                     linespacing=1.5, color="#c0392b" if significant else "black",
+                     bbox=box)
+        if fit is not None:
+            ax_info.text(0.0, 0.45, f"Linear fit\nslope = {fit.slope:.2f}\n"
+                                    f"$r^2$ = {fit.rvalue ** 2:.2f}\n{_fmt_p(fit.pvalue)}",
+                         transform=ax_info.transAxes, ha="left", va="top", fontsize=18,
+                         linespacing=1.5, bbox=box)
         unit = "GA response" if channel == "GA" else "response (sp/s)"
         ax.set_xlabel(f"2D mean {unit}", fontsize=15)
         ax.set_ylabel(f"3D mean {unit}", fontsize=15)
         ax.set_title("Solid preference", fontsize=16)
         ax.tick_params(labelsize=13)
-        ax.legend(fontsize=11, frameon=False, loc="lower right")
+        ax.legend(fontsize=14, frameon=False, loc="lower right")
         for side in ("top", "right"):
             ax.spines[side].set_visible(False)
         fig.tight_layout()
