@@ -91,6 +91,7 @@ def main():
     SHOW_EYE = True                # cyan eye symbol: on fixation (left, middle), on the match (right)
     EYE_SIZE = 0.18                # eye width as a fraction of the panel
     EYE_COLOR = "cyan"
+    EYE_ALPHA = 0.6                # eye opacity (1 = solid, 0 = invisible)
     FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
     FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = None                # None = native resolution (no resampling of the pngs' pixels);
@@ -211,7 +212,7 @@ def main():
 
     fig = plot_example_figure(list(panels.values()),
                               [eyes[name] for name in panels] if SHOW_EYE else None,
-                              EYE_SIZE, EYE_COLOR)
+                              EYE_SIZE, EYE_COLOR, EYE_ALPHA)
     # dpi high enough that each panel is saved at (at least) its native pixel size
     panel_inches = fig.axes[0].get_window_extent().width / fig.dpi
     dpi = max(200, int(np.ceil(max(p.width for p in panels.values()) / panel_inches)))
@@ -237,7 +238,7 @@ def main():
                           for role, c in shown.items()},
         "zoom": ZOOM,
         "image_zoom": IMAGE_ZOOM,
-        "eye": {"size": EYE_SIZE, "color": EYE_COLOR} if SHOW_EYE else None,
+        "eye": {"size": EYE_SIZE, "color": EYE_COLOR, "alpha": EYE_ALPHA} if SHOW_EYE else None,
         "zoom_center": ZOOM_CENTER,
         "distractor_labels": list(DISTRACTOR_LABELS),
         "distractor_ga_id": DISTRACTOR_ID,
@@ -849,7 +850,7 @@ def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
     return panel
 
 
-def draw_eye(ax, x: float, y: float, width: float, color):
+def draw_eye(ax, x: float, y: float, width: float, color, alpha: float = 1.0):
     """Eye symbol centred on (x, y) in data (pixel) coordinates: almond outline plus an open iris ring (no pupil, so the centre stays visible)."""
     from matplotlib.path import Path
     from matplotlib.patches import Circle, PathPatch
@@ -857,12 +858,13 @@ def draw_eye(ax, x: float, y: float, width: float, color):
     lids = Path([(x - w, y), (x, y - 2 * h), (x + w, y), (x, y + 2 * h), (x - w, y)],
                 [Path.MOVETO, Path.CURVE3, Path.CURVE3, Path.CURVE3, Path.CURVE3])
     lw = 2.5  # points, so the line weight is the same in every panel
-    ax.add_patch(PathPatch(lids, facecolor="none", edgecolor=color, linewidth=lw))
-    ax.add_patch(Circle((x, y), width * 0.17, facecolor="none", edgecolor=color, linewidth=lw))
+    ax.add_patch(PathPatch(lids, facecolor="none", edgecolor=color, linewidth=lw, alpha=alpha))
+    ax.add_patch(Circle((x, y), width * 0.17, facecolor="none", edgecolor=color, linewidth=lw,
+                        alpha=alpha))
 
 
 def plot_example_figure(panels: list[Image.Image], eyes=None, eye_size: float = 0.18,
-                        eye_color="cyan"):
+                        eye_color="cyan", eye_alpha: float = 1.0):
     """eyes: per panel, (x, y) as a fraction of the panel for an eye symbol, or None for none."""
     # panel size grows with the field of view (sample panel px), so the stimuli keep their size
     inches = max(4.0, panels[-2 if len(panels) > 1 else 0].width / 80)
@@ -876,7 +878,8 @@ def plot_example_figure(panels: list[Image.Image], eyes=None, eye_size: float = 
     if eyes is not None:
         for ax, img, eye in zip(np.atleast_1d(axes), panels, eyes):
             if eye is not None:
-                draw_eye(ax, eye[0] * img.width, eye[1] * img.height, eye_size * img.width, eye_color)
+                draw_eye(ax, eye[0] * img.width, eye[1] * img.height, eye_size * img.width, eye_color,
+                         eye_alpha)
     return fig
 
 
