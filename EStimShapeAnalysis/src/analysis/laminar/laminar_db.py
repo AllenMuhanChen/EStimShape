@@ -189,11 +189,21 @@ class LaminarDBSource:
         self.conn.execute("DESCRIBE PenetrationMetrics")
         cols = [r[0] for r in self.conn.fetch_all()]
         df = pd.DataFrame(rows, columns=cols)
+        # MySQL rows can come back as Decimal / None (object dtype): make every metric numeric
+        for c in df.columns:
+            if c != 'session_id':
+                df[c] = pd.to_numeric(df[c], errors='coerce')
         tissue = self._tissue()
         if tissue is not None:
             t = tissue[tissue['session_id'] == session_id]
-            keep = ['depth_under_chamber_mm'] + [c for c in t.columns if c.startswith('p_')]
-            df = df.merge(t[keep], on='depth_under_chamber_mm', how='left')
+            keep = [c for c in t.columns if c.startswith('p_')]
+            t = t[['depth_under_chamber_mm'] + keep].copy()
+            for c in t.columns:
+                t[c] = pd.to_numeric(t[c], errors='coerce')
+            # join on depth rounded to 0.1 µm so float noise can't miss a row
+            df['_key'] = df['depth_under_chamber_mm'].round(4)
+            t['_key'] = t.pop('depth_under_chamber_mm').round(4)
+            df = df.merge(t.drop_duplicates('_key'), on='_key', how='left').drop(columns='_key')
         return df
 
     def _tissue(self):
