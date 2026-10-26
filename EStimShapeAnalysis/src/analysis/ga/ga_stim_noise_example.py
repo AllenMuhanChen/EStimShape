@@ -196,13 +196,15 @@ def main():
     panels = {"sample_panel": sample_panel, "choices_panel": choices_panel}
     # eye positions as fractions of each panel (x right, y down)
     crop_x, crop_y = sample_panel.info['origin_png_px']
-    eyes = {"sample_panel": ((fixation['xy'][0] - crop_x) / sample_panel.width,
-                             (fixation['xy'][1] - crop_y) / sample_panel.height),
+    fx, fy = sample_panel.info.get('fixation_center',
+                                   (fixation['xy'][0] - crop_x, fixation['xy'][1] - crop_y))
+    eyes = {"sample_panel": (fx / sample_panel.width, fy / sample_panel.height),
             "choices_panel": choices_panel.info['choice_centers'][list(CHOICE_ORDER).index("match")]}
     if SHOW_FIXATION_PANEL:
-        panels = {"fixation_panel": fixation_panel(sample_panel.width, fixation, background),
-                  **panels}
-        eyes["fixation_panel"] = (0.5, 0.5)
+        fixation_only = fixation_panel(sample_panel.width, fixation, background)
+        panels = {"fixation_panel": fixation_only, **panels}
+        fx, fy = fixation_only.info['fixation_center']
+        eyes["fixation_panel"] = (fx / fixation_only.width, fy / fixation_only.height)
     for name, panel in panels.items():
         if PANEL_PX is not None:  # nearest keeps noise pixels crisp; choices are smooth-resampled
             panel = (resample(panel, (PANEL_PX, PANEL_PX)) if name == "choices_panel"
@@ -620,6 +622,7 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
         x0f, x1f = int(round(fx - half)), int(round(fx + half))
         y0f, y1f = int(round(fy - half)), int(round(fy + half))
         scene[pad + y0f:pad + max(y1f, y0f + 1), pad + x0f:pad + max(x1f, x0f + 1)] = fixation['color']
+        drawn_fixation = ((x0f + max(x1f, x0f + 1)) / 2, (y0f + max(y1f, y0f + 1)) / 2)
         if center is None:
             boxes.append((x0f, y0f, x1f, y1f))
 
@@ -637,6 +640,8 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
     y0 = int(round(cy - side / 2)) + pad
     crop = Image.fromarray(scene[y0:y0 + side, x0:x0 + side])
     crop.info['origin_png_px'] = (x0 - pad, y0 - pad)  # crop's top-left corner in png coordinates
+    if fixation is not None:  # centre of the fixation square as drawn, in crop pixel-edge coordinates
+        crop.info['fixation_center'] = (drawn_fixation[0] + pad - x0, drawn_fixation[1] + pad - y0)
     if center == "fixation":
         rows, cols = np.nonzero(shape_mask(sample_rgb, background, threshold))
         cols, rows = cols + ox + pad, rows + oy + pad
@@ -825,7 +830,8 @@ def choices_triangle_panel(choices: list[dict], field_deg: float, background: np
     for (x0, y0, _, _), im, mk in zip(boxes, shapes, masks):
         canvas.paste(im, (int(round(x0)), int(round(y0))), mk)
     # centre of each choice, as a fraction of the panel (x right, y down)
-    canvas.info['choice_centers'] = [((b[0] + b[2]) / 2 / side, (b[1] + b[3]) / 2 / side) for b in boxes]
+    canvas.info['choice_centers'] = [((round(b[0]) + (b[2] - b[0]) / 2) / side,
+                                      (round(b[1]) + (b[3] - b[1]) / 2) / side) for b in boxes]
     return canvas
 
 
@@ -835,8 +841,11 @@ def fixation_panel(side: int, fixation: dict, background: np.ndarray) -> Image.I
     canvas[:] = background
     half = max(fixation['size_px'] / 2, 0.5)
     lo, hi = int(round(side / 2 - half)), int(round(side / 2 + half))
-    canvas[lo:max(hi, lo + 1), lo:max(hi, lo + 1)] = fixation['color']
-    return Image.fromarray(canvas)
+    hi = max(hi, lo + 1)
+    canvas[lo:hi, lo:hi] = fixation['color']
+    panel = Image.fromarray(canvas)
+    panel.info['fixation_center'] = ((lo + hi) / 2, (lo + hi) / 2)  # pixel-edge coordinates
+    return panel
 
 
 def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
@@ -878,7 +887,9 @@ def plot_example_figure(panels: list[Image.Image], eyes=None, eye_size: float = 
     if eyes is not None:
         for ax, img, eye in zip(np.atleast_1d(axes), panels, eyes):
             if eye is not None:
-                draw_eye(ax, eye[0] * img.width, eye[1] * img.height, eye_size * img.width, eye_color,
+                # eye is in pixel-edge coordinates; imshow centres pixel i on i, so shift by -0.5
+                draw_eye(ax, eye[0] * img.width - 0.5, eye[1] * img.height - 0.5,
+                         eye_size * img.width, eye_color,
                          eye_alpha)
     return fig
 
