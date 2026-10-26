@@ -98,6 +98,7 @@ def main():
     SHOW_BOLTS = True              # thunderbolt left of each row: no EStim = black dashed outline,
                                    # EStim = filled orange
     BOLT_SIZE = 0.3                # bolt height as a fraction of the panel height
+    BOLT_MARGIN = 0.03             # gap between the bolt and the first panel, fraction of panel width
     FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
     FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = None                # None = native resolution (no resampling of the pngs' pixels);
@@ -229,7 +230,7 @@ def main():
     if not SHOW_EYE:
         rows = [[[] for _ in panels] for _ in rows]
     fig = plot_example_figure(list(panels.values()), rows, EYE_SIZE, EYE_COLOR,
-                              bolts if SHOW_BOLTS else None, BOLT_SIZE)
+                              bolts if SHOW_BOLTS else None, BOLT_SIZE, BOLT_MARGIN)
     # dpi high enough that each panel is saved at (at least) its native pixel size
     panel_inches = fig.axes[0].get_window_extent().width / fig.dpi
     dpi = max(200, int(np.ceil(max(p.width for p in panels.values()) / panel_inches)))
@@ -258,7 +259,7 @@ def main():
         "eye": {"size": EYE_SIZE, "color": EYE_COLOR, "alpha": EYE_ALPHA,
                 "split_alpha": SPLIT_EYE_ALPHA} if SHOW_EYE else None,
         "two_rows": TWO_ROWS,
-        "bolts": {"size": BOLT_SIZE} if SHOW_BOLTS else None,
+        "bolts": {"size": BOLT_SIZE, "margin": BOLT_MARGIN} if SHOW_BOLTS else None,
         "zoom_center": ZOOM_CENTER,
         "distractor_labels": list(DISTRACTOR_LABELS),
         "distractor_ga_id": DISTRACTOR_ID,
@@ -890,14 +891,15 @@ def draw_eye(ax, x: float, y: float, width: float, color, alpha: float = 1.0):
                         alpha=alpha))
 
 
-def draw_bolt(ax, estim: bool, height: float):
+def draw_bolt(ax, estim: bool, height: float, margin: float = 0.03):
     """Thunderbolt just left of ax, vertically centred: filled orange for EStim, black dashed
-    outline with no fill for no EStim. height is a fraction of the panel height."""
+    outline with no fill for no EStim. height is a fraction of the panel height, margin the gap
+    to the panel as a fraction of its width."""
     from matplotlib.patches import Polygon
     # bolt outline in units of its height, centred on (0, 0), +y up
     shape = np.array([(0.12, 0.5), (-0.22, -0.04), (0.0, -0.04), (-0.12, -0.5),
                       (0.22, 0.06), (0.0, 0.06)])
-    xy = shape * height + (-0.03 - 0.22 * height, 0.5)  # right tip just clear of the panel
+    xy = shape * height + (-margin - 0.22 * height, 0.5)  # right tip margin clear of the panel
     if estim:
         patch = Polygon(xy, closed=True, facecolor="orange", edgecolor="orange", linewidth=1.5)
     else:
@@ -909,7 +911,8 @@ def draw_bolt(ax, estim: bool, height: float):
 
 
 def plot_example_figure(panels: list[Image.Image], eye_rows=None, eye_size: float = 0.18,
-                        eye_color="cyan", bolts=None, bolt_size: float = 0.3):
+                        eye_color="cyan", bolts=None, bolt_size: float = 0.3,
+                        bolt_margin: float = 0.03):
     """
     One row of the panels per entry of eye_rows (the same panels in every row). Each row gives,
     per panel, a list of (x, y, opacity) eye symbols with x, y as fractions of the panel.
@@ -933,7 +936,7 @@ def plot_example_figure(panels: list[Image.Image], eye_rows=None, eye_size: floa
                          eye_color, alpha)
     for row_axes, bolt in zip(axes, bolts or []):
         if bolt is not None:
-            draw_bolt(row_axes[0], bolt == "estim", bolt_size)
+            draw_bolt(row_axes[0], bolt == "estim", bolt_size, bolt_margin)
     return fig
 
 
