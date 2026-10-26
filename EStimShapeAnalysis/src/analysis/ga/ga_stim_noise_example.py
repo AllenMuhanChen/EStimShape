@@ -75,7 +75,7 @@ def main():
                                    # found wins; falls back to any choice that isn't match/rand
 
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
-    CHOICE_MARGIN = 0.05           # gap between the choices and the panel edge, as a fraction of the
+    CHOICE_MARGIN = 0.15           # gap between the choices and the panel edge, as a fraction of the
                                    # panel: top choice at the top centre, the other two in the
                                    # bottom corners. Smaller = more spread out
     BACKGROUND_THRESHOLD = 2       # 0-255; a pixel is shape if any channel differs from the
