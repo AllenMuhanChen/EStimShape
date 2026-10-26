@@ -80,6 +80,7 @@ def main():
             fetch_red_penetrations, filter_by_label_substring)
         SESSIONS = sorted({p['session_id'] for p in filter_by_label_substring(
             fetch_red_penetrations(repo, 'Penetrations'), FINAL_SITE_LABEL_KEYWORDS) if p['session_id']})
+    SESSIONS = sorted(SESSIONS, reverse=True)   # most recent first (ids are YYMMDD_n)
     done = set()
     if SKIP_DONE:
         repo.execute("SELECT session_id FROM LaminarSessions WHERE final_tip_mm IS NOT NULL")   # rows from the old deepest-idle version are redone
