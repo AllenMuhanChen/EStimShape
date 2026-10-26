@@ -67,7 +67,7 @@ def main():
     RANDOM_SEED = None             # int for a reproducible noise pattern, None = new each run
     NAFC_STIMULI_DIR = None        # None = <base_dir>/<nafc_database>/stimuli (searched for pngs)
     # Figure
-    ZOOM = 4.0                     # sample panel zoom factor (1 = whole sample png); sets the field
+    ZOOM = 2.5                     # sample panel zoom factor (1 = whole sample png); sets the field
                                    # of view (deg) shared by all three panels
     ZOOM_CENTER = "fixation"       # "fixation" = on the fixation point; (x, y) in -1..1 of the sample
                                    # png, +y up; None = centre of the shape (+ fixation)
@@ -75,7 +75,7 @@ def main():
                                    # found wins; falls back to any choice that isn't match/rand
 
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
-    CHOICE_SPREAD = 0.55           # distance of each choice's centre from the panel centre, as a
+    CHOICE_SPREAD = 0.65           # distance of each choice's centre from the panel centre, as a
                                    # fraction of half the panel; larger = more spread out
     BACKGROUND_THRESHOLD = 2       # 0-255; a pixel is shape if any channel differs from the
                                    # png's (flat) background colour by more than this. Keep it
@@ -818,7 +818,10 @@ def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
 
 
 def plot_example_figure(panels: list[Image.Image]):
-    fig, axes = plt.subplots(1, len(panels), figsize=(5 * len(panels), 5), gridspec_kw={'wspace': 0.04})
+    # panel size grows with the field of view (sample panel px), so the stimuli keep their size
+    inches = max(4.0, panels[-2 if len(panels) > 1 else 0].width / 80)
+    fig, axes = plt.subplots(1, len(panels), figsize=(inches * len(panels), inches),
+                             gridspec_kw={'wspace': 0.04})
     for ax, img in zip(np.atleast_1d(axes), panels):
         # antialiased: the window shows the native-resolution panel shrunk, and "none" or
         # "nearest" would alias (checkerboard / moire), worst on the noise
