@@ -52,22 +52,22 @@ REMOVED_STIM_TYPE = "EStimShapeVariantsDeletedNAFCStim"
 def main():
     # ---- Parameters -------------------------------------------------------------------------
     SESSION_ID = "260603_0"        # session the GA stim belongs to; None = keep current context
-    # GA_STIM_ID = 1780507361091158     # GA stim id to render with noise
-    # DISTRACTOR_ID = 1780507918367969  # GA id of the delta (or variant) to show as the distractor.
-    GA_STIM_ID = 1780507913222760
-                                   # None = pick by DISTRACTOR_LABELS. If NAFC_STIM_ID is None,
+    GA_STIM_ID = 1780507361091158     # GA stim id to render with noise
+    # GA_STIM_ID = 1780507913222760
     DISTRACTOR_ID = None
+    DISTRACTOR_ID = 1780507918367969  # GA id of the delta (or variant) to show as the distractor.
+                                   # None = pick by DISTRACTOR_LABELS. If NAFC_STIM_ID is None,
                                    # the latest trial that offered this GA stim is used.
     NAFC_STIM_ID = None            # None = latest NAFC trial with this GA stim as its sample;
                                    # or an NAFC StimSpec id to use that trial's noise map
-    NOISE_CHANCE = 0.3            # noise amount: peak chance a pixel is noise (0-1), like the
+    NOISE_CHANCE = 1.0            # noise amount: peak chance a pixel is noise (0-1), like the
                                    # NAFC noiseChance parameter. None = as the trial used.
     N_FRAMES = 1                   # number of noise frames (twinkle); frame 0 is what the
                                    # monkey sees on the first frame
     RANDOM_SEED = None             # int for a reproducible noise pattern, None = new each run
     NAFC_STIMULI_DIR = None        # None = <base_dir>/<nafc_database>/stimuli (searched for pngs)
     # Figure
-    ZOOM = 2.5                     # sample panel zoom factor (1 = whole sample png); sets the field
+    ZOOM = 3                     # sample panel zoom factor (1 = whole sample png); sets the field
                                    # of view (deg) shared by all three panels
     ZOOM_CENTER = "fixation"       # "fixation" = on the fixation point; (x, y) in -1..1 of the sample
                                    # png, +y up; None = centre of the shape (+ fixation)
@@ -91,15 +91,15 @@ def main():
     SHOW_EYE = True                # cyan eye symbol: on fixation (left, middle), on the match (right)
     EYE_SIZE = 0.18                # eye width as a fraction of the panel
     EYE_COLOR = "cyan"
-    EYE_ALPHA = 0.6                # eye opacity (1 = solid, 0 = invisible)
+    EYE_ALPHA = 0.7                # eye opacity (1 = solid, 0 = invisible)
     TWO_ROWS = True                # top row: no EStim (fainter eyes on match AND distractor);
                                    # bottom row: EStim (eye on the match only). False = bottom row only
-    SPLIT_EYE_ALPHA = 0.3          # opacity of the two eyes on the choices in the top row
+    SPLIT_EYE_ALPHA = 0.4          # opacity of the two eyes on the choices in the top row
     SHOW_BOLTS = True              # thunderbolt left of each row: no EStim = black dashed outline,
                                    # EStim = filled orange
     BOLT_SIZE = 0.3                # bolt height as a fraction of the panel height
-    BOLT_MARGIN = 0.03             # gap between the bolt and the first panel, fraction of panel width
-    FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
+    BOLT_MARGIN = 0.1             # gap between the bolt and the first panel, fraction of panel width
+    FIXATION_SIZE_DEG = 0.5       # None = xper_fixation_point_size from the NAFC SystemVar table
     FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = None                # None = native resolution (no resampling of the pngs' pixels);
                                    # or a pixel size to resize each square panel to
@@ -185,6 +185,7 @@ def main():
         size_deg = FIXATION_SIZE_DEG
         if size_deg is None:
             size_deg = float(read_system_var(nafc_conn, "xper_fixation_point_size")[0])
+            print("current fixation size (deg):", FIXATION_SIZE_DEG)
         color = FIXATION_COLOR
         if color is None:
             color = tuple(int(round(float(v) * 255))
