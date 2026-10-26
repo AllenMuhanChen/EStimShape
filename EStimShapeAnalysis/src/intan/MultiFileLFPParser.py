@@ -1,6 +1,9 @@
 import os
 import pickle
 import glob
+import multiprocessing
+import sys
+from concurrent.futures import ProcessPoolExecutor
 from typing import Dict, List, Optional, Tuple, Any
 
 import numpy as np
@@ -36,6 +39,10 @@ class MultiFileLFPParser:
         epoch_start_stop_times_by_task_id: Dict[task_id, Tuple[float, float]]
         lfp_sample_rate: int
 
+    n_workers > 1 reads and filters that many Intan files at once in separate processes
+    (each worker holds one file's full wideband data in memory, so keep it to what RAM allows).
+    n_workers = 1 (default) is the original one-file-at-a-time behaviour.
+
     If to_cache is True:
         - Parsed data is saved to cache_dir as pickle files.
         - On subsequent calls, cached task IDs are loaded from disk; only
@@ -53,6 +60,7 @@ class MultiFileLFPParser:
         target_sample_rate: int = 1000,
         to_cache: bool = False,
         cache_dir: Optional[str] = None,
+        n_workers: int = 1,
     ):
         self.seconds_before_epoch = seconds_before_epoch
         self.seconds_after_epoch = seconds_after_epoch
@@ -61,6 +69,7 @@ class MultiFileLFPParser:
         self.target_sample_rate = target_sample_rate
         self.to_cache = to_cache
         self.cache_dir = cache_dir
+        self.n_workers = max(1, int(n_workers))
 
     # ------------------------------------------------------------------
     # Public API
@@ -109,8 +118,7 @@ class MultiFileLFPParser:
         new_lfp: Dict[int, Any] = {}
         new_epochs: Dict[int, Any] = {}
 
-        for dir_path in matching_dirs:
-            file_lfp, file_epochs, file_sr = self._parse_one_dir(dir_path)
+        for file_lfp, file_epochs, file_sr in self._parse_dirs(matching_dirs):
 
             if self.lfp_sample_rate is None:
                 self.lfp_sample_rate = file_sr
@@ -134,6 +142,19 @@ class MultiFileLFPParser:
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    def _parse_dirs(self, dir_paths: List[str]):
+        """Yield _parse_one_dir results in dir order, in parallel when n_workers > 1."""
+        n = min(self.n_workers, len(dir_paths))
+        if n <= 1:
+            for dir_path in dir_paths:
+                yield self._parse_one_dir(dir_path)
+            return
+        print(f"Parsing {len(dir_paths)} Intan files with {n} worker processes")
+        ctx = multiprocessing.get_context('fork') if sys.platform.startswith('linux') else None
+        with ProcessPoolExecutor(max_workers=n, mp_context=ctx) as pool:
+            # map keeps order and re-raises a worker's exception here
+            yield from pool.map(self._parse_one_dir, dir_paths)
 
     def _parse_one_dir(self, dir_path: str) -> Tuple[Dict, Dict, int]:
         """Read RHS metadata and parse LFP from a single Intan directory."""

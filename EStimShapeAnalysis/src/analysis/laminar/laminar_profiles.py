@@ -50,6 +50,7 @@ def main():
     EXCLUDE_CHANNELS = []        # channel numbers always treated as bad, e.g. [17]
     FINAL_SITE_LABEL_KEYWORDS = ['rec', 'loc']     # same as recording_site_area_distances.py
     FINAL_TIP_MM: Dict[str, float] = {}            # tip distance override, e.g. {"260702_0": 21.35}
+    N_WORKERS = 4                # Intan files read + filtered in parallel (each holds one file in RAM)
     SAVE_ROOT = "/home/connorlab/Documents/plots/laminar_profiles"
     SHOW_PLOTS = True
     # -------------------------------------------------------------------------
@@ -91,7 +92,7 @@ def main():
             if site is None:
                 raise RuntimeError(f"no red Penetrations row with {FINAL_SITE_LABEL_KEYWORDS} in its label")
             print(f"  final site: id {site['id']} {site['label']!r}, tip {site['tip_mm']:.2f} mm")
-            trials, sr = load_ga_trials(sid, PRE_S)
+            trials, sr = load_ga_trials(sid, PRE_S, N_WORKERS)
             result = compute_session(trials, sr, site['tip_mm'], config)
             result['final_pen_id'] = int(site['id'])
             save_session_profiles(repo, sid, result)
@@ -114,7 +115,7 @@ def main():
 #  Loading
 # ─────────────────────────────────────────────────────────────────────────────
 
-def load_ga_trials(session_id: str, pre_s: float):
+def load_ga_trials(session_id: str, pre_s: float, n_workers: int = 1):
     """GA trials' LFP (channel number -> array starting pre_s before onset) and the LFP sample rate."""
     from clat.compile.task.compile_task_id import TaskIdCollector
     from clat.util.connection import Connection
@@ -124,7 +125,7 @@ def load_ga_trials(session_id: str, pre_s: float):
 
     apply_session_context(session_id)
     task_ids = TaskIdCollector(Connection(context.ga_database)).collect_task_ids()
-    parser = MultiFileLFPParser(seconds_before_epoch=pre_s, to_cache=True,
+    parser = MultiFileLFPParser(seconds_before_epoch=pre_s, to_cache=True, n_workers=n_workers,
                                 cache_dir=context.ga_parsed_spikes_path.replace("parsed_spikes", "parsed_lfp"))
     lfp, epochs, sr = parser.parse(task_ids, context.ga_intan_path)
     trials = []
