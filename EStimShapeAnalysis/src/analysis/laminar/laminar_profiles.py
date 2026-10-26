@@ -1,11 +1,15 @@
 """
 Per-session laminar profiles at the final probe position, from the GA recording.
 
-For each session: trial-averaged LFP locked to GA stimulus onset (marker channels, via
-MultiFileLFPParser), its CSD, and per-channel relative alpha-beta and gamma power
+For each session: trial-averaged LFP locked to GA stimulus onset, its CSD, and per-channel relative alpha-beta and gamma power
 (see laminar_core.py for the methods). The suggested L4 markers are the strongest early
 CSD sink and the gamma / alpha-beta crossover. Everything is saved to LaminarSessions +
 LaminarProfiles in allen_data_repository, which laminar_calling_gui.py reads.
+
+GA trial LFP (LFP_SOURCE): 'auto' uses the epoched GA LFP already exported to the
+LFPWaveforms table (lfp_analysis.py, task mode: 1 kHz, 0.2 s before onset) when the session
+has any, and only parses the Intan files (MultiFileLFPParser, with its parsed_lfp pickle
+cache) when it has none.
 
 Final probe position: the session's final recording site, picked like
 recording_site_area_distances.py (red Penetrations row with 'rec' or 'loc' in its label).
@@ -50,7 +54,8 @@ def main():
     EXCLUDE_CHANNELS = []        # channel numbers always treated as bad, e.g. [17]
     FINAL_SITE_LABEL_KEYWORDS = ['rec', 'loc']     # same as recording_site_area_distances.py
     FINAL_TIP_MM: Dict[str, float] = {}            # tip distance override, e.g. {"260702_0": 21.35}
-    N_WORKERS = 4                # Intan files read + filtered in parallel (each holds one file in RAM)
+    LFP_SOURCE = 'auto'          # 'auto' (LFPWaveforms table if present, else Intan), 'repository' or 'intan'
+    N_WORKERS = 4                # Intan only: files read + filtered in parallel (each holds one file in RAM)
     SAVE_ROOT = "/home/connorlab/Documents/plots/laminar_profiles"
     SHOW_PLOTS = True
     # -------------------------------------------------------------------------
@@ -92,7 +97,7 @@ def main():
             if site is None:
                 raise RuntimeError(f"no red Penetrations row with {FINAL_SITE_LABEL_KEYWORDS} in its label")
             print(f"  final site: id {site['id']} {site['label']!r}, tip {site['tip_mm']:.2f} mm")
-            trials, sr = load_ga_trials(sid, PRE_S, N_WORKERS)
+            trials, sr = load_ga_trials(sid, PRE_S, N_WORKERS, LFP_SOURCE, repo)
             result = compute_session(trials, sr, site['tip_mm'], config)
             result['final_pen_id'] = int(site['id'])
             save_session_profiles(repo, sid, result)
@@ -115,7 +120,7 @@ def main():
 #  Loading
 # ─────────────────────────────────────────────────────────────────────────────
 
-def load_ga_trials(session_id: str, pre_s: float, n_workers: int = 1):
+def load_ga_trials(session_id: str, pre_s: float, n_workers: int = 1, source: str = 'auto', repo=None):
     """GA trials' LFP (channel number -> array starting pre_s before onset) and the LFP sample rate."""
     from clat.compile.task.compile_task_id import TaskIdCollector
     from clat.util.connection import Connection
@@ -125,6 +130,17 @@ def load_ga_trials(session_id: str, pre_s: float, n_workers: int = 1):
 
     apply_session_context(session_id)
     task_ids = TaskIdCollector(Connection(context.ga_database)).collect_task_ids()
+    if source not in ('auto', 'repository', 'intan'):
+        raise ValueError(f"LFP_SOURCE must be 'auto', 'repository' or 'intan', not {source!r}")
+    if source != 'intan':
+        if abs(pre_s - 0.2) > 1e-9:
+            raise ValueError("LFPWaveforms epochs start 0.2 s before onset; set PRE_S = 0.2 or LFP_SOURCE = 'intan'")
+        trials, sr = load_trials_from_repository(repo, task_ids)
+        if trials:
+            return trials, sr
+        if source == 'repository':
+            raise RuntimeError("no GA LFP in LFPWaveforms for this session (run lfp_analysis.py in task mode)")
+        print("  no GA LFP in LFPWaveforms, parsing Intan files")
     parser = MultiFileLFPParser(seconds_before_epoch=pre_s, to_cache=True, n_workers=n_workers,
                                 cache_dir=context.ga_parsed_spikes_path.replace("parsed_spikes", "parsed_lfp"))
     lfp, epochs, sr = parser.parse(task_ids, context.ga_intan_path)
@@ -143,6 +159,34 @@ def load_ga_trials(session_id: str, pre_s: float, n_workers: int = 1):
 # ─────────────────────────────────────────────────────────────────────────────
 #  Computation
 # ─────────────────────────────────────────────────────────────────────────────
+
+def load_trials_from_repository(repo, task_ids, batch: int = 200):
+    """Epoched GA LFP from LFPWaveforms (written by lfp_analysis.py task mode) for these task ids."""
+    by_task, rates = {}, set()
+    ids = [int(t) for t in task_ids]
+    for i in range(0, len(ids), batch):
+        chunk = ids[i:i + batch]
+        repo.execute(f"SELECT task_id, channel_id, waveform, sample_rate FROM LFPWaveforms "
+                     f"WHERE task_id IN ({', '.join(['%s'] * len(chunk))})", chunk)
+        for tid, ch, wf, sr in repo.fetch_all():
+            num = channel_number(ch)
+            if num in CHANNEL_ORDER and wf:
+                by_task.setdefault(tid, {})[num] = np.fromstring(wf, sep=',')
+                rates.add(int(sr))
+    if not by_task:
+        return [], None
+    if len(rates) != 1:
+        raise RuntimeError(f"LFPWaveforms rows for this session have several sample rates: {sorted(rates)}")
+    sr = rates.pop()
+    # An epoch whose 0.2 s pre-window was clipped at the start of an Intan file is shorter
+    # than the rest, and its onset is not at 0.2 s: drop those.
+    lengths = np.array([min(len(v) for v in tr.values()) for tr in by_task.values()])
+    keep_len = np.median(lengths) - 0.02 * sr
+    trials = [tr for tr, n in zip(by_task.values(), lengths) if n >= keep_len]
+    print(f"  {len(trials)} GA trials from LFPWaveforms ({len(by_task) - len(trials)} short epochs dropped, "
+          f"{len(ids)} task ids)")
+    return trials, sr
+
 
 def compute_session(trials, sr: float, tip_mm: float, config: dict) -> dict:
     from src.lfp.lfp_spectrum import LFPSpectrum
