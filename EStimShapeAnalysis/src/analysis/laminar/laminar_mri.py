@@ -6,7 +6,9 @@ Geometry is the MRI viewer's: chamber frame + corrections from
 recording_site_area_distances.load_viewer_geometry (viewer sidecars, or an opt_*.json),
 the MRI volume + its subject correction from alignment_optimize.load_mri_pipeline, and
 the NMT segmentation (mri_viewer_config 'follower_nifti_path'), mapped to
-0 = CSF / outside, 1 = gray matter, 2 = white matter (alignment_optimize.seg_values_to_classes).
+0 = CSF / outside, 1 = gray matter, 2 = white matter (alignment_optimize.seg_values_to_classes),
+and the warped D99 atlas (atlas_nifti_path / atlas_label_path) on the subject correction,
+as in recording_site_area_distances (atlas voxel -> world = subject correction @ atlas sform).
 
 Penetration = the session's final recording site (fetch_final_site: a red Penetrations
 row whose label contains 'rec' or 'loc', as in recording_site_area_distances.py), with the
@@ -24,7 +26,8 @@ SEG_CSF, SEG_GM, SEG_WM = 0, 1, 2
 
 class TrajectoryMRI:
     def __init__(self, mri_data, mri_inv_affine, seg_data, seg_inv_affine,
-                 top_pt, direction, ref_axis, ddepth_mm: float = 0.0, seg_mapper=None):
+                 top_pt, direction, ref_axis, ddepth_mm: float = 0.0, seg_mapper=None,
+                 atlas_data=None, atlas_inv_affine=None, label_names: Optional[dict] = None):
         self.mri_data = mri_data
         self.mri_inv = mri_inv_affine
         self.seg_data = seg_data
@@ -36,6 +39,9 @@ class TrajectoryMRI:
         self.e2 = np.cross(self.u, self.e1)
         self.ddepth = float(ddepth_mm)
         self.seg_mapper = seg_mapper or (lambda v: v)
+        self.atlas_data = atlas_data
+        self.atlas_inv = atlas_inv_affine
+        self.label_names = label_names or {}
 
     # ---------------------------------------------------------------- sampling
     def points(self, depths_mm, lateral_mm=0.0, phi_deg=0.0, out_of_plane_mm=0.0):
@@ -61,6 +67,12 @@ class TrajectoryMRI:
             return np.full(pts.shape[:-1], -1)
         return np.asarray(self.seg_mapper(self._sample(self.seg_data, self.seg_inv, pts, order=0)), int)
 
+    def atlas_at(self, pts):
+        """Atlas label index at each point (0 = unlabelled / outside; -1 = no atlas)."""
+        if self.atlas_data is None:
+            return np.full(pts.shape[:-1], -1)
+        return np.asarray(self._sample(self.atlas_data, self.atlas_inv, pts, order=0), int)
+
     def seg_along(self, depths_mm):
         return self.seg_at(self.points(depths_mm))
 
@@ -71,7 +83,7 @@ class TrajectoryMRI:
         lats = np.arange(-half_width_mm, half_width_mm + res_mm / 2, res_mm)
         D, L = np.meshgrid(depths, lats, indexing='ij')
         pts = self.points(D, L, phi_deg)
-        return dict(mri=self.mri_at(pts), seg=self.seg_at(pts),
+        return dict(mri=self.mri_at(pts), seg=self.seg_at(pts), atlas=self.atlas_at(pts),
                     extent=(lats[0], lats[-1], depths[-1], depths[0]))
 
     # ---------------------------------------------------------- cortical angle
@@ -186,4 +198,7 @@ def load_trajectory_mri(conn, session_id: str, config_path: str, corrections_fil
     return TrajectoryMRI(mri['data'], mri['inv_corrected'],
                          seg['data'] if seg else None, seg['inv_corrected'] if seg else None,
                          top_pt, direction, ref_axis=ch['x'], ddepth_mm=ddepth,
-                         seg_mapper=seg_values_to_classes)
+                         seg_mapper=seg_values_to_classes,
+                         atlas_data=geom['atlas_data'],
+                         atlas_inv_affine=np.linalg.inv(geom['subj_corr'] @ geom['atlas_sform']),
+                         label_names=geom['label_names'])

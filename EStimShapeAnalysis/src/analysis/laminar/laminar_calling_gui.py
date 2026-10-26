@@ -42,7 +42,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel, QLineEdit,
-                             QMainWindow, QMessageBox, QPushButton, QShortcut, QSlider, QSplitter,
+                             QCheckBox, QMainWindow, QMessageBox, QPushButton, QShortcut, QSlider, QSplitter,
                              QVBoxLayout, QWidget)
 from PyQt5.QtGui import QKeySequence
 
@@ -166,8 +166,12 @@ class LaminarCallingWindow(QMainWindow):
         self.width_spin.setValue(4)
         self.width_spin.setSuffix(' mm')
         self.width_spin.valueChanged.connect(lambda _: self._draw_mri())
+        self.areas_check = QCheckBox('Area labels')
+        self.areas_check.setChecked(True)
+        self.areas_check.toggled.connect(lambda _: self._draw_mri())
         mri_ctrl = QHBoxLayout()
-        for w in (QLabel('Slice rotation'), self.phi_slider, self.phi_label, QLabel('Half width'), self.width_spin):
+        for w in (QLabel('Slice rotation'), self.phi_slider, self.phi_label, QLabel('Half width'), self.width_spin,
+                  self.areas_check):
             mri_ctrl.addWidget(w)
         self.info = QLabel('')
         self.info.setWordWrap(True)
@@ -640,6 +644,8 @@ class LaminarCallingWindow(QMainWindow):
             ys = np.linspace(ext[3], ext[2], seg.shape[0])
             ax.contour(xs, ys, (seg == SEG_WM).astype(float), levels=[0.5], colors='deepskyblue', linewidths=1)
             ax.contour(xs, ys, (seg >= SEG_GM).astype(float), levels=[0.5], colors='orange', linewidths=1)
+        if self.areas_check.isChecked():
+            self._draw_areas(ax, sl, fs)
         ax.plot([0, 0], [lo, hi], color='yellow', lw=0.8, alpha=0.6)
         big = [ch in self.estim for ch in self.channels]
         self._mri_dots = ax.scatter(np.zeros(len(self.channels)), self.depths,
@@ -649,9 +655,32 @@ class LaminarCallingWindow(QMainWindow):
                                     linewidths=[2 if b else 0.4 for b in big], zorder=5)
         ax.set_xlabel('Lateral (mm)', fontsize=fs)
         ax.set_ylabel('Depth under chamber (mm)', fontsize=fs)
-        ax.set_title('MRI along the probe (orange = pia/GM, blue = WM)', fontsize=fs)
+        ax.set_title('MRI along the probe (orange = pia/GM, blue = WM'
+                     + (', magenta = D99 areas)' if self.areas_check.isChecked() else ')'), fontsize=fs)
         fig.tight_layout()
         self.mri_canvas.draw_idle()
+
+    def _draw_areas(self, ax, sl, fs, min_px: int = 30):
+        """D99 area borders (thin magenta) and each area's name at its centre in this slice."""
+        atlas = sl.get('atlas')
+        if atlas is None or not np.any(atlas > 0):
+            return
+        ext = sl['extent']
+        xs = np.linspace(ext[0], ext[1], atlas.shape[1])
+        ys = np.linspace(ext[3], ext[2], atlas.shape[0])
+        border = np.zeros(atlas.shape, bool)
+        border[:-1, :] |= atlas[:-1, :] != atlas[1:, :]
+        border[:, :-1] |= atlas[:, :-1] != atlas[:, 1:]
+        ax.imshow(np.ma.masked_where(~border, border), cmap=ListedColormap(['magenta']), alpha=0.6,
+                  extent=ext, interpolation='nearest')
+        names = self.mri.label_names
+        for idx in np.unique(atlas[atlas > 0]):
+            r, c = np.nonzero(atlas == idx)
+            if len(r) < min_px:
+                continue
+            k = np.argmin((r - r.mean()) ** 2 + (c - c.mean()) ** 2)   # a pixel inside the area
+            ax.text(xs[c[k]], ys[r[k]], names.get(int(idx), str(idx)).split(',')[0], color='magenta',
+                    fontsize=fs - 2, ha='center', va='center', fontweight='bold', clip_on=True)
 
     def _update_info(self):
         i = self.info_d
