@@ -165,7 +165,10 @@ class LaminarDBSource:
         r = self.conn.fetch_all()[0]
         keys = ['final_pen_id', 'final_tip_mm', 'sample_rate', 'pre_ms', 'n_trials',
                 'noisy_channels', 'sink_channel', 'sink_latency_ms', 'sink_depth_mm', 'crossover_depth_mm']
-        info = dict(zip(keys, r))
+        info = {k: (float(v) if v is not None and k != 'noisy_channels' else v) for k, v in zip(keys, r)}
+        for k in ('final_pen_id', 'n_trials', 'sink_channel'):
+            if info[k] is not None:
+                info[k] = int(info[k])
         info['noisy_channels'] = [int(c) for c in (info['noisy_channels'] or '').split(',') if c]
         return info
 
@@ -176,6 +179,8 @@ class LaminarDBSource:
         rows = self.conn.fetch_all()
         df = pd.DataFrame(rows, columns=['channel', 'probe_pos', 'depth_mm', 'evoked_lfp', 'csd',
                                          'alpha_beta_rel', 'gamma_rel'])
+        for c in ('channel', 'probe_pos', 'depth_mm', 'alpha_beta_rel', 'gamma_rel'):
+            df[c] = pd.to_numeric(df[c], errors='coerce')
         df['evoked_lfp'] = df['evoked_lfp'].map(_text_to_arr)
         df['csd'] = df['csd'].map(_text_to_arr)
         return df
