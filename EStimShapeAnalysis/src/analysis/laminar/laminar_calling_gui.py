@@ -11,6 +11,7 @@ Left figure, depth increasing downward:
     CSD           GA stimulus-onset CSD at the final position (sinks red), from
                   laminar_profiles.py.
     Band power    relative alpha-beta and gamma per channel.
+    Positive spikes  fraction of positive spikes (PenetrationMetrics.polarity_ratio), probe span.
     1/f exponent  the aperiodic exponent already in PenetrationMetrics (idle recordings
                   along the drive), zoomed to the probe span.
     Calls         one box per channel coloured by its class; EStim contacts outlined.
@@ -377,13 +378,14 @@ class LaminarCallingWindow(QMainWindow):
         fig = self.prof_fig
         fig.clear()
         fs = self.font_size
-        gs = fig.add_gridspec(1, 8, width_ratios=[0.25, 0.25, 1.6, 0.25, 2.0, 1.1, 0.9, 0.6], wspace=0.08,
+        gs = fig.add_gridspec(1, 9, width_ratios=[0.25, 0.25, 1.6, 0.25, 1.9, 1.0, 0.85, 0.85, 0.6], wspace=0.08,
                               left=0.07, right=0.93, top=0.94, bottom=0.08)
         ax_te, ax_tm, ax_drive = fig.add_subplot(gs[0]), fig.add_subplot(gs[1]), fig.add_subplot(gs[2])
         ax_csd = fig.add_subplot(gs[4])
         ax_band = fig.add_subplot(gs[5])
         ax_exp = fig.add_subplot(gs[6])
-        ax_calls = fig.add_subplot(gs[7])
+        ax_pol = fig.add_subplot(gs[7])
+        ax_calls = fig.add_subplot(gs[8])
         self.ax_calls = ax_calls
 
         # ---- whole drive
@@ -398,6 +400,7 @@ class LaminarCallingWindow(QMainWindow):
         for col, label, color in (('band_power_gamma', 'gamma', 'tab:red'),
                                   ('band_power_alpha_beta', 'alpha-beta', 'tab:blue'),
                                   ('exponent', '1/f exponent', 'tab:green'),
+                                  ('polarity_ratio', 'positive spikes', 'tab:orange'),
                                   ('spike_rate_hz', 'MUA rate', 'k')):
             if col in d.columns and len(d):
                 v = d[col].to_numpy(float)
@@ -436,20 +439,25 @@ class LaminarCallingWindow(QMainWindow):
         if 'exponent' in d.columns and len(d):
             ax_exp.plot(d['exponent'].to_numpy(float), self.drive_depths, color='tab:green', lw=2)
         ax_exp.set_xlabel('Exponent', fontsize=fs)
-        ax_exp.set_title('1/f exponent', fontsize=fs + 1)
+        ax_exp.set_title('1/f\nexponent', fontsize=fs + 1)
         plt_setp_hidden(ax_exp.get_yticklabels())
+        if 'polarity_ratio' in d.columns and len(d):
+            ax_pol.plot(d['polarity_ratio'].to_numpy(float), self.drive_depths, color='tab:orange', lw=2)
+        ax_pol.set_xlabel('Fraction', fontsize=fs)
+        ax_pol.set_title('Positive\nspikes', fontsize=fs + 1)
+        plt_setp_hidden(ax_pol.get_yticklabels())
 
-        for ax in (ax_csd, ax_band, ax_exp):
+        for ax in (ax_csd, ax_band, ax_exp, ax_pol):
             if self.info_d.get('sink_depth_mm') is not None:
                 ax.axhline(self.info_d['sink_depth_mm'], color='tab:red', ls='--', lw=1.2)
             if self.info_d.get('crossover_depth_mm') is not None:
                 ax.axhline(self.info_d['crossover_depth_mm'], color='tab:purple', ls=':', lw=1.5)
-        for ax in (ax_csd, ax_band, ax_exp):
+        for ax in (ax_csd, ax_band, ax_exp, ax_pol):
             ax.set_ylim(self.span[1], self.span[0])
 
         self._spans = [SpanSelector(ax, self._on_span, 'vertical', useblit=True,
                                     props=dict(alpha=0.25, facecolor='tab:green'))
-                       for ax in (ax_calls, ax_csd, ax_band, ax_exp)]
+                       for ax in (ax_calls, ax_csd, ax_band, ax_exp, ax_pol)]
         self._draw_calls(draw=False)
         self.prof_canvas.draw_idle()
 
