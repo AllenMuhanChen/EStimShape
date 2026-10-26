@@ -67,21 +67,24 @@ def main():
     RANDOM_SEED = None             # int for a reproducible noise pattern, None = new each run
     NAFC_STIMULI_DIR = None        # None = <base_dir>/<nafc_database>/stimuli (searched for pngs)
     # Figure
-    ZOOM = 4.0                     # left panel zoom factor (1 = whole sample png)
+    ZOOM = 4.0                     # sample panel zoom factor (1 = whole sample png); sets the field
+                                   # of view (deg) shared by all three panels
     ZOOM_CENTER = "fixation"       # "fixation" = on the fixation point; (x, y) in -1..1 of the sample
                                    # png, +y up; None = centre of the shape (+ fixation)
     DISTRACTOR_LABELS = ("delta", "procedural")  # which distractor to show, by png label, first
                                    # found wins; falls back to any choice that isn't match/rand
 
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
-    CHOICE_SPACING = 1.0           # >1 spreads the three choices apart, <1 packs them closer
+    CHOICE_SPREAD = 0.55           # distance of each choice's centre from the panel centre, as a
+                                   # fraction of half the panel; larger = more spread out
     BACKGROUND_THRESHOLD = 2       # 0-255; a pixel is shape if any channel differs from the
                                    # png's (flat) background colour by more than this. Keep it
                                    # small so faint edge pixels and highlights near the gray stay
     EDGE_BAND_PX = 1               # px inside the shape's edge whose gray share is subtracted out
                                    # (deeper pixels, highlights included, are left untouched)
     SCREEN_COLOR = (0, 0, 0)       # monitor background; pngs are alpha-blended onto it like on the rig
-    SHOW_FIXATION = True           # fixation square at screen (0, 0) on the left panel
+    SHOW_FIXATION = True           # fixation square at screen (0, 0) on the sample panel
+    SHOW_FIXATION_PANEL = True     # extra leftmost panel with only the fixation square in its centre
     FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
     FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = None                # None = native resolution (no resampling of the pngs' pixels);
@@ -164,7 +167,7 @@ def main():
 
     background = estimate_background(sample_rgb)
     fixation = None
-    if SHOW_FIXATION:
+    if SHOW_FIXATION or SHOW_FIXATION_PANEL:
         size_deg = FIXATION_SIZE_DEG
         if size_deg is None:
             size_deg = float(read_system_var(nafc_conn, "xper_fixation_point_size")[0])
@@ -174,20 +177,29 @@ def main():
                           for v in read_system_var(nafc_conn, "xper_fixation_point_color")[:3])
         fixation = fixation_in_sample_pixels(chosen, sample_rgb.shape[:2], size_deg, color)
         print(f"Fixation: {size_deg} deg, colour {color}, at sample px {fixation['xy']}")
-    sample_panel = zoom_panel(noisy_frames[0], sample_rgb, ZOOM, ZOOM_CENTER, PANEL_PX,
-                              background, BACKGROUND_THRESHOLD, fixation)
-    choices_panel = choices_triangle_panel([shown[role] for role in CHOICE_ORDER], PANEL_PX,
-                                           background, BACKGROUND_THRESHOLD, CHOICE_SPACING,
+    sample_deg_per_px = chosen['width_deg'] / sample_rgb.shape[1]
+    sample_panel = zoom_panel(noisy_frames[0], sample_rgb, ZOOM, ZOOM_CENTER, None,
+                              background, BACKGROUND_THRESHOLD, fixation if SHOW_FIXATION else None)
+    field_deg = sample_panel.width * sample_deg_per_px  # every panel shows this many degrees
+    print(f"Panel field of view: {field_deg:.2f} deg")
+    choices_panel = choices_triangle_panel([shown[role] for role in CHOICE_ORDER], field_deg,
+                                           background, BACKGROUND_THRESHOLD, CHOICE_SPREAD,
                                            SCREEN_COLOR, EDGE_BAND_PX)
-    sample_panel = round_corners(sample_panel, CORNER_RADIUS)
-    choices_panel = round_corners(choices_panel, CORNER_RADIUS)
-    sample_panel.save(os.path.join(out_dir, "sample_panel.png"))
-    choices_panel.save(os.path.join(out_dir, "choices_panel.png"))
+    panels = {"sample_panel": sample_panel, "choices_panel": choices_panel}
+    if SHOW_FIXATION_PANEL:
+        panels = {"fixation_panel": fixation_panel(sample_panel.width, fixation, background),
+                  **panels}
+    for name, panel in panels.items():
+        if PANEL_PX is not None:  # nearest keeps noise pixels crisp; choices are smooth-resampled
+            panel = (resample(panel, (PANEL_PX, PANEL_PX)) if name == "choices_panel"
+                     else panel.resize((PANEL_PX, PANEL_PX), Image.NEAREST))
+        panels[name] = round_corners(panel, CORNER_RADIUS)
+        panels[name].save(os.path.join(out_dir, f"{name}.png"))
 
-    fig = plot_example_figure(sample_panel, choices_panel)
+    fig = plot_example_figure(list(panels.values()))
     # dpi high enough that each panel is saved at (at least) its native pixel size
     panel_inches = fig.axes[0].get_window_extent().width / fig.dpi
-    dpi = max(200, int(np.ceil(max(sample_panel.width, choices_panel.width) / panel_inches)))
+    dpi = max(200, int(np.ceil(max(p.width for p in panels.values()) / panel_inches)))
     fig.savefig(os.path.join(out_dir, "figure.png"), dpi=dpi, bbox_inches="tight")
 
     config = {
@@ -213,7 +225,9 @@ def main():
         "distractor_labels": list(DISTRACTOR_LABELS),
         "distractor_ga_id": DISTRACTOR_ID,
         "choice_order": list(CHOICE_ORDER),
-        "choice_spacing": CHOICE_SPACING,
+        "choice_spread": CHOICE_SPREAD,
+        "field_of_view_deg": field_deg,
+        "fixation_panel": SHOW_FIXATION_PANEL,
         "background_threshold": BACKGROUND_THRESHOLD,
         "background_rgb": [int(v) for v in background],
         "panel_px": PANEL_PX,
@@ -741,47 +755,55 @@ def cut_out_choice(choice: dict, threshold: float, screen_color, band_px: int,
     return img, mask_img, deg_per_px
 
 
-def choices_triangle_panel(choices: list[dict], panel_px, background: np.ndarray,
-                           threshold: float, spacing: float, screen_color=(0, 0, 0),
+def choices_triangle_panel(choices: list[dict], field_deg: float, background: np.ndarray,
+                           threshold: float, spread: float, screen_color=(0, 0, 0),
                            band_px: int = 2) -> Image.Image:
-    """Three cut-out choices at the vertices of a triangle (top, bottom-left, bottom-right)."""
+    """
+    Three cut-out choices at the vertices of a triangle (top, bottom-left, bottom-right) in a
+    square panel field_deg wide, so they are at the same scale (deg) as the sample panel. The
+    panel's resolution is the finest of the choice pngs, so no choice is downsampled.
+    """
     cutouts = [cut_out_choice(c, threshold, screen_color, band_px, background) for c in choices]
     scales = [d for _, _, d in cutouts if d is not None]
-    # common pixels-per-degree = the finest of the choices, so nothing is downsampled first
-    ref = min(scales) if len(scales) == len(cutouts) else None
+    if len(scales) != len(cutouts):
+        raise RuntimeError("A choice spec has no dimensions, so it can't be put on the sample's scale.")
+    ref = min(scales)  # deg per px of the panel
     shapes, masks = [], []
     for img, mask_img, deg_per_px in cutouts:
-        if ref is not None:
-            f = deg_per_px / ref
-            size = (max(1, round(img.width * f)), max(1, round(img.height * f)))
-            if size != img.size:  # choices already at the common scale are left untouched
-                img = resample(img, size)
-                mask_img = mask_img.resize(size, Image.NEAREST)
+        f = deg_per_px / ref
+        size = (max(1, round(img.width * f)), max(1, round(img.height * f)))
+        if size != img.size:  # choices already at the common scale are left untouched
+            img = resample(img, size)
+            mask_img = mask_img.resize(size, Image.NEAREST)
         shapes.append(img)
         masks.append(mask_img)
 
-    # radius so neighbouring shapes (half-diagonals r_i, r_j) don't overlap: side = R*sqrt(3)
-    half_diag = [np.hypot(im.width, im.height) / 2 for im in shapes]
-    pairs = [(0, 1), (1, 2), (0, 2)]
-    radius = spacing * max(half_diag[i] + half_diag[j] for i, j in pairs) / np.sqrt(3)
+    side = int(round(field_deg / ref))
+    radius = spread * side / 2
     angles = np.deg2rad([90, 210, 330])
-    centers = [(radius * np.cos(a), -radius * np.sin(a)) for a in angles]  # image y is down
-
-    lefts = [cx - im.width / 2 for (cx, _), im in zip(centers, shapes)]
-    rights = [cx + im.width / 2 for (cx, _), im in zip(centers, shapes)]
-    tops = [cy - im.height / 2 for (_, cy), im in zip(centers, shapes)]
-    bottoms = [cy + im.height / 2 for (_, cy), im in zip(centers, shapes)]
-    x_min, x_max, y_min, y_max = min(lefts), max(rights), min(tops), max(bottoms)
-    side = int(np.ceil(max(x_max - x_min, y_max - y_min) * 1.15))  # 15% margin
-    ox = (side - (x_max - x_min)) / 2 - x_min
-    oy = (side - (y_max - y_min)) / 2 - y_min
+    centers = [(side / 2 + radius * np.cos(a), side / 2 - radius * np.sin(a)) for a in angles]
+    boxes = [(cx - im.width / 2, cy - im.height / 2, cx + im.width / 2, cy + im.height / 2)
+             for (cx, cy), im in zip(centers, shapes)]
+    if any(x0 < 0 or y0 < 0 or x1 > side or y1 > side for x0, y0, x1, y1 in boxes):
+        print("Warning: a choice is cut off by the edge of its panel; lower CHOICE_SPREAD or ZOOM.")
+    if any(boxes[i][0] < boxes[j][2] and boxes[j][0] < boxes[i][2] and
+           boxes[i][1] < boxes[j][3] and boxes[j][1] < boxes[i][3] for i, j in ((0, 1), (1, 2), (0, 2))):
+        print("Warning: choices overlap; raise CHOICE_SPREAD or lower ZOOM.")
 
     canvas = Image.new("RGB", (side, side), tuple(int(v) for v in background))
-    for (cx, cy), im, mk in zip(centers, shapes, masks):
-        canvas.paste(im, (int(round(cx - im.width / 2 + ox)), int(round(cy - im.height / 2 + oy))), mk)
-    if panel_px is None:
-        return canvas
-    return resample(canvas, (panel_px, panel_px))
+    for (x0, y0, _, _), im, mk in zip(boxes, shapes, masks):
+        canvas.paste(im, (int(round(x0)), int(round(y0))), mk)
+    return canvas
+
+
+def fixation_panel(side: int, fixation: dict, background: np.ndarray) -> Image.Image:
+    """Empty screen with only the fixation square in the centre, on the sample panel's scale."""
+    canvas = np.empty((side, side, 3), dtype=np.uint8)
+    canvas[:] = background
+    half = max(fixation['size_px'] / 2, 0.5)
+    lo, hi = int(round(side / 2 - half)), int(round(side / 2 + half))
+    canvas[lo:max(hi, lo + 1), lo:max(hi, lo + 1)] = fixation['color']
+    return Image.fromarray(canvas)
 
 
 def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
@@ -795,9 +817,9 @@ def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
     return panel
 
 
-def plot_example_figure(sample_panel: Image.Image, choices_panel: Image.Image):
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5), gridspec_kw={'wspace': 0.04})
-    for ax, img in zip(axes, (sample_panel, choices_panel)):
+def plot_example_figure(panels: list[Image.Image]):
+    fig, axes = plt.subplots(1, len(panels), figsize=(5 * len(panels), 5), gridspec_kw={'wspace': 0.04})
+    for ax, img in zip(np.atleast_1d(axes), panels):
         # antialiased: the window shows the native-resolution panel shrunk, and "none" or
         # "nearest" would alias (checkerboard / moire), worst on the noise
         ax.imshow(img, interpolation="antialiased")
