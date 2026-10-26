@@ -18,8 +18,9 @@ Left figure, depth increasing downward:
 Right: MRI on the plane holding the trajectory (rotate it about the probe with the slider),
 gray / white segmentation outlined, channels coloured by call, EStim contacts larger.
 
-Calling: select channels in the channel list (click, drag, shift-click for a range, ctrl-click
-to add, ctrl-A for all), then press a class button or its number key (1-6). "Reset to suggestions" refills the calls from
+Calling: click or drag over any probe-span panel (CSD, band power, 1/f exponent, positive spikes,
+Calls) to select channels at those depths; shift-click extends, ctrl-click adds / removes,
+ctrl+A selects all, Esc clears. Then press a class button or its number key (1-6). "Reset to suggestions" refills the calls from
 the strongest CSD sink (or the gamma / alpha-beta crossover), the tissue model and the MRI
 probe angle (see laminar_core.suggest_classes). Nothing is written until "Save calls".
 
@@ -39,10 +40,10 @@ from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (QAbstractItemView, QApplication, QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel,
-                             QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMessageBox, QPushButton,
-                             QShortcut, QSlider, QSplitter, QVBoxLayout, QWidget)
-from PyQt5.QtGui import QBrush, QColor, QKeySequence
+from PyQt5.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel, QLineEdit,
+                             QMainWindow, QMessageBox, QPushButton, QShortcut, QSlider, QSplitter,
+                             QVBoxLayout, QWidget)
+from PyQt5.QtGui import QKeySequence
 
 from src.analysis.laminar.laminar_core import (
     CHANNEL_SPACING_UM, CLASS_COLORS, CLASS_LABELS, LAMINAR_CLASSES, channel_name, suggest_classes,
@@ -137,19 +138,18 @@ class LaminarCallingWindow(QMainWindow):
         self._estim_rects = []
         self._calls_bg = None
         self.prof_canvas.mpl_connect('draw_event', self._on_prof_draw)
-        self.ch_list = QListWidget()
-        self.ch_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.ch_list.itemSelectionChanged.connect(self._on_list_selection)
-        self.ch_list.setMinimumWidth(270)
-        list_box = QVBoxLayout()
-        list_box.addWidget(QLabel('Channels (top = superficial)'))
-        list_box.addWidget(self.ch_list)
+        self._sel_patches = []
+        self._span_axes = []
+        self._anchor, self._dragging, self._drag_base = None, False, set()
+        self.prof_canvas.mpl_connect('button_press_event', self._on_press)
+        self.prof_canvas.mpl_connect('motion_notify_event', self._on_motion)
+        self.prof_canvas.mpl_connect('button_release_event', self._on_release)
+        QShortcut(QKeySequence.SelectAll, self, activated=self._select_all)
+        QShortcut(QKeySequence(Qt.Key_Escape), self, activated=self._clear_selection)
+        self.prof_toolbar = NavigationToolbar2QT(self.prof_canvas, self)
         prof_box = QVBoxLayout()
-        prof_box.addWidget(NavigationToolbar2QT(self.prof_canvas, self))
-        prof_row = QHBoxLayout()
-        prof_row.addWidget(self.prof_canvas, 1)
-        prof_row.addLayout(list_box)
-        prof_box.addLayout(prof_row)
+        prof_box.addWidget(self.prof_toolbar)
+        prof_box.addWidget(self.prof_canvas)
         prof_w = QWidget()
         prof_w.setLayout(prof_box)
 
@@ -278,7 +278,6 @@ class LaminarCallingWindow(QMainWindow):
             self.dirty = True
         self.selected = []
         self._mri_slice_key = None
-        self._fill_channel_list()
         self._update_sel_label()
         self._draw_profiles()
         self._draw_mri()
@@ -346,35 +345,57 @@ class LaminarCallingWindow(QMainWindow):
                                self.middle_half_width_um, normal_order)
 
     # ============================================================== calling
-    def _fill_channel_list(self):
-        self.ch_list.blockSignals(True)
-        self.ch_list.clear()
-        for ch, z in zip(self.channels, self.depths):
-            item = QListWidgetItem()
-            item.setData(Qt.UserRole, ch)
-            self.ch_list.addItem(item)
-        self.ch_list.blockSignals(False)
-        self._update_channel_list()
+    # ---- selection on the plots: click / drag over any probe-span panel
+    def _channel_index_at(self, y):
+        return int(np.argmin(np.abs(self.depths - y)))
 
-    def _update_channel_list(self):
-        for row, (ch, z) in enumerate(zip(self.channels, self.depths)):
-            item = self.ch_list.item(row)
-            cls = self.calls.get(ch, 'unsure')
-            item.setText(f"{channel_name(ch)}  {z:6.2f} mm  {'EStim  ' if ch in self.estim else ''}{CLASS_LABELS[cls]}")
-            item.setBackground(QBrush(QColor(CLASS_COLORS[cls])))
-            item.setForeground(QBrush(QColor('white' if cls in ('middle', 'deep', 'sulcus') else 'black')))
-            font = item.font()
-            font.setBold(ch in self.estim)
-            item.setFont(font)
+    def _on_press(self, event):
+        if event.button != 1 or event.inaxes not in self._span_axes or event.ydata is None \
+                or self.prof_toolbar.mode:          # leave pan / zoom alone
+            return
+        i = self._channel_index_at(event.ydata)
+        sel = {self.channels.index(c) for c in self.selected}
+        key = event.key or ''
+        if 'shift' in key and self._anchor is not None:
+            self._drag_base = set() if 'control' not in key and 'ctrl' not in key else sel
+        elif 'control' in key or 'ctrl' in key:
+            self._drag_base = sel ^ {i}
+            self._anchor = i
+            self._set_selection(self._drag_base)
+            self._dragging = False
+            return
+        else:
+            self._drag_base = set()
+            self._anchor = i
+        self._dragging = True
+        self._extend_drag(i)
 
-    def _on_list_selection(self):
-        rows = sorted(i.row() for i in self.ch_list.selectedIndexes())
-        self.selected = [self.channels[r] for r in rows]
+    def _on_motion(self, event):
+        if self._dragging and event.inaxes in self._span_axes and event.ydata is not None:
+            self._extend_drag(self._channel_index_at(event.ydata))
+
+    def _on_release(self, _event):
+        self._dragging = False
+
+    def _extend_drag(self, i):
+        lo, hi = sorted((self._anchor, i))
+        self._set_selection(self._drag_base | set(range(lo, hi + 1)))
+
+    def _set_selection(self, positions):
+        self.selected = [self.channels[p] for p in sorted(positions)]
         self._update_sel_label()
+        self._blit_calls()
+
+    def _select_all(self):
+        self._set_selection(set(range(len(self.channels))))
+
+    def _clear_selection(self):
+        self._set_selection(set())
 
     def _update_sel_label(self):
         if not self.selected:
-            self.sel_label.setText('No channels selected (select them in the channel list)')
+            self.sel_label.setText('No channels selected: click or drag on the probe panels '
+                                   '(shift = extend, ctrl = add/remove, ctrl+A = all, Esc = none)')
         else:
             self.sel_label.setText(f'{len(self.selected)} selected: '
                                    + ', '.join(channel_name(c) for c in self.selected))
@@ -393,8 +414,7 @@ class LaminarCallingWindow(QMainWindow):
         self._recolor_calls()
 
     def _recolor_calls(self):
-        """Update only the call colours (list, Calls strip, MRI dots): no full redraw."""
-        self._update_channel_list()
+        """Update only the call colours (Calls strip, MRI dots): no full redraw."""
         for ch, rect in self._call_rects.items():
             rect.set_facecolor(CLASS_COLORS[self.calls.get(ch, 'unsure')])
         self._blit_calls()
@@ -437,16 +457,17 @@ class LaminarCallingWindow(QMainWindow):
         ax_te.set_ylabel('Depth under chamber (mm)', fontsize=fs)
         ax_tm.set_yticklabels([])
         d = self.drive
-        for col, label, color in (('band_power_gamma', 'gamma', 'tab:red'),
-                                  ('band_power_alpha_beta', 'alpha-beta', 'tab:blue'),
-                                  ('exponent', '1/f exponent', 'tab:green'),
-                                  ('polarity_ratio', 'positive spikes', 'tab:orange'),
-                                  ('spike_rate_hz', 'MUA rate', 'k')):
+        # MUA rate drawn thin, light and underneath so the other lines stay visible
+        for col, label, color, lw, z in (('spike_rate_hz', 'MUA rate', '0.75', 1.0, 1),
+                                         ('band_power_gamma', 'gamma', 'tab:red', 1.6, 3),
+                                         ('band_power_alpha_beta', 'alpha-beta', 'tab:blue', 1.6, 3),
+                                         ('exponent', '1/f exponent', 'tab:green', 1.6, 3),
+                                         ('polarity_ratio', 'positive spikes', 'tab:orange', 1.6, 3)):
             if col in d.columns and len(d):
                 v = d[col].to_numpy(float)
                 rng = np.nanmax(v) - np.nanmin(v)
                 ax_drive.plot((v - np.nanmin(v)) / (rng if rng else 1), self.drive_depths, color=color,
-                              lw=1.5, label=label)
+                              lw=lw, zorder=z, label=label)
         ax_drive.axhspan(*self.span, color='gold', alpha=0.35, lw=0)
         ax_drive.set_ylim(*ylim_drive)
         ax_drive.set_yticklabels([])
@@ -496,6 +517,11 @@ class LaminarCallingWindow(QMainWindow):
             ax.set_ylim(self.span[1], self.span[0])
 
         self._draw_calls()
+        self._span_axes = [ax_csd, ax_band, ax_exp, ax_pol, ax_calls]
+        h = CHANNEL_SPACING_UM / 1000.0
+        self._sel_patches = [[ax.axhspan(z - h / 2, z + h / 2, facecolor='lime', alpha=0.15, lw=0,
+                                         animated=True, visible=False) for z in self.depths]
+                             for ax in self._span_axes]
         self.prof_canvas.draw_idle()
 
     def _drive_ylim(self):
@@ -531,14 +557,23 @@ class LaminarCallingWindow(QMainWindow):
             self.ax_calls.draw_artist(rect)
         for rect in self._estim_rects:
             self.ax_calls.draw_artist(rect)
+        sel = set(self.selected)
+        for ax, patches in zip(self._span_axes, self._sel_patches):
+            for ch, patch in zip(self.channels, patches):
+                if ch in sel:
+                    patch.set_visible(True)
+                    ax.draw_artist(patch)
+                else:
+                    patch.set_visible(False)
 
     def _blit_calls(self):
+        """Redraw call colours and the selection band on top of the cached figure (fast)."""
         if self._calls_bg is None:
             self.prof_canvas.draw_idle()
             return
         self.prof_canvas.restore_region(self._calls_bg)
         self._draw_call_artists()
-        self.prof_canvas.blit(self.ax_calls.bbox)
+        self.prof_canvas.blit(self.prof_fig.bbox)
 
     def _draw_calls(self):
         ax = self.ax_calls
