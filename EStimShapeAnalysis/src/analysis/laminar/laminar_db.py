@@ -148,7 +148,13 @@ class LaminarDBSource:
 
     # ------------------------------------------------------------- sessions
     def sessions(self) -> List[str]:
+        self.conn.execute("COMMIT")   # end any open read snapshot so rows saved since startup show up
         self.conn.execute("SELECT session_id FROM LaminarSessions WHERE final_tip_mm IS NOT NULL ORDER BY session_id")
+        return [r[0] for r in self.conn.fetch_all()]
+
+    def outdated_sessions(self) -> List[str]:
+        """Rows saved by the first (deepest idle recording) version; rerun laminar_profiles.py for them."""
+        self.conn.execute("SELECT session_id FROM LaminarSessions WHERE final_tip_mm IS NULL ORDER BY session_id")
         return [r[0] for r in self.conn.fetch_all()]
 
     def session_info(self, session_id: str) -> dict:

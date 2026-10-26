@@ -103,13 +103,15 @@ class LaminarCallingWindow(QMainWindow):
         prev_btn, next_btn = QPushButton('◀'), QPushButton('▶')
         prev_btn.clicked.connect(lambda: self._step_session(-1))
         next_btn.clicked.connect(lambda: self._step_session(1))
+        refresh_btn = QPushButton('Refresh sessions')
+        refresh_btn.clicked.connect(self._refresh_sessions)
         reset_btn = QPushButton('Reset to suggestions')
         reset_btn.clicked.connect(self._reset_to_suggestions)
         save_btn = QPushButton('Save calls')
         save_btn.clicked.connect(self._save)
         self.status = QLabel('')
         top = QHBoxLayout()
-        for w in (QLabel('Session'), self.session_box, prev_btn, next_btn, reset_btn, save_btn):
+        for w in (QLabel('Session'), self.session_box, prev_btn, next_btn, refresh_btn, reset_btn, save_btn):
             top.addWidget(w)
         top.addWidget(self.status, 1)
 
@@ -183,6 +185,31 @@ class LaminarCallingWindow(QMainWindow):
             self.session_box.setCurrentText(start_session)
         if self.session_box.count():
             self._load_session(self.session_box.currentText())
+        else:
+            self._show_no_sessions()
+
+    def _show_no_sessions(self):
+        msg = 'No sessions with laminar profiles yet: run laminar_profiles.py, then Refresh sessions.'
+        old = self.source.outdated_sessions() if hasattr(self.source, 'outdated_sessions') else []
+        if old:
+            msg += f' {len(old)} session(s) are from the old version and need a rerun: ' + ', '.join(old)
+        self.status.setText(msg)
+
+    def _refresh_sessions(self):
+        current = self.sid
+        sessions = self.source.sessions()
+        self.session_box.blockSignals(True)
+        self.session_box.clear()
+        self.session_box.addItems(sessions)
+        if current in sessions:
+            self.session_box.setCurrentText(current)
+        self.session_box.blockSignals(False)
+        if not sessions:
+            self._show_no_sessions()
+        elif current not in sessions:
+            self._load_session(self.session_box.currentText())
+        else:
+            self.status.setText(f'{len(sessions)} session(s) with laminar profiles')
 
     # ================================================================ session
     def _step_session(self, step):
