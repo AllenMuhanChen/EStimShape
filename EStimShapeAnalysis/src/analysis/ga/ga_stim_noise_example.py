@@ -850,7 +850,7 @@ def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
 
 
 def draw_eye(ax, x: float, y: float, width: float, color):
-    """Eye symbol centred on (x, y) in data (pixel) coordinates: almond outline plus a filled iris."""
+    """Eye symbol centred on (x, y) in data (pixel) coordinates: almond outline plus an open iris ring (no pupil, so the centre stays visible)."""
     from matplotlib.path import Path
     from matplotlib.patches import Circle, PathPatch
     w, h = width / 2, width * 0.3  # half width; control-point height of the lids
@@ -859,7 +859,6 @@ def draw_eye(ax, x: float, y: float, width: float, color):
     lw = 2.5  # points, so the line weight is the same in every panel
     ax.add_patch(PathPatch(lids, facecolor="none", edgecolor=color, linewidth=lw))
     ax.add_patch(Circle((x, y), width * 0.17, facecolor="none", edgecolor=color, linewidth=lw))
-    ax.add_patch(Circle((x, y), width * 0.07, facecolor=color, edgecolor="none"))
 
 
 def plot_example_figure(panels: list[Image.Image], eyes=None, eye_size: float = 0.18,
