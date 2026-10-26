@@ -60,7 +60,7 @@ def main():
                                    # the latest trial that offered this GA stim is used.
     NAFC_STIM_ID = None            # None = latest NAFC trial with this GA stim as its sample;
                                    # or an NAFC StimSpec id to use that trial's noise map
-    NOISE_CHANCE = 0.3            # noise amount: peak chance a pixel is noise (0-1), like the
+    NOISE_CHANCE = 1.0            # noise amount: peak chance a pixel is noise (0-1), like the
                                    # NAFC noiseChance parameter. None = as the trial used.
     N_FRAMES = 1                   # number of noise frames (twinkle); frame 0 is what the
                                    # monkey sees on the first frame
