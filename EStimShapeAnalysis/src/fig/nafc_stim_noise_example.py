@@ -52,11 +52,11 @@ REMOVED_STIM_TYPE = "EStimShapeVariantsDeletedNAFCStim"
 def main():
     # ---- Parameters -------------------------------------------------------------------------
     SESSION_ID = "260603_0"        # session the GA stim belongs to; None = keep current context
-    # GA_STIM_ID = 1780507361091158     # GA stim id to render with noise
-    # DISTRACTOR_ID = 1780507918367969  # GA id of the delta (or variant) to show as the distractor.
-    GA_STIM_ID = 1780507913222760
-                                   # None = pick by DISTRACTOR_LABELS. If NAFC_STIM_ID is None,
+    GA_STIM_ID = 1780507361091158     # GA stim id to render with noise
+    # GA_STIM_ID = 1780507913222760
     DISTRACTOR_ID = None
+    DISTRACTOR_ID = 1780507918367969  # GA id of the delta (or variant) to show as the distractor.
+                                   # None = pick by DISTRACTOR_LABELS. If NAFC_STIM_ID is None,
                                    # the latest trial that offered this GA stim is used.
     NAFC_STIM_ID = None            # None = latest NAFC trial with this GA stim as its sample;
                                    # or an NAFC StimSpec id to use that trial's noise map
@@ -67,22 +67,39 @@ def main():
     RANDOM_SEED = None             # int for a reproducible noise pattern, None = new each run
     NAFC_STIMULI_DIR = None        # None = <base_dir>/<nafc_database>/stimuli (searched for pngs)
     # Figure
-    ZOOM = 4.0                     # left panel zoom factor (1 = whole sample png)
+    ZOOM = 3                     # sample panel zoom factor (1 = whole sample png); sets the field
+                                   # of view (deg) shared by all three panels
     ZOOM_CENTER = "fixation"       # "fixation" = on the fixation point; (x, y) in -1..1 of the sample
                                    # png, +y up; None = centre of the shape (+ fixation)
     DISTRACTOR_LABELS = ("delta", "procedural")  # which distractor to show, by png label, first
                                    # found wins; falls back to any choice that isn't match/rand
 
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
-    CHOICE_SPACING = 1.0           # >1 spreads the three choices apart, <1 packs them closer
+    IMAGE_ZOOM = 1.0               # enlarges the sample and choice images only (panels, positions
+                                   # and fixation stay); same factor for both, so they stay matched
+    CHOICE_MARGIN = 0.15           # gap between the choices and the panel edge, as a fraction of the
+                                   # panel: top choice at the top centre, the other two in the
+                                   # bottom corners. Smaller = more spread out
     BACKGROUND_THRESHOLD = 2       # 0-255; a pixel is shape if any channel differs from the
                                    # png's (flat) background colour by more than this. Keep it
                                    # small so faint edge pixels and highlights near the gray stay
     EDGE_BAND_PX = 1               # px inside the shape's edge whose gray share is subtracted out
                                    # (deeper pixels, highlights included, are left untouched)
     SCREEN_COLOR = (0, 0, 0)       # monitor background; pngs are alpha-blended onto it like on the rig
-    SHOW_FIXATION = True           # fixation square at screen (0, 0) on the left panel
-    FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
+    SHOW_FIXATION = True           # fixation square at screen (0, 0) on the sample panel
+    SHOW_FIXATION_PANEL = True     # extra leftmost panel with only the fixation square in its centre
+    SHOW_EYE = True                # cyan eye symbol: on fixation (left, middle), on the match (right)
+    EYE_SIZE = 0.18                # eye width as a fraction of the panel
+    EYE_COLOR = "cyan"
+    EYE_ALPHA = 0.7                # eye opacity (1 = solid, 0 = invisible)
+    TWO_ROWS = True                # top row: no EStim (fainter eyes on match AND distractor);
+                                   # bottom row: EStim (eye on the match only). False = bottom row only
+    SPLIT_EYE_ALPHA = 0.4          # opacity of the two eyes on the choices in the top row
+    SHOW_BOLTS = True              # thunderbolt left of each row: no EStim = black dashed outline,
+                                   # EStim = filled orange
+    BOLT_SIZE = 0.3                # bolt height as a fraction of the panel height
+    BOLT_MARGIN = 0.1             # gap between the bolt and the first panel, fraction of panel width
+    FIXATION_SIZE_DEG = 0.5       # None = xper_fixation_point_size from the NAFC SystemVar table
     FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = None                # None = native resolution (no resampling of the pngs' pixels);
                                    # or a pixel size to resize each square panel to
@@ -164,30 +181,60 @@ def main():
 
     background = estimate_background(sample_rgb)
     fixation = None
-    if SHOW_FIXATION:
+    if SHOW_FIXATION or SHOW_FIXATION_PANEL or SHOW_EYE:
         size_deg = FIXATION_SIZE_DEG
         if size_deg is None:
             size_deg = float(read_system_var(nafc_conn, "xper_fixation_point_size")[0])
+            print("current fixation size (deg):", FIXATION_SIZE_DEG)
         color = FIXATION_COLOR
         if color is None:
             color = tuple(int(round(float(v) * 255))
                           for v in read_system_var(nafc_conn, "xper_fixation_point_color")[:3])
         fixation = fixation_in_sample_pixels(chosen, sample_rgb.shape[:2], size_deg, color)
         print(f"Fixation: {size_deg} deg, colour {color}, at sample px {fixation['xy']}")
-    sample_panel = zoom_panel(noisy_frames[0], sample_rgb, ZOOM, ZOOM_CENTER, PANEL_PX,
-                              background, BACKGROUND_THRESHOLD, fixation)
-    choices_panel = choices_triangle_panel([shown[role] for role in CHOICE_ORDER], PANEL_PX,
-                                           background, BACKGROUND_THRESHOLD, CHOICE_SPACING,
-                                           SCREEN_COLOR, EDGE_BAND_PX)
-    sample_panel = round_corners(sample_panel, CORNER_RADIUS)
-    choices_panel = round_corners(choices_panel, CORNER_RADIUS)
-    sample_panel.save(os.path.join(out_dir, "sample_panel.png"))
-    choices_panel.save(os.path.join(out_dir, "choices_panel.png"))
+    sample_deg_per_px = chosen['width_deg'] / sample_rgb.shape[1]
+    sample_panel = zoom_panel(noisy_frames[0], sample_rgb, ZOOM, ZOOM_CENTER, None,
+                              background, BACKGROUND_THRESHOLD, fixation if SHOW_FIXATION else None,
+                              IMAGE_ZOOM)
+    field_deg = sample_panel.width * sample_deg_per_px  # every panel shows this many degrees
+    print(f"Panel field of view: {field_deg:.2f} deg")
+    choices_panel = choices_triangle_panel([shown[role] for role in CHOICE_ORDER], field_deg,
+                                           background, BACKGROUND_THRESHOLD, CHOICE_MARGIN,
+                                           SCREEN_COLOR, EDGE_BAND_PX, IMAGE_ZOOM)
+    panels = {"sample_panel": sample_panel, "choices_panel": choices_panel}
+    # eye positions as fractions of each panel (x right, y down)
+    crop_x, crop_y = sample_panel.info['origin_png_px']
+    fx, fy = sample_panel.info.get('fixation_center',
+                                   (fixation['xy'][0] - crop_x, fixation['xy'][1] - crop_y))
+    centers = choices_panel.info['choice_centers']
+    match_xy, distractor_xy = (centers[list(CHOICE_ORDER).index(r)] for r in ("match", "distractor"))
+    eyes = {"sample_panel": (fx / sample_panel.width, fy / sample_panel.height)}
+    if SHOW_FIXATION_PANEL:
+        fixation_only = fixation_panel(sample_panel.width, fixation, background)
+        panels = {"fixation_panel": fixation_only, **panels}
+        fx, fy = fixation_only.info['fixation_center']
+        eyes["fixation_panel"] = (fx / fixation_only.width, fy / fixation_only.height)
+    for name, panel in panels.items():
+        if PANEL_PX is not None:  # nearest keeps noise pixels crisp; choices are smooth-resampled
+            panel = (resample(panel, (PANEL_PX, PANEL_PX)) if name == "choices_panel"
+                     else panel.resize((PANEL_PX, PANEL_PX), Image.NEAREST))
+        panels[name] = round_corners(panel, CORNER_RADIUS)
+        panels[name].save(os.path.join(out_dir, f"{name}.png"))
 
-    fig = plot_example_figure(sample_panel, choices_panel)
+    # each row: per panel, a list of (x, y, opacity) eyes
+    def eye_row(choice_eyes):
+        return [[(*eyes[name], EYE_ALPHA)] if name in eyes else choice_eyes for name in panels]
+    estim_row = eye_row([(*match_xy, EYE_ALPHA)])
+    no_estim_row = eye_row([(*match_xy, SPLIT_EYE_ALPHA), (*distractor_xy, SPLIT_EYE_ALPHA)])
+    rows = [no_estim_row, estim_row] if TWO_ROWS else [estim_row]
+    bolts = ["no_estim", "estim"] if TWO_ROWS else ["estim"]
+    if not SHOW_EYE:
+        rows = [[[] for _ in panels] for _ in rows]
+    fig = plot_example_figure(list(panels.values()), rows, EYE_SIZE, EYE_COLOR,
+                              bolts if SHOW_BOLTS else None, BOLT_SIZE, BOLT_MARGIN)
     # dpi high enough that each panel is saved at (at least) its native pixel size
     panel_inches = fig.axes[0].get_window_extent().width / fig.dpi
-    dpi = max(200, int(np.ceil(max(sample_panel.width, choices_panel.width) / panel_inches)))
+    dpi = max(200, int(np.ceil(max(p.width for p in panels.values()) / panel_inches)))
     fig.savefig(os.path.join(out_dir, "figure.png"), dpi=dpi, bbox_inches="tight")
 
     config = {
@@ -209,11 +256,18 @@ def main():
                                  'dimensions_deg': [c['width_deg'], c['height_deg']]}
                           for role, c in shown.items()},
         "zoom": ZOOM,
+        "image_zoom": IMAGE_ZOOM,
+        "eye": {"size": EYE_SIZE, "color": EYE_COLOR, "alpha": EYE_ALPHA,
+                "split_alpha": SPLIT_EYE_ALPHA} if SHOW_EYE else None,
+        "two_rows": TWO_ROWS,
+        "bolts": {"size": BOLT_SIZE, "margin": BOLT_MARGIN} if SHOW_BOLTS else None,
         "zoom_center": ZOOM_CENTER,
         "distractor_labels": list(DISTRACTOR_LABELS),
         "distractor_ga_id": DISTRACTOR_ID,
         "choice_order": list(CHOICE_ORDER),
-        "choice_spacing": CHOICE_SPACING,
+        "choice_margin": CHOICE_MARGIN,
+        "field_of_view_deg": field_deg,
+        "fixation_panel": SHOW_FIXATION_PANEL,
         "background_threshold": BACKGROUND_THRESHOLD,
         "background_rgb": [int(v) for v in background],
         "panel_px": PANEL_PX,
@@ -547,23 +601,32 @@ def fixation_in_sample_pixels(sample_spec: dict, shape_hw: tuple, size_deg: floa
 
 
 def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, center, panel_px,
-               background: np.ndarray, threshold: float, fixation: dict | None = None) -> Image.Image:
+               background: np.ndarray, threshold: float, fixation: dict | None = None,
+               image_zoom: float = 1.0) -> Image.Image:
     """Square crop of side min(h, w) / zoom around center (default: centre of the bounding box
     of the shape in the clean sample, plus the fixation square if shown), at native resolution, or
-    scaled to panel_px with nearest neighbour so noise pixels stay crisp. Anything outside the png is screen background."""
+    scaled to panel_px with nearest neighbour so noise pixels stay crisp. Anything outside the png is screen background.
+    image_zoom enlarges the png (noise included) about its own centre without changing the crop
+    or the fixation point."""
     h, w = noisy_rgb.shape[:2]
     side = max(1, int(round(min(h, w) / max(zoom, 1e-6))))
+    if image_zoom != 1:  # nearest keeps the noise pixels crisp
+        size = (max(1, round(w * image_zoom)), max(1, round(h * image_zoom)))
+        noisy_rgb = np.array(Image.fromarray(noisy_rgb).resize(size, Image.NEAREST))
+        sample_rgb = np.array(Image.fromarray(sample_rgb).resize(size, Image.NEAREST))
+    ih, iw = noisy_rgb.shape[:2]
+    ox, oy = int(round((w - iw) / 2)), int(round((h - ih) / 2))  # png corner, png coordinates
 
     # Scene = the png padded with background on every side, so the crop and the fixation point
     # can fall outside the png.
-    pad = side + max(h, w)
+    pad = side + max(h, w, ih, iw)
     if fixation is not None:
         fx, fy = fixation['xy']
         pad = int(max(pad, abs(fx) + fixation['size_px'], abs(fy) + fixation['size_px'],
                       abs(fx - w) + fixation['size_px'], abs(fy - h) + fixation['size_px']))
     scene = np.empty((h + 2 * pad, w + 2 * pad, 3), dtype=np.uint8)
     scene[:] = background
-    scene[pad:pad + h, pad:pad + w] = noisy_rgb
+    scene[pad + oy:pad + oy + ih, pad + ox:pad + ox + iw] = noisy_rgb
 
     boxes = []  # (x0, y0, x1, y1) in png coordinates
     if center == "fixation" and fixation is None:
@@ -572,13 +635,14 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
         mask = shape_mask(sample_rgb, background, threshold)
         if mask.any():
             rows, cols = np.nonzero(mask)
-            boxes.append((cols.min(), rows.min(), cols.max(), rows.max()))
+            boxes.append((cols.min() + ox, rows.min() + oy, cols.max() + ox, rows.max() + oy))
     if fixation is not None:
         fx, fy = fixation['xy']
         half = max(fixation['size_px'] / 2, 0.5)
         x0f, x1f = int(round(fx - half)), int(round(fx + half))
         y0f, y1f = int(round(fy - half)), int(round(fy + half))
         scene[pad + y0f:pad + max(y1f, y0f + 1), pad + x0f:pad + max(x1f, x0f + 1)] = fixation['color']
+        drawn_fixation = ((x0f + max(x1f, x0f + 1)) / 2, (y0f + max(y1f, y0f + 1)) / 2)
         if center is None:
             boxes.append((x0f, y0f, x1f, y1f))
 
@@ -595,10 +659,14 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
     x0 = int(round(cx - side / 2)) + pad
     y0 = int(round(cy - side / 2)) + pad
     crop = Image.fromarray(scene[y0:y0 + side, x0:x0 + side])
+    crop.info['origin_png_px'] = (x0 - pad, y0 - pad)  # crop's top-left corner in png coordinates
+    if fixation is not None:  # centre of the fixation square as drawn, in crop pixel-edge coordinates
+        crop.info['fixation_center'] = (drawn_fixation[0] + pad - x0, drawn_fixation[1] + pad - y0)
     if center == "fixation":
         rows, cols = np.nonzero(shape_mask(sample_rgb, background, threshold))
-        if rows.size and (cols.min() + pad < x0 or cols.max() + pad >= x0 + side
-                          or rows.min() + pad < y0 or rows.max() + pad >= y0 + side):
+        cols, rows = cols + ox + pad, rows + oy + pad
+        if rows.size and (cols.min() < x0 or cols.max() >= x0 + side
+                          or rows.min() < y0 or rows.max() >= y0 + side):
             print("Warning: centred on the fixation point, part of the shape is outside the left "
                   "panel; lower ZOOM to fit it.")
     if panel_px is None:
@@ -741,47 +809,63 @@ def cut_out_choice(choice: dict, threshold: float, screen_color, band_px: int,
     return img, mask_img, deg_per_px
 
 
-def choices_triangle_panel(choices: list[dict], panel_px, background: np.ndarray,
-                           threshold: float, spacing: float, screen_color=(0, 0, 0),
-                           band_px: int = 2) -> Image.Image:
-    """Three cut-out choices at the vertices of a triangle (top, bottom-left, bottom-right)."""
+def choices_triangle_panel(choices: list[dict], field_deg: float, background: np.ndarray,
+                           threshold: float, margin: float, screen_color=(0, 0, 0),
+                           band_px: int = 2, image_zoom: float = 1.0) -> Image.Image:
+    """
+    Three cut-out choices at the top centre, bottom-left and bottom-right corners of a
+    square panel field_deg wide, so they are at the same scale (deg) as the sample panel. The
+    panel's resolution is the finest of the choice pngs, so no choice is downsampled.
+    image_zoom enlarges the choices themselves; the panel's field of view stays field_deg.
+    """
     cutouts = [cut_out_choice(c, threshold, screen_color, band_px, background) for c in choices]
     scales = [d for _, _, d in cutouts if d is not None]
-    # common pixels-per-degree = the finest of the choices, so nothing is downsampled first
-    ref = min(scales) if len(scales) == len(cutouts) else None
+    if len(scales) != len(cutouts):
+        raise RuntimeError("A choice spec has no dimensions, so it can't be put on the sample's scale.")
+    ref = min(scales)  # deg per px of the panel
     shapes, masks = [], []
     for img, mask_img, deg_per_px in cutouts:
-        if ref is not None:
-            f = deg_per_px / ref
-            size = (max(1, round(img.width * f)), max(1, round(img.height * f)))
-            if size != img.size:  # choices already at the common scale are left untouched
-                img = resample(img, size)
-                mask_img = mask_img.resize(size, Image.NEAREST)
+        f = deg_per_px / ref * image_zoom
+        size = (max(1, round(img.width * f)), max(1, round(img.height * f)))
+        if size != img.size:  # choices already at the common scale are left untouched
+            img = resample(img, size)
+            mask_img = mask_img.resize(size, Image.NEAREST)
         shapes.append(img)
         masks.append(mask_img)
 
-    # radius so neighbouring shapes (half-diagonals r_i, r_j) don't overlap: side = R*sqrt(3)
-    half_diag = [np.hypot(im.width, im.height) / 2 for im in shapes]
-    pairs = [(0, 1), (1, 2), (0, 2)]
-    radius = spacing * max(half_diag[i] + half_diag[j] for i, j in pairs) / np.sqrt(3)
-    angles = np.deg2rad([90, 210, 330])
-    centers = [(radius * np.cos(a), -radius * np.sin(a)) for a in angles]  # image y is down
-
-    lefts = [cx - im.width / 2 for (cx, _), im in zip(centers, shapes)]
-    rights = [cx + im.width / 2 for (cx, _), im in zip(centers, shapes)]
-    tops = [cy - im.height / 2 for (_, cy), im in zip(centers, shapes)]
-    bottoms = [cy + im.height / 2 for (_, cy), im in zip(centers, shapes)]
-    x_min, x_max, y_min, y_max = min(lefts), max(rights), min(tops), max(bottoms)
-    side = int(np.ceil(max(x_max - x_min, y_max - y_min) * 1.15))  # 15% margin
-    ox = (side - (x_max - x_min)) / 2 - x_min
-    oy = (side - (y_max - y_min)) / 2 - y_min
+    side = int(round(field_deg / ref))
+    gap = margin * side
+    top, left, right = shapes
+    corners = [((side - top.width) / 2, gap),                       # top centre
+               (gap, side - gap - left.height),                     # bottom-left
+               (side - gap - right.width, side - gap - right.height)]  # bottom-right
+    boxes = [(x0, y0, x0 + im.width, y0 + im.height) for (x0, y0), im in zip(corners, shapes)]
+    if any(x0 < 0 or y0 < 0 for x0, y0, _, _ in boxes):
+        print("Warning: a choice is cut off by the edge of its panel; lower ZOOM, IMAGE_ZOOM or CHOICE_MARGIN.")
+    if any(boxes[i][0] < boxes[j][2] and boxes[j][0] < boxes[i][2] and
+           boxes[i][1] < boxes[j][3] and boxes[j][1] < boxes[i][3] for i, j in ((0, 1), (1, 2), (0, 2))):
+        print("Warning: choices may overlap; lower ZOOM or IMAGE_ZOOM.")
 
     canvas = Image.new("RGB", (side, side), tuple(int(v) for v in background))
-    for (cx, cy), im, mk in zip(centers, shapes, masks):
-        canvas.paste(im, (int(round(cx - im.width / 2 + ox)), int(round(cy - im.height / 2 + oy))), mk)
-    if panel_px is None:
-        return canvas
-    return resample(canvas, (panel_px, panel_px))
+    for (x0, y0, _, _), im, mk in zip(boxes, shapes, masks):
+        canvas.paste(im, (int(round(x0)), int(round(y0))), mk)
+    # centre of each choice, as a fraction of the panel (x right, y down)
+    canvas.info['choice_centers'] = [((round(b[0]) + (b[2] - b[0]) / 2) / side,
+                                      (round(b[1]) + (b[3] - b[1]) / 2) / side) for b in boxes]
+    return canvas
+
+
+def fixation_panel(side: int, fixation: dict, background: np.ndarray) -> Image.Image:
+    """Empty screen with only the fixation square in the centre, on the sample panel's scale."""
+    canvas = np.empty((side, side, 3), dtype=np.uint8)
+    canvas[:] = background
+    half = max(fixation['size_px'] / 2, 0.5)
+    lo, hi = int(round(side / 2 - half)), int(round(side / 2 + half))
+    hi = max(hi, lo + 1)
+    canvas[lo:hi, lo:hi] = fixation['color']
+    panel = Image.fromarray(canvas)
+    panel.info['fixation_center'] = ((lo + hi) / 2, (lo + hi) / 2)  # pixel-edge coordinates
+    return panel
 
 
 def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
@@ -795,13 +879,65 @@ def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
     return panel
 
 
-def plot_example_figure(sample_panel: Image.Image, choices_panel: Image.Image):
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5), gridspec_kw={'wspace': 0.04})
-    for ax, img in zip(axes, (sample_panel, choices_panel)):
-        # antialiased: the window shows the native-resolution panel shrunk, and "none" or
-        # "nearest" would alias (checkerboard / moire), worst on the noise
-        ax.imshow(img, interpolation="antialiased")
-        ax.set_axis_off()
+def draw_eye(ax, x: float, y: float, width: float, color, alpha: float = 1.0):
+    """Eye symbol centred on (x, y) in data (pixel) coordinates: almond outline plus an open iris ring (no pupil, so the centre stays visible)."""
+    from matplotlib.path import Path
+    from matplotlib.patches import Circle, PathPatch
+    w, h = width / 2, width * 0.3  # half width; control-point height of the lids
+    lids = Path([(x - w, y), (x, y - 2 * h), (x + w, y), (x, y + 2 * h), (x - w, y)],
+                [Path.MOVETO, Path.CURVE3, Path.CURVE3, Path.CURVE3, Path.CURVE3])
+    lw = 2.5  # points, so the line weight is the same in every panel
+    ax.add_patch(PathPatch(lids, facecolor="none", edgecolor=color, linewidth=lw, alpha=alpha))
+    ax.add_patch(Circle((x, y), width * 0.17, facecolor="none", edgecolor=color, linewidth=lw,
+                        alpha=alpha))
+
+
+def draw_bolt(ax, estim: bool, height: float, margin: float = 0.03):
+    """Thunderbolt just left of ax, vertically centred: filled orange for EStim, black dashed
+    outline with no fill for no EStim. height is a fraction of the panel height, margin the gap
+    to the panel as a fraction of its width."""
+    from matplotlib.patches import Polygon
+    # bolt outline in units of its height, centred on (0, 0), +y up
+    shape = np.array([(0.12, 0.5), (-0.22, -0.04), (0.0, -0.04), (-0.12, -0.5),
+                      (0.22, 0.06), (0.0, 0.06)])
+    xy = shape * height + (-margin - 0.22 * height, 0.5)  # right tip margin clear of the panel
+    if estim:
+        patch = Polygon(xy, closed=True, facecolor="orange", edgecolor="orange", linewidth=1.5)
+    else:
+        patch = Polygon(xy, closed=True, facecolor="none", edgecolor="black", linewidth=1.5,
+                        linestyle=(0, (3, 2)))
+    patch.set_transform(ax.transAxes)
+    patch.set_clip_on(False)
+    ax.add_patch(patch)
+
+
+def plot_example_figure(panels: list[Image.Image], eye_rows=None, eye_size: float = 0.18,
+                        eye_color="cyan", bolts=None, bolt_size: float = 0.3,
+                        bolt_margin: float = 0.03):
+    """
+    One row of the panels per entry of eye_rows (the same panels in every row). Each row gives,
+    per panel, a list of (x, y, opacity) eye symbols with x, y as fractions of the panel.
+    bolts: per row, "estim" or "no_estim" for a thunderbolt left of the row, or None.
+    """
+    eye_rows = eye_rows or [[[] for _ in panels]]
+    # panel size grows with the field of view (sample panel px), so the stimuli keep their size
+    inches = max(4.0, panels[-2 if len(panels) > 1 else 0].width / 80)
+    fig, axes = plt.subplots(len(eye_rows), len(panels), squeeze=False,
+                             figsize=(inches * len(panels), inches * len(eye_rows)),
+                             gridspec_kw={'wspace': 0.04, 'hspace': 0.04})
+    for row_axes, row_eyes in zip(axes, eye_rows):
+        for ax, img, panel_eyes in zip(row_axes, panels, row_eyes):
+            # antialiased: the window shows the native-resolution panel shrunk, and "none" or
+            # "nearest" would alias (checkerboard / moire), worst on the noise
+            ax.imshow(img, interpolation="antialiased")
+            ax.set_axis_off()
+            for x, y, alpha in panel_eyes:
+                # eye is in pixel-edge coordinates; imshow centres pixel i on i, so shift by -0.5
+                draw_eye(ax, x * img.width - 0.5, y * img.height - 0.5, eye_size * img.width,
+                         eye_color, alpha)
+    for row_axes, bolt in zip(axes, bolts or []):
+        if bolt is not None:
+            draw_bolt(row_axes[0], bolt == "estim", bolt_size, bolt_margin)
     return fig
 
 

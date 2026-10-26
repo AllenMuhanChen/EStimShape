@@ -17,7 +17,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 sys.path.insert(0, str(Path(__file__).parent))
-from waveform_diagram import _BLACK, _GRAY, _LINE_W, _biphasic_waveform
+from src.fig.waveform_diagram import _BLACK, _GRAY, _LINE_W, _biphasic_waveform
 
 
 def plot_interphase_delay_diagram(d1=200.0, d2=200.0, dp=100.0,
