@@ -244,6 +244,32 @@ def population_stats(table: pd.DataFrame) -> dict:
     return out
 
 
+def gross_depression(table: pd.DataFrame) -> dict:
+    """Average choice-period response change, EStim ON vs OFF, in percent:
+    100 x (mean ON rate - mean OFF rate) / mean OFF rate, with rates averaged over
+    channels first (gross: high-rate channels count by their spikes, and low-rate
+    channels can't blow up the ratio). Also per session, then mean +- SEM over
+    sessions."""
+    def pct(g):
+        return 100 * (g["mean_rate_on"].mean() - g["mean_rate_off"].mean()) / g["mean_rate_off"].mean()
+    per_session = table.groupby("session_id").apply(pct)
+    return {"percent": float(pct(table)),
+            "rate_on": float(table["mean_rate_on"].mean()),
+            "rate_off": float(table["mean_rate_off"].mean()),
+            "n_channels": len(table),
+            "session_mean": float(per_session.mean()),
+            "session_sem": float(per_session.std(ddof=1) / np.sqrt(len(per_session)))
+            if len(per_session) > 1 else np.nan,
+            "n_sessions": len(per_session)}
+
+
+def gross_depression_text(g: dict) -> str:
+    return (f"Average choice-period response, EStim ON vs OFF: {g['percent']:+.1f}% "
+            f"(mean rate ON {g['rate_on']:.2f} vs OFF {g['rate_off']:.2f} spikes/s, "
+            f"{g['n_channels']} channels); per session: {g['session_mean']:+.1f}% "
+            f"+- {g['session_sem']:.1f}% SEM ({g['n_sessions']} sessions)")
+
+
 def mi_to_percent_change(mi):
     """MI = (ON - OFF) / (ON + OFF)  ->  100 * (ON - OFF) / OFF."""
     return 100 * 2 * np.asarray(mi) / (1 - np.asarray(mi))
@@ -1409,7 +1435,8 @@ def main():
         return
 
     pop = population_stats(table)
-    text = stats_text(pop, alpha)
+    gross = gross_depression(table)
+    text = gross_depression_text(gross) + "\n" + stats_text(pop, alpha)
 
     distance_result = None
     if plot_distance_to_estim:
@@ -1536,6 +1563,7 @@ def main():
                     bbox_inches="tight")
         fig.savefig(os.path.join(out_dir, "choice_period_synchrony.svg"), bbox_inches="tight")
     print(f"Saved to {out_dir}")
+    print("\n" + gross_depression_text(gross))
     for m, cur in ((distance_result or {}).get("current") or {}).items():
         if cur.get("joint"):
             print(joint_summary(cur["joint"]))
