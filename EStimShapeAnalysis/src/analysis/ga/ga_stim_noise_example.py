@@ -88,6 +88,9 @@ def main():
     SCREEN_COLOR = (0, 0, 0)       # monitor background; pngs are alpha-blended onto it like on the rig
     SHOW_FIXATION = True           # fixation square at screen (0, 0) on the sample panel
     SHOW_FIXATION_PANEL = True     # extra leftmost panel with only the fixation square in its centre
+    SHOW_EYE = True                # cyan eye symbol: on fixation (left, middle), on the match (right)
+    EYE_SIZE = 0.18                # eye width as a fraction of the panel
+    EYE_COLOR = "cyan"
     FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
     FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = None                # None = native resolution (no resampling of the pngs' pixels);
@@ -170,7 +173,7 @@ def main():
 
     background = estimate_background(sample_rgb)
     fixation = None
-    if SHOW_FIXATION or SHOW_FIXATION_PANEL:
+    if SHOW_FIXATION or SHOW_FIXATION_PANEL or SHOW_EYE:
         size_deg = FIXATION_SIZE_DEG
         if size_deg is None:
             size_deg = float(read_system_var(nafc_conn, "xper_fixation_point_size")[0])
@@ -190,9 +193,15 @@ def main():
                                            background, BACKGROUND_THRESHOLD, CHOICE_MARGIN,
                                            SCREEN_COLOR, EDGE_BAND_PX, IMAGE_ZOOM)
     panels = {"sample_panel": sample_panel, "choices_panel": choices_panel}
+    # eye positions as fractions of each panel (x right, y down)
+    crop_x, crop_y = sample_panel.info['origin_png_px']
+    eyes = {"sample_panel": ((fixation['xy'][0] - crop_x) / sample_panel.width,
+                             (fixation['xy'][1] - crop_y) / sample_panel.height),
+            "choices_panel": choices_panel.info['choice_centers'][list(CHOICE_ORDER).index("match")]}
     if SHOW_FIXATION_PANEL:
         panels = {"fixation_panel": fixation_panel(sample_panel.width, fixation, background),
                   **panels}
+        eyes["fixation_panel"] = (0.5, 0.5)
     for name, panel in panels.items():
         if PANEL_PX is not None:  # nearest keeps noise pixels crisp; choices are smooth-resampled
             panel = (resample(panel, (PANEL_PX, PANEL_PX)) if name == "choices_panel"
@@ -200,7 +209,9 @@ def main():
         panels[name] = round_corners(panel, CORNER_RADIUS)
         panels[name].save(os.path.join(out_dir, f"{name}.png"))
 
-    fig = plot_example_figure(list(panels.values()))
+    fig = plot_example_figure(list(panels.values()),
+                              [eyes[name] for name in panels] if SHOW_EYE else None,
+                              EYE_SIZE, EYE_COLOR)
     # dpi high enough that each panel is saved at (at least) its native pixel size
     panel_inches = fig.axes[0].get_window_extent().width / fig.dpi
     dpi = max(200, int(np.ceil(max(p.width for p in panels.values()) / panel_inches)))
@@ -226,6 +237,7 @@ def main():
                           for role, c in shown.items()},
         "zoom": ZOOM,
         "image_zoom": IMAGE_ZOOM,
+        "eye": {"size": EYE_SIZE, "color": EYE_COLOR} if SHOW_EYE else None,
         "zoom_center": ZOOM_CENTER,
         "distractor_labels": list(DISTRACTOR_LABELS),
         "distractor_ga_id": DISTRACTOR_ID,
@@ -623,6 +635,7 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
     x0 = int(round(cx - side / 2)) + pad
     y0 = int(round(cy - side / 2)) + pad
     crop = Image.fromarray(scene[y0:y0 + side, x0:x0 + side])
+    crop.info['origin_png_px'] = (x0 - pad, y0 - pad)  # crop's top-left corner in png coordinates
     if center == "fixation":
         rows, cols = np.nonzero(shape_mask(sample_rgb, background, threshold))
         cols, rows = cols + ox + pad, rows + oy + pad
@@ -810,6 +823,8 @@ def choices_triangle_panel(choices: list[dict], field_deg: float, background: np
     canvas = Image.new("RGB", (side, side), tuple(int(v) for v in background))
     for (x0, y0, _, _), im, mk in zip(boxes, shapes, masks):
         canvas.paste(im, (int(round(x0)), int(round(y0))), mk)
+    # centre of each choice, as a fraction of the panel (x right, y down)
+    canvas.info['choice_centers'] = [((b[0] + b[2]) / 2 / side, (b[1] + b[3]) / 2 / side) for b in boxes]
     return canvas
 
 
@@ -834,7 +849,22 @@ def round_corners(panel: Image.Image, radius_fraction: float) -> Image.Image:
     return panel
 
 
-def plot_example_figure(panels: list[Image.Image]):
+def draw_eye(ax, x: float, y: float, width: float, color):
+    """Eye symbol centred on (x, y) in data (pixel) coordinates: almond outline plus a filled iris."""
+    from matplotlib.path import Path
+    from matplotlib.patches import Circle, PathPatch
+    w, h = width / 2, width * 0.3  # half width; control-point height of the lids
+    lids = Path([(x - w, y), (x, y - 2 * h), (x + w, y), (x, y + 2 * h), (x - w, y)],
+                [Path.MOVETO, Path.CURVE3, Path.CURVE3, Path.CURVE3, Path.CURVE3])
+    lw = 2.5  # points, so the line weight is the same in every panel
+    ax.add_patch(PathPatch(lids, facecolor="none", edgecolor=color, linewidth=lw))
+    ax.add_patch(Circle((x, y), width * 0.17, facecolor="none", edgecolor=color, linewidth=lw))
+    ax.add_patch(Circle((x, y), width * 0.07, facecolor=color, edgecolor="none"))
+
+
+def plot_example_figure(panels: list[Image.Image], eyes=None, eye_size: float = 0.18,
+                        eye_color="cyan"):
+    """eyes: per panel, (x, y) as a fraction of the panel for an eye symbol, or None for none."""
     # panel size grows with the field of view (sample panel px), so the stimuli keep their size
     inches = max(4.0, panels[-2 if len(panels) > 1 else 0].width / 80)
     fig, axes = plt.subplots(1, len(panels), figsize=(inches * len(panels), inches),
@@ -844,6 +874,10 @@ def plot_example_figure(panels: list[Image.Image]):
         # "nearest" would alias (checkerboard / moire), worst on the noise
         ax.imshow(img, interpolation="antialiased")
         ax.set_axis_off()
+    if eyes is not None:
+        for ax, img, eye in zip(np.atleast_1d(axes), panels, eyes):
+            if eye is not None:
+                draw_eye(ax, eye[0] * img.width, eye[1] * img.height, eye_size * img.width, eye_color)
     return fig
 
 
