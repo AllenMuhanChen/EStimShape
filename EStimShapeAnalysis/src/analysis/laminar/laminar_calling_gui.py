@@ -14,11 +14,12 @@ Left figure, depth increasing downward:
     Positive spikes  fraction of positive spikes (PenetrationMetrics.polarity_ratio), probe span.
     Impedance     relative impedance already in PenetrationMetrics (each channel's impedance /
                   its mean over the drive), zoomed to the probe span.
+    Trough-peak   spike trough-to-peak duration (PenetrationMetrics.trough_to_peak_ms), probe span.
     Calls         one box per channel coloured by its class; EStim contacts outlined.
 Right: MRI on the plane holding the trajectory (rotate it about the probe with the slider),
 gray / white segmentation outlined, channels coloured by call, EStim contacts larger.
 
-Calling: click or drag over any probe-span panel (CSD, band power, impedance, positive spikes,
+Calling: click or drag over any probe-span panel (CSD, band power, impedance, positive spikes, trough-peak,
 Calls) to select channels at those depths; shift-click extends, ctrl-click adds / removes,
 ctrl+A selects all, Esc clears. Then press a class button or its number key (1-6). "Reset to suggestions" refills the calls from
 the strongest CSD sink (or the gamma / alpha-beta crossover), the tissue model and the MRI
@@ -438,14 +439,15 @@ class LaminarCallingWindow(QMainWindow):
         fig = self.prof_fig
         fig.clear()
         fs = self.font_size
-        gs = fig.add_gridspec(1, 9, width_ratios=[0.25, 0.25, 1.6, 0.25, 1.9, 1.0, 0.85, 0.85, 0.6], wspace=0.08,
+        gs = fig.add_gridspec(1, 10, width_ratios=[0.25, 0.25, 1.6, 0.25, 1.9, 1.0, 0.85, 0.85, 0.85, 0.6], wspace=0.08,
                               left=0.07, right=0.93, top=0.94, bottom=0.08)
         ax_te, ax_tm, ax_drive = fig.add_subplot(gs[0]), fig.add_subplot(gs[1]), fig.add_subplot(gs[2])
         ax_csd = fig.add_subplot(gs[4])
         ax_band = fig.add_subplot(gs[5])
         ax_imp = fig.add_subplot(gs[6])
         ax_pol = fig.add_subplot(gs[7])
-        ax_calls = fig.add_subplot(gs[8])
+        ax_ttp = fig.add_subplot(gs[8])
+        ax_calls = fig.add_subplot(gs[9])
         self.ax_calls = ax_calls
 
         # ---- whole drive
@@ -462,7 +464,8 @@ class LaminarCallingWindow(QMainWindow):
                                          ('band_power_gamma', 'gamma', 'tab:red', 1.6, 3),
                                          ('band_power_alpha_beta', 'alpha-beta', 'tab:blue', 1.6, 3),
                                          ('relative_impedance', 'rel. impedance', 'tab:green', 1.6, 3),
-                                         ('polarity_ratio', 'positive spikes', 'tab:orange', 1.6, 3)):
+                                         ('polarity_ratio', 'positive spikes', 'tab:orange', 1.6, 3),
+                                         ('trough_to_peak_ms', 'trough-peak', 'tab:brown', 1.6, 3)):
             if col in d.columns and len(d):
                 v = d[col].to_numpy(float)
                 rng = np.nanmax(v) - np.nanmin(v)
@@ -508,17 +511,23 @@ class LaminarCallingWindow(QMainWindow):
         ax_pol.set_xlabel('Fraction', fontsize=fs)
         ax_pol.set_title('Positive\nspikes', fontsize=fs + 1)
         plt_setp_hidden(ax_pol.get_yticklabels())
+        if 'trough_to_peak_ms' in d.columns and len(d):
+            ax_ttp.plot(d['trough_to_peak_ms'].to_numpy(float), self.drive_depths, color='tab:brown', lw=2)
+        ax_ttp.set_xlabel('ms', fontsize=fs)
+        ax_ttp.locator_params(axis='x', nbins=3)
+        ax_ttp.set_title('Trough-\npeak', fontsize=fs + 1)
+        plt_setp_hidden(ax_ttp.get_yticklabels())
 
-        for ax in (ax_csd, ax_band, ax_imp, ax_pol):
+        for ax in (ax_csd, ax_band, ax_imp, ax_pol, ax_ttp):
             if self.info_d.get('sink_depth_mm') is not None:
                 ax.axhline(self.info_d['sink_depth_mm'], color='tab:red', ls='--', lw=1.2)
             if self.info_d.get('crossover_depth_mm') is not None:
                 ax.axhline(self.info_d['crossover_depth_mm'], color='tab:purple', ls=':', lw=1.5)
-        for ax in (ax_csd, ax_band, ax_imp, ax_pol):
+        for ax in (ax_csd, ax_band, ax_imp, ax_pol, ax_ttp):
             ax.set_ylim(self.span[1], self.span[0])
 
         self._draw_calls()
-        self._span_axes = [ax_csd, ax_band, ax_imp, ax_pol, ax_calls]
+        self._span_axes = [ax_csd, ax_band, ax_imp, ax_pol, ax_ttp, ax_calls]
         h = CHANNEL_SPACING_UM / 1000.0
         self._sel_patches = [[ax.axhspan(z - h / 2, z + h / 2, facecolor='lime', alpha=0.15, lw=0,
                                          animated=True, visible=False) for z in self.depths]
