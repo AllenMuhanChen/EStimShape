@@ -95,6 +95,9 @@ def main():
     TWO_ROWS = True                # top row: no EStim (fainter eyes on match AND distractor);
                                    # bottom row: EStim (eye on the match only). False = bottom row only
     SPLIT_EYE_ALPHA = 0.3          # opacity of the two eyes on the choices in the top row
+    SHOW_BOLTS = True              # thunderbolt left of each row: no EStim = black dashed outline,
+                                   # EStim = filled orange
+    BOLT_SIZE = 0.3                # bolt height as a fraction of the panel height
     FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
     FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = None                # None = native resolution (no resampling of the pngs' pixels);
@@ -222,9 +225,11 @@ def main():
     estim_row = eye_row([(*match_xy, EYE_ALPHA)])
     no_estim_row = eye_row([(*match_xy, SPLIT_EYE_ALPHA), (*distractor_xy, SPLIT_EYE_ALPHA)])
     rows = [no_estim_row, estim_row] if TWO_ROWS else [estim_row]
+    bolts = ["no_estim", "estim"] if TWO_ROWS else ["estim"]
     if not SHOW_EYE:
         rows = [[[] for _ in panels] for _ in rows]
-    fig = plot_example_figure(list(panels.values()), rows, EYE_SIZE, EYE_COLOR)
+    fig = plot_example_figure(list(panels.values()), rows, EYE_SIZE, EYE_COLOR,
+                              bolts if SHOW_BOLTS else None, BOLT_SIZE)
     # dpi high enough that each panel is saved at (at least) its native pixel size
     panel_inches = fig.axes[0].get_window_extent().width / fig.dpi
     dpi = max(200, int(np.ceil(max(p.width for p in panels.values()) / panel_inches)))
@@ -253,6 +258,7 @@ def main():
         "eye": {"size": EYE_SIZE, "color": EYE_COLOR, "alpha": EYE_ALPHA,
                 "split_alpha": SPLIT_EYE_ALPHA} if SHOW_EYE else None,
         "two_rows": TWO_ROWS,
+        "bolts": {"size": BOLT_SIZE} if SHOW_BOLTS else None,
         "zoom_center": ZOOM_CENTER,
         "distractor_labels": list(DISTRACTOR_LABELS),
         "distractor_ga_id": DISTRACTOR_ID,
@@ -884,11 +890,30 @@ def draw_eye(ax, x: float, y: float, width: float, color, alpha: float = 1.0):
                         alpha=alpha))
 
 
+def draw_bolt(ax, estim: bool, height: float):
+    """Thunderbolt just left of ax, vertically centred: filled orange for EStim, black dashed
+    outline with no fill for no EStim. height is a fraction of the panel height."""
+    from matplotlib.patches import Polygon
+    # bolt outline in units of its height, centred on (0, 0), +y up
+    shape = np.array([(0.12, 0.5), (-0.22, -0.04), (0.0, -0.04), (-0.12, -0.5),
+                      (0.22, 0.06), (0.0, 0.06)])
+    xy = shape * height + (-0.03 - 0.22 * height, 0.5)  # right tip just clear of the panel
+    if estim:
+        patch = Polygon(xy, closed=True, facecolor="orange", edgecolor="orange", linewidth=1.5)
+    else:
+        patch = Polygon(xy, closed=True, facecolor="none", edgecolor="black", linewidth=1.5,
+                        linestyle=(0, (3, 2)))
+    patch.set_transform(ax.transAxes)
+    patch.set_clip_on(False)
+    ax.add_patch(patch)
+
+
 def plot_example_figure(panels: list[Image.Image], eye_rows=None, eye_size: float = 0.18,
-                        eye_color="cyan"):
+                        eye_color="cyan", bolts=None, bolt_size: float = 0.3):
     """
     One row of the panels per entry of eye_rows (the same panels in every row). Each row gives,
     per panel, a list of (x, y, opacity) eye symbols with x, y as fractions of the panel.
+    bolts: per row, "estim" or "no_estim" for a thunderbolt left of the row, or None.
     """
     eye_rows = eye_rows or [[[] for _ in panels]]
     # panel size grows with the field of view (sample panel px), so the stimuli keep their size
@@ -906,6 +931,9 @@ def plot_example_figure(panels: list[Image.Image], eye_rows=None, eye_size: floa
                 # eye is in pixel-edge coordinates; imshow centres pixel i on i, so shift by -0.5
                 draw_eye(ax, x * img.width - 0.5, y * img.height - 0.5, eye_size * img.width,
                          eye_color, alpha)
+    for row_axes, bolt in zip(axes, bolts or []):
+        if bolt is not None:
+            draw_bolt(row_axes[0], bolt == "estim", bolt_size)
     return fig
 
 
