@@ -92,6 +92,9 @@ def main():
     EYE_SIZE = 0.18                # eye width as a fraction of the panel
     EYE_COLOR = "cyan"
     EYE_ALPHA = 0.6                # eye opacity (1 = solid, 0 = invisible)
+    TWO_ROWS = True                # top row: no EStim (fainter eyes on match AND distractor);
+                                   # bottom row: EStim (eye on the match only). False = bottom row only
+    SPLIT_EYE_ALPHA = 0.3          # opacity of the two eyes on the choices in the top row
     FIXATION_SIZE_DEG = None       # None = xper_fixation_point_size from the NAFC SystemVar table
     FIXATION_COLOR = None          # (r, g, b) 0-255; None = xper_fixation_point_color from SystemVar
     PANEL_PX = None                # None = native resolution (no resampling of the pngs' pixels);
@@ -198,8 +201,9 @@ def main():
     crop_x, crop_y = sample_panel.info['origin_png_px']
     fx, fy = sample_panel.info.get('fixation_center',
                                    (fixation['xy'][0] - crop_x, fixation['xy'][1] - crop_y))
-    eyes = {"sample_panel": (fx / sample_panel.width, fy / sample_panel.height),
-            "choices_panel": choices_panel.info['choice_centers'][list(CHOICE_ORDER).index("match")]}
+    centers = choices_panel.info['choice_centers']
+    match_xy, distractor_xy = (centers[list(CHOICE_ORDER).index(r)] for r in ("match", "distractor"))
+    eyes = {"sample_panel": (fx / sample_panel.width, fy / sample_panel.height)}
     if SHOW_FIXATION_PANEL:
         fixation_only = fixation_panel(sample_panel.width, fixation, background)
         panels = {"fixation_panel": fixation_only, **panels}
@@ -212,9 +216,15 @@ def main():
         panels[name] = round_corners(panel, CORNER_RADIUS)
         panels[name].save(os.path.join(out_dir, f"{name}.png"))
 
-    fig = plot_example_figure(list(panels.values()),
-                              [eyes[name] for name in panels] if SHOW_EYE else None,
-                              EYE_SIZE, EYE_COLOR, EYE_ALPHA)
+    # each row: per panel, a list of (x, y, opacity) eyes
+    def eye_row(choice_eyes):
+        return [[(*eyes[name], EYE_ALPHA)] if name in eyes else choice_eyes for name in panels]
+    estim_row = eye_row([(*match_xy, EYE_ALPHA)])
+    no_estim_row = eye_row([(*match_xy, SPLIT_EYE_ALPHA), (*distractor_xy, SPLIT_EYE_ALPHA)])
+    rows = [no_estim_row, estim_row] if TWO_ROWS else [estim_row]
+    if not SHOW_EYE:
+        rows = [[[] for _ in panels] for _ in rows]
+    fig = plot_example_figure(list(panels.values()), rows, EYE_SIZE, EYE_COLOR)
     # dpi high enough that each panel is saved at (at least) its native pixel size
     panel_inches = fig.axes[0].get_window_extent().width / fig.dpi
     dpi = max(200, int(np.ceil(max(p.width for p in panels.values()) / panel_inches)))
@@ -240,7 +250,9 @@ def main():
                           for role, c in shown.items()},
         "zoom": ZOOM,
         "image_zoom": IMAGE_ZOOM,
-        "eye": {"size": EYE_SIZE, "color": EYE_COLOR, "alpha": EYE_ALPHA} if SHOW_EYE else None,
+        "eye": {"size": EYE_SIZE, "color": EYE_COLOR, "alpha": EYE_ALPHA,
+                "split_alpha": SPLIT_EYE_ALPHA} if SHOW_EYE else None,
+        "two_rows": TWO_ROWS,
         "zoom_center": ZOOM_CENTER,
         "distractor_labels": list(DISTRACTOR_LABELS),
         "distractor_ga_id": DISTRACTOR_ID,
@@ -872,25 +884,28 @@ def draw_eye(ax, x: float, y: float, width: float, color, alpha: float = 1.0):
                         alpha=alpha))
 
 
-def plot_example_figure(panels: list[Image.Image], eyes=None, eye_size: float = 0.18,
-                        eye_color="cyan", eye_alpha: float = 1.0):
-    """eyes: per panel, (x, y) as a fraction of the panel for an eye symbol, or None for none."""
+def plot_example_figure(panels: list[Image.Image], eye_rows=None, eye_size: float = 0.18,
+                        eye_color="cyan"):
+    """
+    One row of the panels per entry of eye_rows (the same panels in every row). Each row gives,
+    per panel, a list of (x, y, opacity) eye symbols with x, y as fractions of the panel.
+    """
+    eye_rows = eye_rows or [[[] for _ in panels]]
     # panel size grows with the field of view (sample panel px), so the stimuli keep their size
     inches = max(4.0, panels[-2 if len(panels) > 1 else 0].width / 80)
-    fig, axes = plt.subplots(1, len(panels), figsize=(inches * len(panels), inches),
-                             gridspec_kw={'wspace': 0.04})
-    for ax, img in zip(np.atleast_1d(axes), panels):
-        # antialiased: the window shows the native-resolution panel shrunk, and "none" or
-        # "nearest" would alias (checkerboard / moire), worst on the noise
-        ax.imshow(img, interpolation="antialiased")
-        ax.set_axis_off()
-    if eyes is not None:
-        for ax, img, eye in zip(np.atleast_1d(axes), panels, eyes):
-            if eye is not None:
+    fig, axes = plt.subplots(len(eye_rows), len(panels), squeeze=False,
+                             figsize=(inches * len(panels), inches * len(eye_rows)),
+                             gridspec_kw={'wspace': 0.04, 'hspace': 0.04})
+    for row_axes, row_eyes in zip(axes, eye_rows):
+        for ax, img, panel_eyes in zip(row_axes, panels, row_eyes):
+            # antialiased: the window shows the native-resolution panel shrunk, and "none" or
+            # "nearest" would alias (checkerboard / moire), worst on the noise
+            ax.imshow(img, interpolation="antialiased")
+            ax.set_axis_off()
+            for x, y, alpha in panel_eyes:
                 # eye is in pixel-edge coordinates; imshow centres pixel i on i, so shift by -0.5
-                draw_eye(ax, eye[0] * img.width - 0.5, eye[1] * img.height - 0.5,
-                         eye_size * img.width, eye_color,
-                         eye_alpha)
+                draw_eye(ax, x * img.width - 0.5, y * img.height - 0.5, eye_size * img.width,
+                         eye_color, alpha)
     return fig
 
 
