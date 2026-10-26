@@ -112,9 +112,9 @@ def _plot_spread(ax, dists, rhos, prof, pitch):
     ax.spines[['top', 'right']].set_visible(False)
 
 
-def plot_estim_correlation_spread(session_id, estim_spec_id=None, save_dir=None):
+def plot_estim_correlation_spread(session_id, estim_spec_id=None, save_dir=None, dpi=600):
     """One figure per distinct estim channel set in the session (or just
-    estim_spec_id's). Returns {tuple(spec_ids): half-distance µm or None}."""
+    estim_spec_id's). dpi: resolution of the saved PNG. Returns {tuple(spec_ids): half-distance µm or None}."""
     metrics, channels_with_data, coords = prepare_session_metrics(session_id)
     if metrics is None:
         return {}
@@ -177,7 +177,7 @@ def plot_estim_correlation_spread(session_id, estim_spec_id=None, save_dir=None)
             os.makedirs(save_dir, exist_ok=True)
             out = os.path.join(save_dir, f"estim_corr_spread_specs_"
                                          f"{'-'.join(str(s) for s in spec_ids)}.png")
-            fig.savefig(out, dpi=200, bbox_inches='tight')
+            fig.savefig(out, dpi=dpi, bbox_inches='tight')
             print(f"Saved {out}")
         plt.show()
     return results
@@ -185,8 +185,9 @@ def plot_estim_correlation_spread(session_id, estim_spec_id=None, save_dir=None)
 
 def main():
     session_id = "260702_0"
+    dpi = 600    # saved PNG resolution (was 200)
     plot_estim_correlation_spread(
-        session_id,
+        session_id, dpi=dpi,
         estim_spec_id=None,  # None -> one figure per distinct estim channel set
         save_dir=f"/home/connorlab/Documents/plots/{session_id}/estim_corr_spread")
 
