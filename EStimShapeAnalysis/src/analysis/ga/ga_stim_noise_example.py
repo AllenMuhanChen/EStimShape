@@ -75,8 +75,9 @@ def main():
                                    # found wins; falls back to any choice that isn't match/rand
 
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
-    CHOICE_SPREAD = 0.65           # distance of each choice's centre from the panel centre, as a
-                                   # fraction of half the panel; larger = more spread out
+    CHOICE_MARGIN = 0.05           # gap between the choices and the panel edge, as a fraction of the
+                                   # panel: top choice at the top centre, the other two in the
+                                   # bottom corners. Smaller = more spread out
     BACKGROUND_THRESHOLD = 2       # 0-255; a pixel is shape if any channel differs from the
                                    # png's (flat) background colour by more than this. Keep it
                                    # small so faint edge pixels and highlights near the gray stay
@@ -183,7 +184,7 @@ def main():
     field_deg = sample_panel.width * sample_deg_per_px  # every panel shows this many degrees
     print(f"Panel field of view: {field_deg:.2f} deg")
     choices_panel = choices_triangle_panel([shown[role] for role in CHOICE_ORDER], field_deg,
-                                           background, BACKGROUND_THRESHOLD, CHOICE_SPREAD,
+                                           background, BACKGROUND_THRESHOLD, CHOICE_MARGIN,
                                            SCREEN_COLOR, EDGE_BAND_PX)
     panels = {"sample_panel": sample_panel, "choices_panel": choices_panel}
     if SHOW_FIXATION_PANEL:
@@ -225,7 +226,7 @@ def main():
         "distractor_labels": list(DISTRACTOR_LABELS),
         "distractor_ga_id": DISTRACTOR_ID,
         "choice_order": list(CHOICE_ORDER),
-        "choice_spread": CHOICE_SPREAD,
+        "choice_margin": CHOICE_MARGIN,
         "field_of_view_deg": field_deg,
         "fixation_panel": SHOW_FIXATION_PANEL,
         "background_threshold": BACKGROUND_THRESHOLD,
@@ -756,10 +757,10 @@ def cut_out_choice(choice: dict, threshold: float, screen_color, band_px: int,
 
 
 def choices_triangle_panel(choices: list[dict], field_deg: float, background: np.ndarray,
-                           threshold: float, spread: float, screen_color=(0, 0, 0),
+                           threshold: float, margin: float, screen_color=(0, 0, 0),
                            band_px: int = 2) -> Image.Image:
     """
-    Three cut-out choices at the vertices of a triangle (top, bottom-left, bottom-right) in a
+    Three cut-out choices at the top centre, bottom-left and bottom-right corners of a
     square panel field_deg wide, so they are at the same scale (deg) as the sample panel. The
     panel's resolution is the finest of the choice pngs, so no choice is downsampled.
     """
@@ -779,16 +780,17 @@ def choices_triangle_panel(choices: list[dict], field_deg: float, background: np
         masks.append(mask_img)
 
     side = int(round(field_deg / ref))
-    radius = spread * side / 2
-    angles = np.deg2rad([90, 210, 330])
-    centers = [(side / 2 + radius * np.cos(a), side / 2 - radius * np.sin(a)) for a in angles]
-    boxes = [(cx - im.width / 2, cy - im.height / 2, cx + im.width / 2, cy + im.height / 2)
-             for (cx, cy), im in zip(centers, shapes)]
-    if any(x0 < 0 or y0 < 0 or x1 > side or y1 > side for x0, y0, x1, y1 in boxes):
-        print("Warning: a choice is cut off by the edge of its panel; lower CHOICE_SPREAD or ZOOM.")
+    gap = margin * side
+    top, left, right = shapes
+    corners = [((side - top.width) / 2, gap),                       # top centre
+               (gap, side - gap - left.height),                     # bottom-left
+               (side - gap - right.width, side - gap - right.height)]  # bottom-right
+    boxes = [(x0, y0, x0 + im.width, y0 + im.height) for (x0, y0), im in zip(corners, shapes)]
+    if any(x0 < 0 or y0 < 0 for x0, y0, _, _ in boxes):
+        print("Warning: a choice is cut off by the edge of its panel; lower ZOOM or CHOICE_MARGIN.")
     if any(boxes[i][0] < boxes[j][2] and boxes[j][0] < boxes[i][2] and
            boxes[i][1] < boxes[j][3] and boxes[j][1] < boxes[i][3] for i, j in ((0, 1), (1, 2), (0, 2))):
-        print("Warning: choices overlap; raise CHOICE_SPREAD or lower ZOOM.")
+        print("Warning: choices overlap; lower ZOOM.")
 
     canvas = Image.new("RGB", (side, side), tuple(int(v) for v in background))
     for (x0, y0, _, _), im, mk in zip(boxes, shapes, masks):
