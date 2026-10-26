@@ -75,6 +75,8 @@ def main():
                                    # found wins; falls back to any choice that isn't match/rand
 
     CHOICE_ORDER = ("match", "distractor", "rand")  # placed top, bottom-left, bottom-right
+    IMAGE_ZOOM = 1.0               # enlarges the sample and choice images only (panels, positions
+                                   # and fixation stay); same factor for both, so they stay matched
     CHOICE_MARGIN = 0.15           # gap between the choices and the panel edge, as a fraction of the
                                    # panel: top choice at the top centre, the other two in the
                                    # bottom corners. Smaller = more spread out
@@ -180,12 +182,13 @@ def main():
         print(f"Fixation: {size_deg} deg, colour {color}, at sample px {fixation['xy']}")
     sample_deg_per_px = chosen['width_deg'] / sample_rgb.shape[1]
     sample_panel = zoom_panel(noisy_frames[0], sample_rgb, ZOOM, ZOOM_CENTER, None,
-                              background, BACKGROUND_THRESHOLD, fixation if SHOW_FIXATION else None)
+                              background, BACKGROUND_THRESHOLD, fixation if SHOW_FIXATION else None,
+                              IMAGE_ZOOM)
     field_deg = sample_panel.width * sample_deg_per_px  # every panel shows this many degrees
     print(f"Panel field of view: {field_deg:.2f} deg")
     choices_panel = choices_triangle_panel([shown[role] for role in CHOICE_ORDER], field_deg,
                                            background, BACKGROUND_THRESHOLD, CHOICE_MARGIN,
-                                           SCREEN_COLOR, EDGE_BAND_PX)
+                                           SCREEN_COLOR, EDGE_BAND_PX, IMAGE_ZOOM)
     panels = {"sample_panel": sample_panel, "choices_panel": choices_panel}
     if SHOW_FIXATION_PANEL:
         panels = {"fixation_panel": fixation_panel(sample_panel.width, fixation, background),
@@ -222,6 +225,7 @@ def main():
                                  'dimensions_deg': [c['width_deg'], c['height_deg']]}
                           for role, c in shown.items()},
         "zoom": ZOOM,
+        "image_zoom": IMAGE_ZOOM,
         "zoom_center": ZOOM_CENTER,
         "distractor_labels": list(DISTRACTOR_LABELS),
         "distractor_ga_id": DISTRACTOR_ID,
@@ -562,23 +566,32 @@ def fixation_in_sample_pixels(sample_spec: dict, shape_hw: tuple, size_deg: floa
 
 
 def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, center, panel_px,
-               background: np.ndarray, threshold: float, fixation: dict | None = None) -> Image.Image:
+               background: np.ndarray, threshold: float, fixation: dict | None = None,
+               image_zoom: float = 1.0) -> Image.Image:
     """Square crop of side min(h, w) / zoom around center (default: centre of the bounding box
     of the shape in the clean sample, plus the fixation square if shown), at native resolution, or
-    scaled to panel_px with nearest neighbour so noise pixels stay crisp. Anything outside the png is screen background."""
+    scaled to panel_px with nearest neighbour so noise pixels stay crisp. Anything outside the png is screen background.
+    image_zoom enlarges the png (noise included) about its own centre without changing the crop
+    or the fixation point."""
     h, w = noisy_rgb.shape[:2]
     side = max(1, int(round(min(h, w) / max(zoom, 1e-6))))
+    if image_zoom != 1:  # nearest keeps the noise pixels crisp
+        size = (max(1, round(w * image_zoom)), max(1, round(h * image_zoom)))
+        noisy_rgb = np.array(Image.fromarray(noisy_rgb).resize(size, Image.NEAREST))
+        sample_rgb = np.array(Image.fromarray(sample_rgb).resize(size, Image.NEAREST))
+    ih, iw = noisy_rgb.shape[:2]
+    ox, oy = int(round((w - iw) / 2)), int(round((h - ih) / 2))  # png corner, png coordinates
 
     # Scene = the png padded with background on every side, so the crop and the fixation point
     # can fall outside the png.
-    pad = side + max(h, w)
+    pad = side + max(h, w, ih, iw)
     if fixation is not None:
         fx, fy = fixation['xy']
         pad = int(max(pad, abs(fx) + fixation['size_px'], abs(fy) + fixation['size_px'],
                       abs(fx - w) + fixation['size_px'], abs(fy - h) + fixation['size_px']))
     scene = np.empty((h + 2 * pad, w + 2 * pad, 3), dtype=np.uint8)
     scene[:] = background
-    scene[pad:pad + h, pad:pad + w] = noisy_rgb
+    scene[pad + oy:pad + oy + ih, pad + ox:pad + ox + iw] = noisy_rgb
 
     boxes = []  # (x0, y0, x1, y1) in png coordinates
     if center == "fixation" and fixation is None:
@@ -587,7 +600,7 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
         mask = shape_mask(sample_rgb, background, threshold)
         if mask.any():
             rows, cols = np.nonzero(mask)
-            boxes.append((cols.min(), rows.min(), cols.max(), rows.max()))
+            boxes.append((cols.min() + ox, rows.min() + oy, cols.max() + ox, rows.max() + oy))
     if fixation is not None:
         fx, fy = fixation['xy']
         half = max(fixation['size_px'] / 2, 0.5)
@@ -612,8 +625,9 @@ def zoom_panel(noisy_rgb: np.ndarray, sample_rgb: np.ndarray, zoom: float, cente
     crop = Image.fromarray(scene[y0:y0 + side, x0:x0 + side])
     if center == "fixation":
         rows, cols = np.nonzero(shape_mask(sample_rgb, background, threshold))
-        if rows.size and (cols.min() + pad < x0 or cols.max() + pad >= x0 + side
-                          or rows.min() + pad < y0 or rows.max() + pad >= y0 + side):
+        cols, rows = cols + ox + pad, rows + oy + pad
+        if rows.size and (cols.min() < x0 or cols.max() >= x0 + side
+                          or rows.min() < y0 or rows.max() >= y0 + side):
             print("Warning: centred on the fixation point, part of the shape is outside the left "
                   "panel; lower ZOOM to fit it.")
     if panel_px is None:
@@ -758,11 +772,12 @@ def cut_out_choice(choice: dict, threshold: float, screen_color, band_px: int,
 
 def choices_triangle_panel(choices: list[dict], field_deg: float, background: np.ndarray,
                            threshold: float, margin: float, screen_color=(0, 0, 0),
-                           band_px: int = 2) -> Image.Image:
+                           band_px: int = 2, image_zoom: float = 1.0) -> Image.Image:
     """
     Three cut-out choices at the top centre, bottom-left and bottom-right corners of a
     square panel field_deg wide, so they are at the same scale (deg) as the sample panel. The
     panel's resolution is the finest of the choice pngs, so no choice is downsampled.
+    image_zoom enlarges the choices themselves; the panel's field of view stays field_deg.
     """
     cutouts = [cut_out_choice(c, threshold, screen_color, band_px, background) for c in choices]
     scales = [d for _, _, d in cutouts if d is not None]
@@ -771,7 +786,7 @@ def choices_triangle_panel(choices: list[dict], field_deg: float, background: np
     ref = min(scales)  # deg per px of the panel
     shapes, masks = [], []
     for img, mask_img, deg_per_px in cutouts:
-        f = deg_per_px / ref
+        f = deg_per_px / ref * image_zoom
         size = (max(1, round(img.width * f)), max(1, round(img.height * f)))
         if size != img.size:  # choices already at the common scale are left untouched
             img = resample(img, size)
@@ -787,10 +802,10 @@ def choices_triangle_panel(choices: list[dict], field_deg: float, background: np
                (side - gap - right.width, side - gap - right.height)]  # bottom-right
     boxes = [(x0, y0, x0 + im.width, y0 + im.height) for (x0, y0), im in zip(corners, shapes)]
     if any(x0 < 0 or y0 < 0 for x0, y0, _, _ in boxes):
-        print("Warning: a choice is cut off by the edge of its panel; lower ZOOM or CHOICE_MARGIN.")
+        print("Warning: a choice is cut off by the edge of its panel; lower ZOOM, IMAGE_ZOOM or CHOICE_MARGIN.")
     if any(boxes[i][0] < boxes[j][2] and boxes[j][0] < boxes[i][2] and
            boxes[i][1] < boxes[j][3] and boxes[j][1] < boxes[i][3] for i, j in ((0, 1), (1, 2), (0, 2))):
-        print("Warning: choices overlap; lower ZOOM.")
+        print("Warning: choices may overlap; lower ZOOM or IMAGE_ZOOM.")
 
     canvas = Image.new("RGB", (side, side), tuple(int(v) for v in background))
     for (x0, y0, _, _), im, mk in zip(boxes, shapes, masks):
