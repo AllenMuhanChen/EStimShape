@@ -505,7 +505,7 @@ class LaminarCallingWindow(QMainWindow):
 
     def _update_info(self):
         i = self.info_d
-        lines = [f"<b>{self.sid}</b>: final position {i['final_driven_depth_um']:.0f} µm driven, "
+        lines = [f"<b>{self.sid}</b>: final site tip {i['final_tip_mm']:.2f} mm, "
                  f"channels {self.span[0]:.2f}–{self.span[1]:.2f} mm, {i['n_trials']} GA trials"]
         if i.get('sink_channel') is not None:
             lines.append(f"Strongest early sink: {channel_name(i['sink_channel'])} at {i['sink_depth_mm']:.2f} mm, "

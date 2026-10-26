@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 from src.analysis.laminar.laminar_core import (
-    CHANNEL_ORDER, channel_depth_mm, channel_number,
+    CHANNEL_ORDER, channel_number,
 )
 
 REPO_DB = "allen_data_repository"
@@ -26,8 +26,8 @@ REPO_DB = "allen_data_repository"
 _CREATE = [
     """CREATE TABLE IF NOT EXISTS LaminarSessions (
         session_id            VARCHAR(32) NOT NULL PRIMARY KEY,
-        tip_start_mm          DOUBLE,
-        final_driven_depth_um DOUBLE,
+        final_pen_id          INT,
+        final_tip_mm          DOUBLE,
         sample_rate           DOUBLE,
         pre_ms                DOUBLE,
         n_trials              INT,
@@ -84,17 +84,17 @@ def save_session_profiles(conn, session_id: str, result: dict) -> None:
     """Write one laminar_profiles result (see laminar_profiles.compute_session)."""
     ensure_tables(conn)
     conn.execute(
-        """INSERT INTO LaminarSessions (session_id, tip_start_mm, final_driven_depth_um, sample_rate,
+        """INSERT INTO LaminarSessions (session_id, final_pen_id, final_tip_mm, sample_rate,
                pre_ms, n_trials, noisy_channels, sink_channel, sink_latency_ms, sink_depth_mm,
                crossover_depth_mm, config, computed_tstamp)
            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-           ON DUPLICATE KEY UPDATE tip_start_mm=VALUES(tip_start_mm),
-               final_driven_depth_um=VALUES(final_driven_depth_um), sample_rate=VALUES(sample_rate),
+           ON DUPLICATE KEY UPDATE final_pen_id=VALUES(final_pen_id),
+               final_tip_mm=VALUES(final_tip_mm), sample_rate=VALUES(sample_rate),
                pre_ms=VALUES(pre_ms), n_trials=VALUES(n_trials), noisy_channels=VALUES(noisy_channels),
                sink_channel=VALUES(sink_channel), sink_latency_ms=VALUES(sink_latency_ms),
                sink_depth_mm=VALUES(sink_depth_mm), crossover_depth_mm=VALUES(crossover_depth_mm),
                config=VALUES(config), computed_tstamp=VALUES(computed_tstamp)""",
-        (session_id, result['tip_start_mm'], result['final_driven_depth_um'], result['sample_rate'],
+        (session_id, result['final_pen_id'], result['final_tip_mm'], result['sample_rate'],
          result['pre_ms'], result['n_trials'], ','.join(str(c) for c in result['noisy_channels']),
          result['sink_channel'], result['sink_latency_ms'], result['sink_depth_mm'],
          result['crossover_depth_mm'], json.dumps(result['config']), int(time.time() * 1000)))
@@ -140,11 +140,11 @@ class LaminarDBSource:
 
     def session_info(self, session_id: str) -> dict:
         self.conn.execute(
-            "SELECT tip_start_mm, final_driven_depth_um, sample_rate, pre_ms, n_trials, noisy_channels, "
+            "SELECT final_pen_id, final_tip_mm, sample_rate, pre_ms, n_trials, noisy_channels, "
             "sink_channel, sink_latency_ms, sink_depth_mm, crossover_depth_mm FROM LaminarSessions "
             "WHERE session_id = %s", (session_id,))
         r = self.conn.fetch_all()[0]
-        keys = ['tip_start_mm', 'final_driven_depth_um', 'sample_rate', 'pre_ms', 'n_trials',
+        keys = ['final_pen_id', 'final_tip_mm', 'sample_rate', 'pre_ms', 'n_trials',
                 'noisy_channels', 'sink_channel', 'sink_latency_ms', 'sink_depth_mm', 'crossover_depth_mm']
         info = dict(zip(keys, r))
         info['noisy_channels'] = [int(c) for c in (info['noisy_channels'] or '').split(',') if c]
@@ -194,8 +194,15 @@ class LaminarDBSource:
     # ------------------------------------------------------------------ MRI
     def mri(self, session_id: str):
         from src.analysis.laminar.laminar_mri import load_trajectory_mri
+        pen_id = self.session_info(session_id)['final_pen_id']
+        self.conn.execute("SELECT id, session_id, label, az_deg, el_deg, dist_mm FROM Penetrations WHERE id = %s",
+                          (pen_id,))
+        rows = self.conn.fetch_all()
+        if not rows:
+            raise RuntimeError(f"{session_id}: final-site Penetrations row id {pen_id} not found")
+        pen = dict(zip(['id', 'session_id', 'label', 'az_deg', 'el_deg', 'dist_mm'], rows[0]))
         return load_trajectory_mri(self.conn, session_id, self.mri_config_path,
-                                   self.corrections_file, self._geom_cache)
+                                   self.corrections_file, self._geom_cache, pen=pen)
 
     # ---------------------------------------------------------------- calls
     def load_calls(self, session_id: str) -> dict:

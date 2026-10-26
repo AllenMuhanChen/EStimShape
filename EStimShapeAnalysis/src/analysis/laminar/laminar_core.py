@@ -7,7 +7,9 @@ the calling GUI reads it back.
 Probe geometry (same as penetration_lfp_analysis.py / import_penetration.py):
     CHANNEL_ORDER[0]  = most superficial channel, CHANNEL_ORDER[31] = deepest
     deepest channel sits TIP_TO_BOTTOM_CHANNEL_UM above the tip, 65 µm spacing
-    depth under chamber (mm) = tip_start_mm + (driven_um - 600 + (pos - 31) * 65) / 1000
+    depth under chamber (mm) = tip_mm - (600 + (31 - pos) * 65) / 1000
+    (tip_mm = tip distance from the top of the chamber, as in the MRI viewer; the same
+    depth coordinate as PenetrationMetrics.depth_under_chamber_mm)
 
 CSD (Nicholson & Freeman 1975, 1D):
     phi    = trial-averaged LFP at stimulus onset, baseline-subtracted, channels in
@@ -59,12 +61,16 @@ def probe_position(ch: int) -> int:
     return CHANNEL_ORDER.index(ch)
 
 
-def channel_depth_mm(probe_pos, driven_depth_um: float, tip_start_mm: float):
-    """Depth under chamber (mm) of a probe position (0 = top). Same as
-    penetration_lfp_analysis._depth_mm, so it lines up with PenetrationMetrics."""
+def channel_depth_mm(probe_pos, tip_mm: float):
+    """Depth under chamber (mm) of a probe position (0 = top) given the tip distance.
+    Same offsets as the MRI viewer's channel correction (viewer_trajectory._channel_corrected_dist)."""
     pos = np.asarray(probe_pos, dtype=float)
-    depth_um = driven_depth_um - TIP_TO_BOTTOM_CHANNEL_UM + (pos - (N_CHANNELS - 1)) * CHANNEL_SPACING_UM
-    return tip_start_mm + depth_um / 1000.0
+    return tip_mm - (TIP_TO_BOTTOM_CHANNEL_UM + ((N_CHANNELS - 1) - pos) * CHANNEL_SPACING_UM) / 1000.0
+
+
+def tip_from_corrected(dist_mm: float, channel: int) -> float:
+    """Inverse of the viewer's channel correction: tip distance from a channel's distance."""
+    return dist_mm - float(channel_depth_mm(CHANNEL_ORDER.index(channel), 0.0))
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -8,12 +8,13 @@ the MRI volume + its subject correction from alignment_optimize.load_mri_pipelin
 the NMT segmentation (mri_viewer_config 'follower_nifti_path'), mapped to
 0 = CSF / outside, 1 = gray matter, 2 = white matter (alignment_optimize.seg_values_to_classes).
 
-Penetration = Penetrations row for the session, 'actual' > 'planned_tip' > 'planned'
-(alignment_optimize.get_penetration_for_session), with the global + per-session
-az / el / depth offsets added.
+Penetration = the session's final recording site (fetch_final_site: a red Penetrations
+row whose label contains 'rec' or 'loc', as in recording_site_area_distances.py), with the
+global + per-session az / el / depth offsets added.
 """
 
-from typing import Optional
+import re
+from typing import Optional, Sequence
 
 import numpy as np
 from scipy.ndimage import gaussian_filter, map_coordinates
@@ -115,11 +116,50 @@ def nearest_runs(depths_mm: np.ndarray, labels: np.ndarray, target, top_mm: floa
                 on_probe=len(inside) > 0)
 
 
+def fetch_final_site(conn, session_id: str, table: str = 'Penetrations', color: str = 'red',
+                     label_keywords: Sequence[str] = ('rec', 'loc'),
+                     tip_override_mm: Optional[float] = None) -> Optional[dict]:
+    """The session's final recording site, the way recording_site_area_distances.py picks it:
+    a Penetrations row with color 'red' and 'rec' or 'loc' in its label (case-insensitive).
+
+    Adds tip_mm, the probe tip distance, recovered from the notes the MRI viewer writes when
+    it records an actual point ('ch<N> tip=<X>mm corrected=...', 'tip=<X>mm bottom_ch=...',
+    'tip=<X>mm (no channel correction)'). Raises if the session has several such rows, or if
+    the tip can't be recovered (pass it as tip_override_mm, FINAL_TIP_MM in laminar_profiles.py).
+    """
+    from src.analysis.penetrations.recording_site_area_distances import (
+        fetch_red_penetrations, filter_by_label_substring)
+    from src.analysis.laminar.laminar_core import tip_from_corrected
+
+    rows = [p for p in fetch_red_penetrations(conn, table, color) if p['session_id'] == session_id]
+    rows = filter_by_label_substring(rows, list(label_keywords))
+    if not rows:
+        return None
+    if len(rows) > 1:
+        raise RuntimeError(f"{session_id}: {len(rows)} final-site rows, expected one: "
+                           + ', '.join(f"id {p['id']} {p['label']!r}" for p in rows))
+    pen = dict(rows[0])
+    notes = pen.get('notes') or ''
+    m = re.search(r'tip=([-\d.]+)\s*mm', notes)
+    if tip_override_mm is not None:
+        pen['tip_mm'] = float(tip_override_mm)
+    elif m:
+        pen['tip_mm'] = float(m.group(1))
+    elif (c := re.search(r'\bch(\d+)\b', notes)):
+        pen['tip_mm'] = tip_from_corrected(float(pen['dist_mm']), int(c.group(1)))
+    else:
+        raise RuntimeError(f"{session_id}: final-site row id {pen['id']} ({pen['label']!r}) has no tip "
+                           f"distance or channel in its notes ({notes!r}); its dist_mm "
+                           f"{pen['dist_mm']} could be any channel. Set FINAL_TIP_MM for this session.")
+    return pen
+
+
 def load_trajectory_mri(conn, session_id: str, config_path: str, corrections_file: Optional[str] = None,
-                        geometry_cache: Optional[dict] = None) -> Optional[TrajectoryMRI]:
-    """Build a TrajectoryMRI for one session from the lab's MRI viewer setup."""
+                        geometry_cache: Optional[dict] = None, pen: Optional[dict] = None) -> Optional[TrajectoryMRI]:
+    """Build a TrajectoryMRI for one session from the lab's MRI viewer setup.
+    pen: the Penetrations row giving az / el (default: the session's final site)."""
     from src.analysis.penetrations.alignment_optimize import (
-        get_penetration_for_session, load_mri_pipeline, load_segmentation_volume, seg_values_to_classes)
+        load_mri_pipeline, load_segmentation_volume, seg_values_to_classes)
     from src.analysis.penetrations.recording_site_area_distances import load_viewer_geometry
     from src.mri.chamber import calc_penetration_target
 
@@ -131,7 +171,8 @@ def load_trajectory_mri(conn, session_id: str, config_path: str, corrections_fil
         cache['seg'] = load_segmentation_volume(seg_path) if seg_path else None
     mri, geom, seg = cache['mri'], cache['geom'], cache['seg']
 
-    pen = get_penetration_for_session(conn, session_id)
+    if pen is None:
+        pen = fetch_final_site(conn, session_id)
     if pen is None:
         return None
     offs = geom['pen_offsets']
