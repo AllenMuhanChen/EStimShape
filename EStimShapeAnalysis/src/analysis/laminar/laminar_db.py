@@ -67,9 +67,22 @@ _CREATE = [
 ]
 
 
+# Columns added after the first version of a table; ensure_tables adds them to existing tables.
+_ADDED_COLUMNS = {
+    'LaminarSessions': [('final_pen_id', 'INT DEFAULT NULL'), ('final_tip_mm', 'DOUBLE DEFAULT NULL')],
+}
+
+
 def ensure_tables(conn) -> None:
     for sql in _CREATE:
         conn.execute(sql)
+    for table, cols in _ADDED_COLUMNS.items():
+        conn.execute(f"DESCRIBE {table}")
+        existing = {row[0] for row in conn.fetch_all()}
+        for name, col_type in cols:
+            if name not in existing:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {col_type}")
+                print(f"Added column {table}.{name}")
 
 
 def _arr_to_text(x) -> str:
@@ -135,7 +148,7 @@ class LaminarDBSource:
 
     # ------------------------------------------------------------- sessions
     def sessions(self) -> List[str]:
-        self.conn.execute("SELECT session_id FROM LaminarSessions ORDER BY session_id")
+        self.conn.execute("SELECT session_id FROM LaminarSessions WHERE final_tip_mm IS NOT NULL ORDER BY session_id")
         return [r[0] for r in self.conn.fetch_all()]
 
     def session_info(self, session_id: str) -> dict:

@@ -76,7 +76,7 @@ def main():
             fetch_red_penetrations(repo, 'Penetrations'), FINAL_SITE_LABEL_KEYWORDS) if p['session_id']})
     done = set()
     if SKIP_DONE:
-        repo.execute("SELECT session_id FROM LaminarSessions")
+        repo.execute("SELECT session_id FROM LaminarSessions WHERE final_tip_mm IS NOT NULL")   # rows from the old deepest-idle version are redone
         done = {r[0] for r in repo.fetch_all()}
 
     failed = {}
