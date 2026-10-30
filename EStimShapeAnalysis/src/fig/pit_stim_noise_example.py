@@ -41,10 +41,10 @@ from src.fig.nafc_stim_noise_example import (
 
 def main():
     # ---- Parameters -------------------------------------------------------------------------
-    SESSION_ID = None              # session the GA stims belong to; None = keep current context
-    SAMPLE_GA_ID = None            # GA stim id of the sample (shown as the match too)
-    DISTRACTOR_1_GA_ID = None      # GA stim id sharing the first component
-    DISTRACTOR_2_GA_ID = None      # GA stim id sharing the second component
+    SESSION_ID = "260626_0"              # session the GA stims belong to; None = keep current context
+    SAMPLE_GA_ID = 1782501087978058          # GA stim id of the sample (shown as the match too)
+    DISTRACTOR_1_GA_ID = 1782502189632224      # GA stim id sharing the first component
+    DISTRACTOR_2_GA_ID = 1782502189633300      # GA stim id sharing the second component
     DISTRACTOR_SOURCE = "nafc_if_available"  # "nafc_if_available": a distractor's NAFC choice png
                                    # if a trial of this sample offered it, else its GA png;
                                    # "ga": always the GA png (both distractors rendered alike)
