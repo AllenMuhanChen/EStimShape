@@ -37,6 +37,7 @@ from src.fig.nafc_stim_noise_example import (
     generate_twinkle_noise_frames, load_noise_probability, load_rgb, locate_local_file,
     plot_example_figure, read_choice_specs, read_system_var, resample, rescale_noise_chance,
     round_corners, shape_mask, zoom_panel)
+from src.fig.noise_circle_gui import deg_to_png, noise_map_from_circles, place_noise_circles
 
 
 def main():
@@ -52,6 +53,12 @@ def main():
                                    # offered the distractors); or an NAFC StimSpec id
     NOISE_CHANCE = 1.0             # noise amount: peak chance a pixel is noise (0-1).
                                    # None = as the trial used.
+    NOISE_CIRCLES = None           # None = the NAFC trial's noise map; "gui" = place circles by hand
+                                   # in a window; or [(x_deg, y_deg, radius_deg), ...] in screen
+                                   # degrees (+y up, (0, 0) = fixation), e.g. as printed by the gui
+    N_NOISE_CIRCLES = 2            # how many circles the gui places
+    NOISE_EDGE_SIGMA_DEG = 0.1     # Gaussian fade outside each circle's edge (like xper's
+                                   # truncated-Gaussian noise map); 0 = hard edge
     RANDOM_SEED = None             # int for a reproducible noise pattern, None = new each run
     NAFC_STIMULI_DIR = None        # None = <base_dir>/<nafc_database>/stimuli (searched for pngs)
     GA_PNG_DIR = None              # None = <base_dir>/<ga_database>/stimuli/ga/pngs
@@ -151,8 +158,19 @@ def main():
     sample_rgb = load_rgb(sample_png, SCREEN_COLOR)
     noise_probability = load_noise_probability(noise_map_png, sample_rgb.shape[:2])
     trial_peak = float(noise_probability.max())
-    if NOISE_CHANCE is not None:
-        noise_probability = rescale_noise_chance(noise_probability, NOISE_CHANCE)
+    noise_circles = NOISE_CIRCLES
+    if noise_circles is None:
+        if NOISE_CHANCE is not None:
+            noise_probability = rescale_noise_chance(noise_probability, NOISE_CHANCE)
+    else:
+        if noise_circles == "gui":
+            view_deg = min(sample_rgb.shape[:2]) / ZOOM * chosen['width_deg'] / sample_rgb.shape[1]
+            noise_circles = place_noise_circles(
+                sample_rgb, chosen, deg_to_png(0, 0, chosen, sample_rgb.shape[:2]),
+                n_circles=N_NOISE_CIRCLES, view_deg=view_deg)
+        noise_probability = noise_map_from_circles(
+            noise_circles, chosen, sample_rgb.shape[:2],
+            NOISE_CHANCE if NOISE_CHANCE is not None else trial_peak, NOISE_EDGE_SIGMA_DEG)
     rng = np.random.default_rng(RANDOM_SEED)
     noise = generate_twinkle_noise_frames(noise_probability, chosen['color'], 1, rng)[0]
     noisy = composite_noise(sample_rgb, noise)
@@ -230,6 +248,8 @@ def main():
         "noise_color_rgb": list(chosen['color']),
         "trial_noise_chance": trial_peak,
         "noise_chance": NOISE_CHANCE,
+        "noise_circles_deg": None if noise_circles is None else [list(c) for c in noise_circles],
+        "noise_edge_sigma_deg": NOISE_EDGE_SIGMA_DEG if noise_circles is not None else None,
         "choices_shown": {role: {'ga_id': c['ga_id'], 'source': c['source'], 'png': c['local_png'],
                                  'dimensions_deg': [c['width_deg'], c['height_deg']],
                                  **({'ga_png_scale': c['ga_png_scale']} if 'ga_png_scale' in c else {})}
