@@ -33,8 +33,8 @@ import pandas as pd
 from PIL import Image, ImageOps
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import (QCheckBox, QDialog, QGridLayout, QHBoxLayout, QLabel,
-                             QMessageBox, QPushButton, QScrollArea, QVBoxLayout,
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QDialog, QGridLayout, QHBoxLayout,
+                             QLabel, QMessageBox, QPushButton, QScrollArea, QVBoxLayout,
                              QWidget)
 
 from src.analysis.ga.explorer.explorer_module import (Action, ExplorerModule, Param,
@@ -343,16 +343,21 @@ def _none_if_nan(value):
 # The grid widget
 # ---------------------------------------------------------------------------
 
-GRID_ROWS = ("header", "child_img", "child_info", "parent_img", "parent_info",
-             "included", "select")
+GRID_ROWS = ("header", "child_img", "child_info", "child_copy", "parent_img",
+             "parent_info", "parent_copy", "included", "select")
+LABEL_ROWS = ("header", "child_img", "child_info", "parent_img", "parent_info")
 
 
 class PairGridView(QScrollArea):
     """Scrollable grid, one pair per column. Column widgets are pooled and
     re-gridded on re-sort instead of being rebuilt."""
 
-    def __init__(self, parent=None, child_label="Child", parent_label="Parent"):
+    def __init__(self, parent=None, child_label="Child", parent_label="Parent",
+                 on_copied=None):
+        """``on_copied(text)``: called after a "Copy id" button put a stim id on
+        the clipboard."""
         super().__init__(parent)
+        self.on_copied = on_copied
         self.setWidgetResizable(True)
         self.inner = QWidget()
         self.inner.setStyleSheet("background: white;")
@@ -366,7 +371,8 @@ class PairGridView(QScrollArea):
         self.message = QLabel("")
         self.message.setStyleSheet("color: gray; font-size: 16px;")
         self.grid.addWidget(self.message, 0, 0, 1, 1)
-        for row, text in ((1, child_label), (3, parent_label)):
+        for row, text in ((GRID_ROWS.index("child_img"), child_label),
+                          (GRID_ROWS.index("parent_img"), parent_label)):
             lbl = QLabel(text)
             lbl.setStyleSheet("font-weight: bold; font-size: 14px;")
             lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -374,7 +380,13 @@ class PairGridView(QScrollArea):
 
     def column(self, idx):
         while len(self.pool) <= idx:
-            col = {k: QLabel() for k in GRID_ROWS[:-2]}
+            col = {k: QLabel() for k in LABEL_ROWS}
+            for k in ("child_copy", "parent_copy"):
+                btn = QPushButton("Copy id")
+                btn.setStyleSheet("font-size: 11px; padding: 1px 6px;")
+                btn.setToolTip("Copy this stim id to the clipboard.")
+                btn.clicked.connect(lambda _c=False, b=btn: self._copy_id(b))
+                col[k] = btn
             col["included"] = QCheckBox("in estim exp")
             col["included"].setEnabled(False)  # read-only
             col["included"].setToolTip("Included in the EStim experiment (IncludedDeltas). Read-only.")
@@ -382,11 +394,20 @@ class PairGridView(QScrollArea):
             col["select"].setToolTip("Pick this pair for 'Make figure from selected'.")
             for k in ("child_info", "parent_info"):
                 col[k].setStyleSheet("font-size: 11px;")
-            for k in GRID_ROWS[:-2]:
+            for k in LABEL_ROWS:
                 col[k].setAlignment(Qt.AlignCenter)
             col["handler"] = None
             self.pool.append(col)
         return self.pool[idx]
+
+    def _copy_id(self, button):
+        stim_id = button.property("stim_id")
+        if stim_id is None:
+            return
+        text = str(stim_id)
+        QApplication.clipboard().setText(text)
+        if self.on_copied is not None:
+            self.on_copied(text)
 
     def hide_from(self, n):
         for col in self.pool[n:]:
@@ -635,7 +656,8 @@ class PairViewerModule(ExplorerModule):
 
     # -- lifecycle ----------------------------------------------------------
     def create_view(self, parent):
-        self.view = PairGridView(parent, self.child_label, self.parent_label)
+        self.view = PairGridView(parent, self.child_label, self.parent_label,
+                                 on_copied=lambda t: self.status(f"Copied stim id {t}"))
         return self.view
 
     def set_session(self, session):
@@ -852,6 +874,11 @@ class PairViewerModule(ExplorerModule):
                 w["child_info"].setText(
                     f"{_fmt(c_resp)}\ngen {self._gen_label(child_id)}\n"
                     f"{self.child_prefix}{child_id}{self._comp_text(r['ChildComps'])}")
+                # kept as text, copied exactly as shown
+                w["child_copy"].setProperty("stim_id", str(child_id))
+                w["child_copy"].setToolTip(f"Copy {child_id} to the clipboard.")
+                w["parent_copy"].setProperty("stim_id", str(parent_id))
+                w["parent_copy"].setToolTip(f"Copy {parent_id} to the clipboard.")
                 self._set_image(w["parent_img"], p_pix, f"{self.parent_label.lower()}\n{parent_id}", size)
                 w["parent_info"].setText(
                     f"{_fmt(p_resp)} ({pct:.0f}% max)\ngen {self._gen_label(parent_id)}\n"
