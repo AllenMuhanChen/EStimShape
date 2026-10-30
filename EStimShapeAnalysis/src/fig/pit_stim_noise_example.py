@@ -53,11 +53,11 @@ def main():
                                    # offered the distractors); or an NAFC StimSpec id
     NOISE_CHANCE = 1.0             # noise amount: peak chance a pixel is noise (0-1).
                                    # None = as the trial used.
-    NOISE_CIRCLES = None           # None = the NAFC trial's noise map; "gui" = place circles by hand
+    NOISE_CIRCLES = "gui"           # None = the NAFC trial's noise map; "gui" = place circles by hand
                                    # in a window; or [(x_deg, y_deg, radius_deg), ...] in screen
                                    # degrees (+y up, (0, 0) = fixation), e.g. as printed by the gui
     N_NOISE_CIRCLES = 2            # how many circles the gui places
-    NOISE_EDGE_SIGMA_DEG = 0.1     # Gaussian fade outside each circle's edge (like xper's
+    NOISE_EDGE_SIGMA_DEG = 0.0     # Gaussian fade outside each circle's edge (like xper's
                                    # truncated-Gaussian noise map); 0 = hard edge
     RANDOM_SEED = None             # int for a reproducible noise pattern, None = new each run
     NAFC_STIMULI_DIR = None        # None = <base_dir>/<nafc_database>/stimuli (searched for pngs)
