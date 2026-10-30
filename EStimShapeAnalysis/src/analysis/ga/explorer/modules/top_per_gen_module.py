@@ -10,8 +10,8 @@ one row per generation and one panel per lineage. Differences:
     before ranking. SHUFFLE and LIGHTING are off by default.
   - Each lineage is drawn as its own panel, all on one shared response color
     scale and the same generation rows, so a panel can be copied on its own
-    ("Copy panel") and the stacked panels are the whole figure ("Copy whole
-    figure").
+    ("Copy panel") or saved as an image file ("Save as..."), and the stacked
+    panels are the whole figure ("Copy whole figure").
   - Border width is a text box (pixels added around the original thumbnail
     before it is scaled to the cell size, as in plot_generations).
   - Optional zoom, the same for every thumbnail: a zoom factor and a zoom
@@ -36,8 +36,8 @@ import os
 from PIL import Image
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtWidgets import (QApplication, QCheckBox, QHBoxLayout, QLabel, QPushButton,
-                             QScrollArea, QSpinBox, QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QFileDialog, QHBoxLayout, QLabel,
+                             QPushButton, QScrollArea, QSpinBox, QVBoxLayout, QWidget)
 
 from src.analysis.ga.explorer.explorer_module import ExplorerModule, Param
 from src.analysis.ga.explorer.ga_data import (DATA_TYPES, load_ga_repository_data,
@@ -249,6 +249,7 @@ class LineagePanelsView(QWidget):
     def __init__(self, parent=None, on_copy_whole=None):
         super().__init__(parent)
         self.images: list[tuple[str, Image.Image]] = []
+        self._save_dir = os.path.expanduser("~")   # last folder used by Save as...
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
 
@@ -306,8 +307,13 @@ class LineagePanelsView(QWidget):
             copy = QPushButton("Copy panel")
             copy.setToolTip(f"Copy only this panel ({title}) as an image.")
             copy.clicked.connect(lambda _c=False, im=img, t=title: self.copy_image(im, t))
+            save = QPushButton("Save as...")
+            save.setToolTip(f"Save only this panel ({title}) as an image file "
+                            "(png, tif or jpg), at full resolution.")
+            save.clicked.connect(lambda _c=False, im=img, t=title: self.save_image(im, t))
             h.addWidget(name)
             h.addWidget(copy)
+            h.addWidget(save)
             h.addStretch(1)
             self.panels.addWidget(header)
             label = QLabel()
@@ -325,6 +331,21 @@ class LineagePanelsView(QWidget):
     def copy_image(self, img: Image.Image, what: str):
         QApplication.clipboard().setImage(pil_to_qimage(img))
         self.message.setText(f"Copied {what} ({img.width}×{img.height} px)")
+
+    def save_image(self, img: Image.Image, what: str):
+        stem = "".join(ch if ch.isalnum() or ch in "-_" else " " for ch in what)
+        default = "_".join(stem.split()) + ".png"   # e.g. Lineage_45001_28_stims.png
+        path, _ = QFileDialog.getSaveFileName(
+            self, f"Save {what}", os.path.join(self._save_dir, default),
+            "PNG image (*.png);;TIFF image (*.tif *.tiff);;JPEG image (*.jpg *.jpeg)")
+        if not path:
+            return
+        if not os.path.splitext(path)[1]:
+            path += ".png"
+        out = img.convert("RGB") if path.lower().endswith((".jpg", ".jpeg")) else img
+        out.save(path)
+        self._save_dir = os.path.dirname(path)
+        self.message.setText(f"Saved {what} to {path} ({img.width}×{img.height} px)")
 
     def _rescale(self, *_):
         if not self._labels:
