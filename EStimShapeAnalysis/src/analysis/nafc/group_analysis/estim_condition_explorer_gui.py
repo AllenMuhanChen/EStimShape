@@ -30,9 +30,9 @@ Left panel:
     inside each — median dot, IQR bar, 1.5 × IQR whiskers — on by default;
     stars, n, points and brackets as for bars), or an effect histogram (effect on the x-axis; one row per
     X-axis value, a column per panel, colours overlaid; counts per condition or
-    per-session mean, set bin width, y as count or % of each histogram's own n
-    so groups of different sizes compare; dashed line at 0; pairs are listed in the
-    stats box rather than drawn), with the permutation test against the stored
+    per-session mean, set bin width and x range (blank = automatic), y as count or
+    % of each histogram's own n so groups of different sizes compare; dashed line
+    at 0; pairs are listed in the stats box rather than drawn), with the permutation test against the stored
     EStimPermutationTests nulls (two-sided / greater / less / off).
   - Stats box (on by default): to the right of the plot, the test used and each
     bar's p-value, plus the pairwise tests (Holm-corrected p) when Compare is on.
@@ -618,6 +618,19 @@ class EstimConditionExplorer(QMainWindow):
                                    "histogram sums to 100%), for groups of "
                                    "different sizes")
         self.hist_y_box.currentIndexChanged.connect(self.schedule_redraw)
+        # effect-axis range of the histograms: blank = automatic
+        self.hist_x_edits = []
+        self.hist_x_row = QWidget()
+        x_row = QHBoxLayout(self.hist_x_row)
+        x_row.setContentsMargins(0, 0, 0, 0)
+        for placeholder in ("min", "max"):
+            edit = QLineEdit()
+            edit.setPlaceholderText(f"{placeholder} (auto)")
+            edit.setToolTip("Effect histogram x-axis range (%); leave blank for "
+                            "automatic")
+            edit.editingFinished.connect(self.schedule_redraw)
+            self.hist_x_edits.append(edit)
+            x_row.addWidget(edit)
         self.hist_unit_box.currentIndexChanged.connect(self.schedule_redraw)
         self.hist_bin_box.valueChanged.connect(self.schedule_redraw)
         self.plot_box.currentIndexChanged.connect(self._plot_mode_changed)
@@ -722,6 +735,7 @@ class EstimConditionExplorer(QMainWindow):
         form.addRow("Distribution of", self.hist_unit_box)
         form.addRow("Histogram bin", self.hist_bin_box)
         form.addRow("Histogram y", self.hist_y_box)
+        form.addRow("Histogram x range", self.hist_x_row)
         form.addRow("Test", self.test_box)
         form.addRow("Points", self.points_box)
         form.addRow("", self.spread_box)
@@ -1241,6 +1255,9 @@ class EstimConditionExplorer(QMainWindow):
             # setting it on one panel sets them all)
             y_lo, y_hi = axes[0, 0].get_ylim()
             axes[0, 0].set_ylim(y_lo, y_hi * (1.1 + 0.12 * len(colors)))
+        x_lo, x_hi = self.hist_x_range()
+        if x_lo is not None or x_hi is not None:
+            axes[0, 0].set_xlim(x_lo, x_hi)  # x is shared: sets every panel
         # the colour legend goes in a row above the grid (see _draw), clear of
         # the n labels
         count = 'sessions' if unit == 'session' else 'conditions'
@@ -1254,6 +1271,17 @@ class EstimConditionExplorer(QMainWindow):
         # one x label, under the middle column
         axes[-1, len(panels) // 2].set_xlabel(self._title('x', 'EStim effect: ON − OFF (%)'),
                                                fontsize=st['axis_label'])
+
+    def hist_x_range(self):
+        """(min, max) typed for the histogram x-axis; None where blank or not a
+        number (that end stays automatic)."""
+        out = []
+        for edit in self.hist_x_edits:
+            try:
+                out.append(float(edit.text()))
+            except ValueError:
+                out.append(None)
+        return tuple(out)
 
     def _dist_unit(self):
         return HIST_UNIT_CHOICES[self.hist_unit_box.currentIndex()][1]
@@ -1270,7 +1298,8 @@ class EstimConditionExplorer(QMainWindow):
         hist = mode == 'hist'
         # distribution settings only show for the plots that use them
         shown = {self.hist_unit_box: mode in ('hist', 'violin'),
-                 self.hist_bin_box: hist, self.hist_y_box: hist}
+                 self.hist_bin_box: hist, self.hist_y_box: hist,
+                 self.hist_x_row: hist}
         shown[self.violin_box_box] = mode == 'violin'
         for w, on in shown.items():
             w.setVisible(on)
@@ -1698,7 +1727,8 @@ class EstimConditionExplorer(QMainWindow):
                      'violin_box': self.violin_box_box.isChecked(),
                      'hist_unit': self.hist_unit_box.currentText(),
                      'hist_bin_width': self.hist_bin_box.value(),
-                     'hist_y': self.hist_y_box.currentText()},
+                     'hist_y': self.hist_y_box.currentText(),
+                     'hist_x_range': list(self.hist_x_range())},
             'style': self.plot_style(),
         }
 
@@ -1750,6 +1780,9 @@ class EstimConditionExplorer(QMainWindow):
             self.violin_box_box.setChecked(bool(plot['violin_box']))
         if 'hist_bin_width' in plot:
             self.hist_bin_box.setValue(float(plot['hist_bin_width']))
+        if 'hist_x_range' in plot:
+            for edit, v in zip(self.hist_x_edits, plot['hist_x_range']):
+                edit.setText("" if v is None else f"{v:g}")
         self._plot_mode_changed()
         for w in widgets:
             w.blockSignals(False)
