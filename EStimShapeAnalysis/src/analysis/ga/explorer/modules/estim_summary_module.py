@@ -365,6 +365,10 @@ class EStimSummaryModule(FigureModule):
                   tooltip="ID: number the dots 1..n (left to right by fitness), each its "
                           "own color, with a table below the plots of what each "
                           "condition is. none: all dots one color."),
+            Param("fitness_x_min", "x min", "float", 0.0, minimum=0.0, maximum=2.0,
+                  step=0.05, live=True, tooltip="Left end of the fitness axis."),
+            Param("fitness_x_max", "x max", "float", 1.03, minimum=0.0, maximum=2.0,
+                  step=0.05, live=True, tooltip="Right end of the fitness axis."),
         ]
 
     def make_figure(self, session, values):
@@ -509,6 +513,13 @@ class EStimSummaryModule(FigureModule):
             print(f"    {cond}: {reason}")
         return group_reasons(reasons)
 
+    @staticmethod
+    def _fitness_xlim(values):
+        """Fitness axis range from x min / x max; (0, 1.03) if they don't make a range
+        (fitness is in (0, 1])."""
+        lo, hi = values.get("fitness_x_min", 0.0), values.get("fitness_x_max", 1.03)
+        return (lo, hi) if hi > lo else (0.0, 1.03)
+
     def _draw_fitness(self, ax, values, d):
         self._style(ax, "EStim effect vs parameter fitness")
         ax.set_xlabel(FITNESS_LABEL, fontsize=15)
@@ -544,12 +555,12 @@ class EStimSummaryModule(FigureModule):
                 ax.scatter(x[on], y[on], color=TRIAL_TYPE_COLORS.get(tt) or next(fallback),
                            s=60, alpha=0.8, zorder=3, label=tt)
         if d["fit"] is not None:
-            xs = np.linspace(0, 1.03, 100)
+            xs = np.linspace(*self._fitness_xlim(values), 100)
             ax.plot(xs, d["fit"].slope * xs + d["fit"].intercept, color="black",
                     linewidth=1.8, zorder=2, label="Linear fit")
         if ax.get_legend_handles_labels()[0]:
             ax.legend(fontsize=12, frameon=False, loc="lower right")
-        ax.set_xlim(0, 1.03)  # fitness is in (0, 1]
+        ax.set_xlim(*self._fitness_xlim(values))
         stats = (f", Spearman ρ = {d['rho']:+.2f} ({_fmt_p(d['p_rho'])})"
                  if d["rho"] is not None else "")
         return (f"fitness: {len(x)} conditions{stats}"
