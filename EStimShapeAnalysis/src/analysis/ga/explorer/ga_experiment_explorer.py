@@ -526,6 +526,7 @@ class GAExperimentExplorer(QMainWindow):
 
     def _set_status(self, text):
         self.statusBar().showMessage(text)
+        self.statusBar().setToolTip(text)  # a long message is cut off; hover shows it all
 
     # -------------------------------------------------------------- settings
     @staticmethod
