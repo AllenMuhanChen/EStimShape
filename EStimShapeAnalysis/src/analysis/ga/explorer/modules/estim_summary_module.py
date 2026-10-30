@@ -37,6 +37,11 @@ avg_estim_per_experiment's 'closest' rule:
   avg_estim_per_experiment.get_spec_ratios). Conditions whose trial type has
   no center, or whose spec has no ratio, are left out of the scatter (count
   in the status bar, with the Spearman correlation of effect vs fitness).
+  Why each one has no fitness is worked out by retracing those steps
+  (spec_fitness_reasons): the first one that fails is the reason. The status
+  bar groups the reasons (hover it for the whole text), the panel lists them
+  when no condition has a fitness, and the console prints one line per
+  condition.
 
 Nothing is written to any database.
 """
@@ -194,6 +199,122 @@ def condition_fitness(cond, ratios, centers):
         return None
     ratio = ratios.get(int(spec))
     return None if ratio is None else 1.0 / (1.0 + abs(ratio - center))
+
+
+def spec_fitness_reasons(session, corr_method):
+    """{estim_spec_id: why that spec has no current / half-distance ratio}, and
+    under key None a reason that applies to the whole session. Cached per
+    session; only asked for when some condition has no fitness."""
+    def load():
+        try:
+            return _diagnose_spec_ratios(session.session_id, corr_method)
+        except Exception as exc:
+            return {None: f"working out why failed ({type(exc).__name__}: {exc})"}
+    return session.get_or_load(("fitness_reasons", corr_method), load)
+
+
+def _diagnose_spec_ratios(session_id, corr_method):
+    """Retrace _fetch_spread step by step (compute_session_half_distance, then
+    current per second) and keep, per spec, the first step that fails."""
+    from clat.util.connection import Connection
+    from src.analysis.channel_data_loaders import ChannelResponseVectorLoader
+    from src.analysis.nafc.group_analysis import plot_current_spread_vs_tuning as spread
+    from src.cluster.cluster_isolation_score import fetch_active_estim_channels_by_spec
+
+    try:
+        metrics, with_data, coords = spread.prepare_session_metrics(
+            session_id, corr_method=corr_method)
+    except Exception as exc:
+        return {None: f"half-distance setup failed ({type(exc).__name__}: {exc})"}
+    if metrics is None:
+        vectors = ChannelResponseVectorLoader(
+            session_id, Connection("allen_data_repository")).load()
+        if not vectors:
+            return {None: "no ga_mean_response rows in ChannelResponseVectors"}
+        return {None: f"fewer than 2 of the {len(vectors)} ChannelResponseVectors "
+                      f"channels match the probe map (names like "
+                      f"{', '.join(sorted(vectors)[:3])})"}
+    corr_metric = next((m for m in metrics if m.name == spread.CORR_METRIC_NAME), None)
+    if corr_metric is None:
+        return {None: f"no '{spread.CORR_METRIC_NAME}' correlation built from the "
+                      "response vectors"}
+    pitch = spread._probe_pitch(coords)
+    return {int(spec): (_half_distance_reason(spread, corr_metric, chans, with_data,
+                                              coords, pitch)
+                        or _current_reason(session_id, spec))
+            for spec, chans in fetch_active_estim_channels_by_spec(session_id).items()}
+
+
+def _half_distance_reason(spread, corr_metric, estim_channels, with_data, coords, pitch):
+    """Why this spec has no correlation half-distance, or None if it has one."""
+    names = lambda chans: ", ".join(c.name.replace("_", "-") for c in chans)
+    no_vector = [c for c in estim_channels if c not in with_data]
+    dists, rhos = spread.pooled_distance_rho_pairs(corr_metric, estim_channels,
+                                                   with_data, coords,
+                                                   exclude_other_estim=True)
+    if len(dists) < 3:
+        if no_vector:
+            return f"EStim channel {names(no_vector)} has no response vector"
+        return "too few channels to correlate the EStim channels with"
+    prof = spread.half_distance_profile(dists, rhos, pitch=pitch)
+    if prof is not None and prof["d_half"] > 0:
+        return None
+    step = pitch if pitch and pitch > 0 else 1.0
+    if len(np.unique(np.floor(np.asarray(dists) / step))) < 3:
+        return "too few distances from the EStim channels for a half-distance"
+    return ("no half-distance: correlation doesn't fall off with distance "
+            "from the EStim channels")
+
+
+def _current_reason(session_id, spec):
+    """Why this spec has no current per second, or None if it has one."""
+    from src.analysis.nafc.estim_hyperparameters import get_base_params, pulse_rate_hz
+    try:
+        raw = get_base_params(session_id, int(spec))
+    except Exception as exc:
+        return f"current lookup failed ({type(exc).__name__}: {exc})"
+    if raw is None:
+        return "no active channel in EStimParameters, so no current per second"
+    missing = [k for k in ("a1", "num_channels") if raw.get(k) is None]
+    if pulse_rate_hz(raw.get("trigger_edge_or_level"), raw.get("pulse_train_period"),
+                     raw.get("post_stim_refractory_period"),
+                     raw.get("post_trigger_delay")) is None:
+        missing.append(f"pulse rate ({raw.get('trigger_edge_or_level')}-triggered, "
+                       f"pulse_train_period {raw.get('pulse_train_period')})")
+    return ("no current per second: missing " + ", ".join(missing)) if missing else None
+
+
+def condition_fitness_reason(cond, ratios, centers, spec_reasons):
+    """Why a condition has no fitness (None if it has one). spec_reasons is a
+    callable returning spec_fitness_reasons, so it is only worked out when needed."""
+    trial_type = cond.get("trial_type")
+    if centers.get(trial_type) is None:
+        return f"trial type {trial_type or '(none)'} has no fitness center"
+    spec = cond.get("estim_spec_id")
+    if spec is None or (isinstance(spec, float) and np.isnan(spec)):
+        return "no EStim spec"
+    if ratios.get(int(spec)) is not None:
+        return None
+    reasons = spec_reasons()
+    if None in reasons:
+        return reasons[None]
+    if int(spec) not in reasons:
+        return "no channel with a1 > 0 in EStimParameters"
+    return reasons[int(spec)] or "ratio missing for an unknown reason (see console)"
+
+
+def group_reasons(reasons):
+    """'3× reason (specs 4, 7); 1× reason' from [(reason, spec), ...], commonest first."""
+    from collections import Counter
+    counts = Counter(r for r, _spec in reasons)
+    parts = []
+    for reason, n in counts.most_common():
+        specs = sorted({int(s) for r, s in reasons if r == reason and s is not None
+                        and not (isinstance(s, float) and np.isnan(s))})
+        tag = f" (spec{'s' if len(specs) > 1 else ''} {', '.join(map(str, specs))})" \
+            if specs and not reason.startswith("trial type") else ""
+        parts.append(f"{n}× {reason}{tag}")
+    return "; ".join(parts)
 
 
 def _fmt_p(p):
@@ -356,6 +477,9 @@ class EStimSummaryModule(FigureModule):
         out = {"n_missing": int((~keep).sum()), "n_total": int(len(x)),
                "corr_method": values["corr_method"], "fit": None, "rho": None,
                "order": list(ESTIM_DISTANCE_CENTERS)}
+        if out["n_missing"]:
+            out["reasons"] = self._missing_reasons(session, values, conds, keep, ratios,
+                                                   ESTIM_DISTANCE_CENTERS)
         if not keep.any():
             out["empty"] = True
             return out
@@ -368,6 +492,23 @@ class EStimSummaryModule(FigureModule):
                 out["fit"] = linregress(out["x"], out["y"])
         return out
 
+    @staticmethod
+    def _missing_reasons(session, values, conds, keep, ratios, centers):
+        """Grouped reasons the conditions without a fitness have none; one line per
+        condition goes to the console."""
+        spec_reasons = lambda: spec_fitness_reasons(session, values["corr_method"])
+        reasons = []
+        print(f"[estim summary] {session.session_id}: conditions without a parameter "
+              f"fitness ({values['corr_method']} half-distance):")
+        for cond, k in zip(conds, keep):
+            if k:
+                continue
+            reason = (condition_fitness_reason(cond, ratios, centers, spec_reasons)
+                      or "fitness not finite")
+            reasons.append((reason, cond.get("estim_spec_id")))
+            print(f"    {cond}: {reason}")
+        return group_reasons(reasons)
+
     def _draw_fitness(self, ax, values, d):
         self._style(ax, "EStim effect vs parameter fitness")
         ax.set_xlabel(FITNESS_LABEL, fontsize=15)
@@ -378,10 +519,14 @@ class EStimSummaryModule(FigureModule):
                     fontsize=12, color="#c0392b", wrap=True)
             return d["error"]
         if d.get("empty"):
-            ax.text(0.5, 0.5, "No parameter fitness for these conditions", ha="center",
+            import textwrap
+            why = "\n".join(textwrap.fill(r, 48) for r in d["reasons"].split("; "))
+            ax.text(0.5, 0.62, "No parameter fitness for these conditions", ha="center",
                     va="center", transform=ax.transAxes, fontsize=14, color="gray")
-            return (f"fitness: none of {d['n_total']} conditions has a fitness (needs "
-                    "Hypothesized/Delta trial type and current / half-distance)")
+            ax.text(0.5, 0.5, why, ha="center", va="top", transform=ax.transAxes,
+                    fontsize=11, color="gray")
+            return (f"fitness: none of {d['n_total']} conditions has a fitness: "
+                    f"{d['reasons']}")
         x, y, types = d["x"], d["y"], d["types"]
         ax.axhline(0, color="black", linewidth=1, zorder=1)
         if "table" in d:
@@ -408,7 +553,8 @@ class EStimSummaryModule(FigureModule):
         stats = (f", Spearman ρ = {d['rho']:+.2f} ({_fmt_p(d['p_rho'])})"
                  if d["rho"] is not None else "")
         return (f"fitness: {len(x)} conditions{stats}"
-                + (f", {d['n_missing']} without a fitness left out" if d["n_missing"] else "")
+                + (f", {d['n_missing']} without a fitness left out: {d['reasons']}"
+                   if d["n_missing"] else "")
                 + f", half-distance from {d['corr_method']}")
 
     @staticmethod
