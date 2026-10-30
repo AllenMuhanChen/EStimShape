@@ -81,7 +81,7 @@ def main():
     EYE_ALPHA = 0.7                # eye opacity (1 = solid, 0 = invisible)
     TWO_ROWS = True                # top row: no EStim (fainter eyes on SPLIT_EYE_CHOICES);
                                    # bottom row: EStim (eye on the match only)
-    SPLIT_EYE_CHOICES = ("match", "distractor_1")  # choices with an eye in the top row
+    SPLIT_EYE_CHOICES = ("match", "distractor_1", "distractor_2")  # choices with an eye in the top row
     SPLIT_EYE_ALPHA = 0.4          # opacity of those eyes
     SHOW_BOLTS = True              # thunderbolt left of each row (no EStim dashed, EStim orange)
     BOLT_SIZE = 0.3                # bolt height as a fraction of the panel height
