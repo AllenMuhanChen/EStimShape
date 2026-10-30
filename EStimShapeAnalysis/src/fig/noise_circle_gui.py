@@ -17,7 +17,7 @@ the circle, a Gaussian fade outside its edge. Two circles are combined with the 
 from __future__ import annotations
 
 import numpy as np
-import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 from matplotlib.widgets import Button, RadioButtons, Slider
 
@@ -62,7 +62,19 @@ def place_noise_circles(sample_rgb: np.ndarray, sample_spec: dict, fixation_xy=N
     circles = [list(c) for c in (initial or [])][:n_circles]
     state = {'active': 0}
 
-    fig = plt.figure(figsize=(9, 8))
+    # its own Qt window (not pyplot), so it opens and blocks whatever matplotlib backend is set,
+    # e.g. PyCharm's plot pane, which shows pyplot figures as static images
+    from PyQt5.QtWidgets import QApplication, QDialog, QVBoxLayout
+    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, NavigationToolbar2QT
+    app = QApplication.instance() or QApplication([])
+    dialog = QDialog()
+    dialog.setWindowTitle("Place noise circles")
+    fig = Figure(figsize=(9, 8))
+    canvas = FigureCanvasQTAgg(fig)
+    toolbar = NavigationToolbar2QT(canvas, dialog)
+    layout = QVBoxLayout(dialog)
+    layout.addWidget(toolbar)
+    layout.addWidget(canvas)
     ax = fig.add_axes([0.05, 0.2, 0.7, 0.75])
     ax.imshow(sample_rgb, interpolation="nearest")
     ax.set_axis_off()
@@ -111,8 +123,7 @@ def place_noise_circles(sample_rgb: np.ndarray, sample_spec: dict, fixation_xy=N
             redraw()
 
     def on_click(event):
-        if event.inaxes is not ax or event.button != 1 or fig.canvas.toolbar is not None and \
-                getattr(fig.canvas.toolbar, 'mode', ''):
+        if event.inaxes is not ax or event.button != 1 or toolbar.mode:
             return  # ignore clicks while the zoom/pan tool is on
         x, y = png_to_deg(event.xdata, event.ydata, sample_spec, shape_hw)
         i = state['active']
@@ -131,12 +142,15 @@ def place_noise_circles(sample_rgb: np.ndarray, sample_spec: dict, fixation_xy=N
 
     radio.on_clicked(on_radio)
     slider.on_changed(on_slider)
-    done.on_clicked(lambda _: plt.close(fig))
-    fig.canvas.mpl_connect('button_press_event', on_click)
-    fig.canvas.mpl_connect('scroll_event', on_scroll)
+    done.on_clicked(lambda _: dialog.accept())
+    canvas.mpl_connect('button_press_event', on_click)
+    canvas.mpl_connect('scroll_event', on_scroll)
     redraw()
-    plt.show(block=True)
+    dialog.resize(900, 850)
+    dialog.exec_()  # blocks until Done or the window is closed
 
+    if not circles:
+        raise RuntimeError("No noise circles were placed; click on the image before pressing Done.")
     result = [tuple(round(float(v), 3) for v in c) for c in circles]
     if len(result) < n_circles:
         print(f"Warning: only {len(result)} of {n_circles} noise circles placed.")
